@@ -1,0 +1,10 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Sistemas.Core.Licensing
+{
+    internal class MachineIdHelper
+    {
+    }
+}

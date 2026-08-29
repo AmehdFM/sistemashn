@@ -1,0 +1,14 @@
+<Solution>
+  <Project Path="Sistemas.Core.Database/Sistemas.Core.Database.sqlproj" Id="e31cb7d8-8077-4a28-810b-5c26d8665185">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Sistemas.Core/Sistemas.Core.csproj" />
+  <Project Path="Sistemas.Mantenimiento/Sistemas.Mantenimiento.csproj" Id="d63ff4e7-7301-48e0-a6ce-e7e5ba271664" />
+  <Project Path="Sistemas.Repuestos.Database/Sistemas.Repuestos.Database.sqlproj" Id="978ca600-164f-412e-8228-903482b9d26a">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Sistemas.Repuestos.Library/Sistemas.Repuestos.Library.csproj" Id="c717ad53-e9db-47d8-a0e5-1de34eeb39bd" />
+  <Project Path="Sistemas.Repuestos/Sistemas.Repuestos.csproj" Id="4547a1d5-5f77-444d-af78-c14d3216a108" />
+</Solution>

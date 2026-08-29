@@ -1,0 +1,17 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+
+# Visual Studio database model
+*.dbmdl
+*.jfm
+
+# Rider
+.idea/
+
+# OS
+*.DS_Store
