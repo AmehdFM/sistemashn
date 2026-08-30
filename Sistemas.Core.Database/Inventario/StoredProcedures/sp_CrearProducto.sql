@@ -10,6 +10,7 @@ CREATE PROCEDURE Inventario.sp_CrearProducto
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
         IF EXISTS (SELECT 1 FROM Inventario.Productos WHERE Codigo = @Codigo)
         BEGIN
@@ -36,7 +37,15 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK;
-        SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje, NULL AS ProductoId;
+
+        -- 2627/2601: violación de índice/constraint único. Puede pasar si
+        -- dos solicitudes crean el mismo Código casi al mismo tiempo (la
+        -- validación de arriba no lo cubre por sí sola, es solo optimización
+        -- para el caso común) — se traduce al mismo mensaje amigable.
+        IF ERROR_NUMBER() IN (2627, 2601)
+            SELECT CAST(0 AS BIT) AS Exito, 'Ya existe un producto con el código especificado' AS Mensaje, NULL AS ProductoId;
+        ELSE
+            SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje, NULL AS ProductoId;
     END CATCH
 END
 GO

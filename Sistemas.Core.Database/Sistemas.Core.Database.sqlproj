@@ -102,6 +102,8 @@
     <Build Include="Inventario\Inventario.sql" />
     <Build Include="Security\StoredProcedures\sp_Login.sql" />
     <Build Include="Security\Security.sql" />
+    <Build Include="Security\StoredProcedures\sp_ObtenerCredencialesLogin.sql" />
+    <Build Include="Security\StoredProcedures\sp_RegistrarResultadoLogin.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="obj\Debug\Sistemas.Core.Database.sqlproj.AssemblyReference.cache" />

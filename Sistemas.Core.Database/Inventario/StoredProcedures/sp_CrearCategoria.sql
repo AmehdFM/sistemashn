@@ -5,7 +5,14 @@ CREATE PROCEDURE Inventario.sp_CrearCategoria
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
+        IF @CategoriaPadreId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Inventario.Categorias WHERE Id = @CategoriaPadreId)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'La categoría padre especificada no existe' AS Mensaje, NULL AS CategoriaId;
+            RETURN;
+        END
+
         IF EXISTS (SELECT 1 FROM Inventario.Categorias WHERE Nombre = @Nombre AND ((CategoriaPadreId = @CategoriaPadreId) OR (CategoriaPadreId IS NULL AND @CategoriaPadreId IS NULL)))
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Ya existe una categoría con el mismo nombre bajo el mismo padre' AS Mensaje, NULL AS CategoriaId;
@@ -31,7 +38,11 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK;
-        SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje, NULL AS CategoriaId;
+
+        IF ERROR_NUMBER() IN (2627, 2601)
+            SELECT CAST(0 AS BIT) AS Exito, 'Ya existe una categoría con el mismo nombre bajo el mismo padre' AS Mensaje, NULL AS CategoriaId;
+        ELSE
+            SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje, NULL AS CategoriaId;
     END CATCH
 END
 GO

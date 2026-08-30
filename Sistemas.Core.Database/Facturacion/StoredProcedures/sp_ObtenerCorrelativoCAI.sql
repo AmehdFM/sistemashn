@@ -1,15 +1,32 @@
+-- ============================================================================
+-- Facturacion.sp_ObtenerCorrelativoCAI
+--
+-- Obtiene el siguiente correlativo de facturación de forma atómica.
+-- UPDLOCK + HOLDLOCK asegura que dos llamadas simultáneas nunca reciban
+-- el mismo correlativo (la segunda espera a que la primera confirme).
+--
+-- Consideraciones on-premise / no debe colgar el sistema:
+--   - LOCK_TIMEOUT: si el bloqueo tarda más de 5 segundos, falla de forma
+--     controlada en vez de dejar la caja esperando indefinidamente.
+--   - XACT_ABORT ON: cualquier error deja la transacción en estado limpio,
+--     no solo los casos que el código anticipa explícitamente.
+--   - Errores inesperados nunca muestran el mensaje técnico crudo de SQL
+--     Server al cajero — se registra en auditoría y se devuelve un mensaje
+--     genérico, con un código de referencia para que soporte lo ubique.
+-- ============================================================================
 CREATE PROCEDURE Facturacion.sp_ObtenerCorrelativoCAI
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    SET LOCK_TIMEOUT 5000; -- 5 segundos; evita espera indefinida en la caja
+
     BEGIN TRY
         BEGIN TRAN;
 
         DECLARE @Id INT, @RangoAutorizado NVARCHAR(40), @CorrelativoActual CHAR(16),
                 @RangoFinal CHAR(16), @FechaVencimiento DATE;
 
-        -- UPDLOCK + HOLDLOCK: bloquea la fila hasta el COMMIT, así una segunda
-        -- llamada simultánea espera en vez de leer el mismo correlativo
         SELECT
             @Id = Id,
             @RangoAutorizado = RangoAutorizado,
@@ -22,21 +39,21 @@ BEGIN
         IF @Id IS NULL
         BEGIN
             ROLLBACK;
-            SELECT CAST(0 AS BIT) AS Exito, 'No hay un CAI activo configurado' AS Mensaje, NULL AS Correlativo;
+            SELECT CAST(0 AS BIT) AS Exito, 'No hay un CAI activo configurado' AS Mensaje, CAST(NULL AS NVARCHAR(60)) AS Correlativo;
             RETURN;
         END
 
-        IF @FechaVencimiento < CAST(GETDATE() AS DATE)
+        IF @FechaVencimiento < CAST(SYSDATETIME() AS DATE)
         BEGIN
             ROLLBACK;
-            SELECT CAST(0 AS BIT) AS Exito, 'El CAI configurado está vencido' AS Mensaje, NULL AS Correlativo;
+            SELECT CAST(0 AS BIT) AS Exito, 'El CAI configurado está vencido' AS Mensaje, CAST(NULL AS NVARCHAR(60)) AS Correlativo;
             RETURN;
         END
 
         IF @CorrelativoActual >= @RangoFinal
         BEGIN
             ROLLBACK;
-            SELECT CAST(0 AS BIT) AS Exito, 'El rango de CAI se agotó, contactar al administrador' AS Mensaje, NULL AS Correlativo;
+            SELECT CAST(0 AS BIT) AS Exito, 'El rango de CAI se agotó, contactar al administrador' AS Mensaje, CAST(NULL AS NVARCHAR(60)) AS Correlativo;
             RETURN;
         END
 
@@ -51,7 +68,29 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK;
-        SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje, NULL AS Correlativo;
+
+        DECLARE @ErrorNumero INT = ERROR_NUMBER();
+        DECLARE @ErrorMsgTecnico NVARCHAR(2000) = ERROR_MESSAGE();
+        DECLARE @RefError NVARCHAR(50) = 'CAI-' + CONVERT(NVARCHAR(30), SYSDATETIME(), 120);
+
+        -- Registrar el detalle técnico en auditoría para que soporte pueda
+        -- investigar; nunca se muestra este texto crudo al usuario final.
+        EXEC Auditoria.sp_RegistrarAuditoria
+            @UsuarioId = NULL,
+            @Accion = 'ERROR_SP',
+            @TablaAfectada = 'Facturacion.ConfiguracionCAI',
+            @RegistroId = @RefError,
+            @Detalle = CONCAT('sp_ObtenerCorrelativoCAI - Error ', @ErrorNumero, ': ', @ErrorMsgTecnico);
+
+        -- 1222 = "Lock request time out period exceeded" -> mensaje específico
+        IF @ErrorNumero = 1222
+            SELECT CAST(0 AS BIT) AS Exito,
+                   'Sistema ocupado procesando otra venta, intente nuevamente' AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS Correlativo;
+        ELSE
+            SELECT CAST(0 AS BIT) AS Exito,
+                   CONCAT('Error interno al generar el correlativo. Referencia: ', @RefError) AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS Correlativo;
     END CATCH
 END
 GO

@@ -5,6 +5,7 @@ CREATE PROCEDURE Inventario.sp_AsignarEtiqueta
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
         IF NOT EXISTS (SELECT 1 FROM Inventario.Productos WHERE Id = @ProductoId)
         BEGIN
@@ -41,7 +42,15 @@ BEGIN
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK;
-        SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje;
+
+        -- Si dos solicitudes asignan la misma etiqueta casi al mismo tiempo,
+        -- la validación de arriba no alcanza a evitar la carrera: tratamos
+        -- la violación de PK como el mismo caso "ya estaba asignada" (éxito
+        -- idempotente), no como un error real.
+        IF ERROR_NUMBER() IN (2627, 2601)
+            SELECT CAST(1 AS BIT) AS Exito, 'El producto ya tiene asignada esta etiqueta' AS Mensaje;
+        ELSE
+            SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje;
     END CATCH
 END
 GO
