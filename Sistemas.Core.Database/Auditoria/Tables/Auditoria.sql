@@ -11,5 +11,7 @@ CREATE TABLE Auditoria.Auditoria (
 GO
 
 CREATE INDEX IX_Auditoria_FechaHora ON Auditoria.Auditoria(FechaHora DESC);
+GO
+
 CREATE INDEX IX_Auditoria_UsuarioId ON Auditoria.Auditoria(UsuarioId);
 GO

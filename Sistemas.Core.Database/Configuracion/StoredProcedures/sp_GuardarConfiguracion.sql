@@ -32,12 +32,17 @@ BEGIN
         END
         ELSE
         BEGIN
-            SET IDENTITY_INSERT Configuracion.Configuracion ON;
+            -- Id no es IDENTITY (defecto B-2): se inserta el literal directo,
+            -- sin SET IDENTITY_INSERT, que exige permiso ALTER que un usuario
+            -- de aplicación con solo EXECUTE no tiene.
             INSERT INTO Configuracion.Configuracion (Id, NombreComercial, RTN, Direccion, Telefono, CorreoContacto, Logo, FechaActualizacion)
             VALUES (1, @NombreComercial, @RTN, @Direccion, @Telefono, @CorreoContacto, @Logo, SYSDATETIME());
-            SET IDENTITY_INSERT Configuracion.Configuracion OFF;
         END
 
+        COMMIT;
+
+        -- Auditoría DESPUÉS del commit (defecto B-9): si falla, la configuración
+        -- ya quedó guardada y no se pierde por un problema de auditoría.
         EXEC Auditoria.sp_RegistrarAuditoria
             @UsuarioId = @UsuarioId,
             @Accion = 'CONFIG_ACTUALIZADA',
@@ -45,7 +50,6 @@ BEGIN
             @RegistroId = '1',
             @Detalle = 'Configuración general actualizada';
 
-        COMMIT;
         SELECT CAST(1 AS BIT) AS Exito, 'Configuración guardada correctamente' AS Mensaje;
     END TRY
     BEGIN CATCH

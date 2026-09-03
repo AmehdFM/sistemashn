@@ -103,11 +103,15 @@ BEGIN
     -- La auditoría del resumen nunca debe impedir que el resultado se devuelva,
     -- aunque falle (ej. problema puntual con Auditoria), por eso va en su propio TRY/CATCH
     BEGIN TRY
+        -- EXEC solo acepta una constante o una variable como valor de
+        -- parámetro, nunca una expresión: hay que resolverla antes.
+        DECLARE @DetalleAuditoria NVARCHAR(500) = CONCAT('Exitosos: ', @TotalExitosos, ', Fallidos: ', @TotalFallidos);
+
         EXEC Auditoria.sp_RegistrarAuditoria
             @UsuarioId = @UsuarioId,
             @Accion = 'IMPORTACION_MASIVA_PRODUCTOS',
             @TablaAfectada = 'Inventario.Productos',
-            @Detalle = CONCAT('Exitosos: ', @TotalExitosos, ', Fallidos: ', @TotalFallidos);
+            @Detalle = @DetalleAuditoria;
     END TRY
     BEGIN CATCH
         -- Silenciado intencionalmente: la importación ya se hizo, un fallo

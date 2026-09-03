@@ -20,5 +20,14 @@ CREATE TABLE Inventario.Productos (
 GO
 
 CREATE INDEX IX_Productos_CategoriaId ON Inventario.Productos(CategoriaId);
-CREATE INDEX IX_Productos_Activo ON Inventario.Productos(Activo);
+GO
+
+-- Reemplaza al antiguo IX_Productos_Activo (defecto C-2): un índice sobre un
+-- BIT con ~95% de filas activas no aporta selectividad y el optimizador
+-- prefiere el scan de todos modos. Este índice filtrado cubre la consulta
+-- real de búsqueda (por Nombre, solo activos) sin necesitar key lookup.
+CREATE INDEX IX_Productos_Activo_Nombre
+    ON Inventario.Productos(Nombre)
+    INCLUDE (Codigo, PrecioUnitario, StockActual, StockMinimo, CategoriaId, TasaISV)
+    WHERE Activo = 1;
 GO

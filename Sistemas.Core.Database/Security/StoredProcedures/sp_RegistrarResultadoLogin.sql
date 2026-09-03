@@ -27,15 +27,20 @@ BEGIN
             WHERE Id = @UsuarioId;
         END
 
+        -- EXEC solo acepta una constante o una variable como valor de
+        -- parámetro, nunca una expresión: hay que resolverla antes.
+        DECLARE @RegistroIdAuditoria NVARCHAR(50) = ISNULL(CAST(@UsuarioId AS NVARCHAR(50)), @NombreUsuarioIntento);
+        DECLARE @DetalleAuditoria NVARCHAR(500) = CASE WHEN @Exito = 1
+                                                        THEN 'Inicio de sesión exitoso'
+                                                        ELSE 'Intento de inicio de sesión fallido'
+                                                   END;
+
         EXEC Auditoria.sp_RegistrarAuditoria
             @UsuarioId      = @UsuarioId,
             @Accion         = 'LOGIN',
             @TablaAfectada  = 'Security.Usuarios',
-            @RegistroId     = ISNULL(CAST(@UsuarioId AS NVARCHAR(50)), @NombreUsuarioIntento),
-            @Detalle        = CASE WHEN @Exito = 1
-                                    THEN 'Inicio de sesión exitoso'
-                                    ELSE 'Intento de inicio de sesión fallido'
-                               END;
+            @RegistroId     = @RegistroIdAuditoria,
+            @Detalle        = @DetalleAuditoria;
 
         SELECT CAST(1 AS BIT) AS Exito;
     END TRY

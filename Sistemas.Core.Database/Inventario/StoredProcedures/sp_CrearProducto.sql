@@ -25,14 +25,22 @@ BEGIN
 
         DECLARE @ProductoId INT = SCOPE_IDENTITY();
 
+        COMMIT;
+
+        -- EXEC solo acepta una constante o una variable como valor de
+        -- parámetro, nunca una expresión: hay que resolverla antes.
+        DECLARE @RegistroIdAuditoria NVARCHAR(50) = CAST(@ProductoId AS NVARCHAR(50));
+        DECLARE @DetalleAuditoria NVARCHAR(500) = 'Producto creado: ' + @Codigo;
+
+        -- Auditoría DESPUÉS del commit (defecto B-9): si falla, el producto
+        -- ya quedó guardado y no se pierde por un problema de auditoría.
         EXEC Auditoria.sp_RegistrarAuditoria
             @UsuarioId = @UsuarioId,
             @Accion = 'CREAR_PRODUCTO',
             @TablaAfectada = 'Inventario.Productos',
-            @RegistroId = CAST(@ProductoId AS NVARCHAR(50)),
-            @Detalle = 'Producto creado: ' + @Codigo;
+            @RegistroId = @RegistroIdAuditoria,
+            @Detalle = @DetalleAuditoria;
 
-        COMMIT;
         SELECT CAST(1 AS BIT) AS Exito, 'Producto creado correctamente' AS Mensaje, @ProductoId AS ProductoId;
     END TRY
     BEGIN CATCH

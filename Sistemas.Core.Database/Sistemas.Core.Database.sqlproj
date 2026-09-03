@@ -80,10 +80,16 @@
   </ItemGroup>
   <ItemGroup>
     <Build Include="Auditoria\StoredProcedures\sp_RegistrarAuditoria.sql" />
+    <Build Include="Auditoria\StoredProcedures\sp_PurgarAuditoria.sql" />
     <Build Include="Auditoria\Tables\Auditoria.sql" />
     <Build Include="Auditoria\Auditoria.sql" />
     <Build Include="Configuracion\StoredProcedures\sp_GuardarConfiguracion.sql" />
+    <Build Include="Configuracion\StoredProcedures\sp_ObtenerLogo.sql" />
+    <Build Include="Configuracion\StoredProcedures\sp_RegistrarResultadoRespaldo.sql" />
+    <Build Include="Configuracion\StoredProcedures\sp_VerificarEstadoSistema.sql" />
     <Build Include="Configuracion\Tables\Configuracion.sql" />
+    <Build Include="Configuracion\Tables\VersionEsquema.sql" />
+    <Build Include="Configuracion\Tables\HistorialRespaldos.sql" />
     <Build Include="Configuracion\Configuracion.sql" />
     <Build Include="Facturacion\Functions\fn_CalcularISV.sql" />
     <Build Include="Facturacion\StoredProcedures\sp_ObtenerCorrelativoCAI.sql" />
@@ -100,7 +106,8 @@
     <Build Include="Inventario\Tables\Productos.sql" />
     <Build Include="Inventario\Types\ProductoTableType.sql" />
     <Build Include="Inventario\Inventario.sql" />
-    <Build Include="Security\StoredProcedures\sp_Login.sql" />
+    <Build Include="Security\Tables\Roles.sql" />
+    <Build Include="Security\Tables\Usuarios.sql" />
     <Build Include="Security\Security.sql" />
     <Build Include="Security\StoredProcedures\sp_ObtenerCredencialesLogin.sql" />
     <Build Include="Security\StoredProcedures\sp_RegistrarResultadoLogin.sql" />

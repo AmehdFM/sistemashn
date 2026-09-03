@@ -30,14 +30,20 @@ BEGIN
         INSERT INTO Inventario.ProductoEtiqueta (ProductoId, EtiquetaId)
         VALUES (@ProductoId, @EtiquetaId);
 
+        COMMIT;
+
+        -- EXEC solo acepta una constante o una variable como valor de
+        -- parámetro, nunca una expresión: hay que resolverla antes.
+        DECLARE @RegistroIdAuditoria NVARCHAR(50) = CAST(@ProductoId AS NVARCHAR(50)) + '-' + CAST(@EtiquetaId AS NVARCHAR(50));
+
+        -- Auditoría DESPUÉS del commit (defecto B-9).
         EXEC Auditoria.sp_RegistrarAuditoria
             @UsuarioId = @UsuarioId,
             @Accion = 'ASIGNAR_ETIQUETA',
             @TablaAfectada = 'Inventario.ProductoEtiqueta',
-            @RegistroId = CAST(@ProductoId AS NVARCHAR(50)) + '-' + CAST(@EtiquetaId AS NVARCHAR(50)),
+            @RegistroId = @RegistroIdAuditoria,
             @Detalle = 'Etiqueta asignada al producto';
 
-        COMMIT;
         SELECT CAST(1 AS BIT) AS Exito, 'Etiqueta asignada correctamente' AS Mensaje;
     END TRY
     BEGIN CATCH
