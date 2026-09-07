@@ -23,6 +23,7 @@ BEGIN
 
     SELECT COUNT(*) AS TotalFilas
     FROM Repuestos.Compras c
-    WHERE (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId);
+    WHERE (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId)
+    OPTION (RECOMPILE);
 END
 GO

@@ -314,6 +314,11 @@ namespace Sistemas.Repuestos.Library.Inventario
                 _gridPrecios.Rows.Clear();
                 foreach (var pr in precios)
                     _gridPrecios.Rows.Add(pr.Nombre, pr.Telefono, pr.PrecioCompra);
+
+                // El combo carga hasta 500 proveedores de una vez: si hay más
+                // activos que eso, se avisa en vez de truncar en silencio.
+                if (proveedores.TotalFilas > proveedores.Terceros.Count)
+                    _lblErrorPrecio.Text = string.Format(Textos.Inventario.AvisoTopeProveedoresFormato, proveedores.TotalFilas);
             }
             catch (Exception ex)
             {

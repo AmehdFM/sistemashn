@@ -92,9 +92,43 @@ namespace Sistemas.Core.Inventory
                 commandType: CommandType.StoredProcedure);
         }
 
+        // Resuelve un lote de códigos de producto en una sola llamada —
+        // mismo patrón TVP que Repuestos.CompraDetalleTableType/
+        // VentaDetalleTableType. Usado por la importación de compras desde
+        // Excel (Sistemas.Repuestos.Library) para no ir a la base una vez
+        // por código. Los códigos que no vengan en el diccionario resultante
+        // no existen.
+        public static async Task<Dictionary<string, ProductoResumenDto>> BuscarPorCodigosAsync(IEnumerable<string> codigos)
+        {
+            var distintos = codigos.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var resultado = new Dictionary<string, ProductoResumenDto>(StringComparer.OrdinalIgnoreCase);
+            if (distintos.Count == 0) return resultado;
+
+            var tabla = new DataTable();
+            tabla.Columns.Add("Codigo", typeof(string));
+            foreach (var codigo in distintos)
+                tabla.Rows.Add(codigo);
+
+            using var conn = ConnectionFactory.CreateConnection();
+            var filas = await conn.QueryAsync(
+                "Inventario.sp_BuscarProductosPorCodigos",
+                new { Codigos = tabla.AsTableValuedParameter("Inventario.CodigoTableType") },
+                commandType: CommandType.StoredProcedure);
+
+            foreach (var fila in filas)
+            {
+                var producto = new ProductoResumenDto((int)fila.Id, (string)fila.Codigo, (string)fila.Nombre, (decimal)fila.PrecioUnitario);
+                resultado[producto.Codigo] = producto;
+            }
+
+            return resultado;
+        }
+
         public static async Task<ResultadoImportacionDto> ImportarDesdeExcelAsync(string rutaArchivo, int usuarioId)
         {
-            var (coincide, error, filas) = ExcelExporter.LeerHoja(rutaArchivo, EncabezadosImportacion);
+            // Síncrono (ClosedXML no tiene API async): se envuelve en
+            // Task.Run para no bloquear el hilo de UI mientras parsea.
+            var (coincide, error, filas) = await Task.Run(() => ExcelExporter.LeerHoja(rutaArchivo, EncabezadosImportacion));
             if (!coincide)
             {
                 return new ResultadoImportacionDto { Exito = false, Mensaje = error ?? "El archivo no tiene la estructura esperada" };
@@ -110,6 +144,34 @@ namespace Sistemas.Core.Inventory
             tabla.Columns.Add("StockMinimo", typeof(int));
 
             var erroresPrevios = new List<DetalleImportacionDto>();
+
+            // Resolución en lote de categorías (fix N+1): antes se llamaba
+            // CategoryService.ObtenerOCrearPorNombreAsync dentro del foreach
+            // de abajo, un round-trip a SQL Server por cada fila con
+            // categoría. Ahora se sacan los nombres DISTINTOS no vacíos del
+            // archivo, se resuelven las existentes en una sola query y se
+            // crean solo las que faltan (normalmente pocas) — el foreach de
+            // filas solo hace lookup en el diccionario ya armado.
+            var nombresCategoria = filas
+                .Select(f => f[4])
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .Select(n => n!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var categoriasPorNombre = await CategoryService.ObtenerPorNombresAsync(nombresCategoria);
+            var categoriasFallidas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var nombreCategoria in nombresCategoria)
+            {
+                if (categoriasPorNombre.ContainsKey(nombreCategoria)) continue;
+
+                var (exitoCat, mensajeCat, idCat) = await CategoryService.CrearAsync(nombreCategoria, null, usuarioId);
+                if (exitoCat && idCat.HasValue)
+                    categoriasPorNombre[nombreCategoria] = idCat.Value;
+                else
+                    categoriasFallidas[nombreCategoria] = mensajeCat;
+            }
 
             foreach (var fila in filas)
             {
@@ -135,13 +197,17 @@ namespace Sistemas.Core.Inventory
                 int? categoriaId = null;
                 if (!string.IsNullOrWhiteSpace(fila[4]))
                 {
-                    var (exitoCat, mensajeCat, idCat) = await CategoryService.ObtenerOCrearPorNombreAsync(fila[4]!, usuarioId);
-                    if (!exitoCat)
+                    var nombreCategoria = fila[4]!.Trim();
+                    if (categoriasPorNombre.TryGetValue(nombreCategoria, out var idCat))
                     {
+                        categoriaId = idCat;
+                    }
+                    else
+                    {
+                        var mensajeCat = categoriasFallidas.TryGetValue(nombreCategoria, out var m) ? m : "categoría desconocida";
                         erroresPrevios.Add(new DetalleImportacionDto { Codigo = codigo, Exito = false, Mensaje = "No se pudo resolver la categoría: " + mensajeCat });
                         continue;
                     }
-                    categoriaId = idCat;
                 }
 
                 decimal? tasaIsv = null;

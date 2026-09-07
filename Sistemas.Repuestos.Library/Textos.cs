@@ -118,6 +118,7 @@ namespace Sistemas.Repuestos.Library
             public const string BotonCerrar = "Cerrar";
             public const string NoSeCargoDetalleRepuestoPrefijo = "No se pudo cargar el detalle de repuesto: ";
             public const string NoSeGuardoPrecioPrefijo = "No se pudo guardar el precio: ";
+            public const string AvisoTopeProveedoresFormato = "Mostrando los primeros 500 de {0} proveedores; use el buscador para encontrar el resto.";
         }
 
         // Campos y mensajes compartidos entre las vistas "Proveedores" y
@@ -172,6 +173,21 @@ namespace Sistemas.Repuestos.Library
             public const string NoSeCargaronProveedoresPrefijo = "No se pudieron cargar los proveedores: ";
             public const string BotonNuevaCompra = "Nueva compra";
             public const string BotonActualizar = "Actualizar";
+            public const string AvisoTopeProveedoresFormato = "Mostrando los primeros 500 de {0} proveedores; use el buscador para encontrar el resto.";
+
+            public const string BotonImportarExcel = "Importar Excel";
+            public const string BotonExportarExcel = "Exportar Excel";
+            public const string BotonDescargarPlantilla = "Descargar plantilla";
+            public const string ImportarTituloVentana = "Importar compras desde Excel";
+            public const string ImportarInstruccionesPrefijo = "Seleccione un archivo .xlsx con las columnas exactas: ";
+            public const string EstadoImportando = "Importando...";
+            public const string NoSePudoImportarPrefijo = "No se pudo importar: ";
+            public const string TituloExportar = "Exportar";
+            public const string FormatoExportoOk = "Se exportaron {0} compra(s) a {1}";
+            public const string NoSePudoExportarPrefijo = "No se pudo exportar: ";
+            public const string TituloPlantilla = "Plantilla";
+            public const string PlantillaGeneradaEnPrefijo = "Plantilla generada en ";
+            public const string NoSeGeneroPlantillaPrefijo = "No se pudo generar la plantilla: ";
         }
 
         // Pantalla de facturación rápida (carrito + cobro + impresión). Es
@@ -189,6 +205,7 @@ namespace Sistemas.Repuestos.Library
             public const string CampoCliente = "Cliente";
             public const string ErrorSeleccioneClienteCredito = "Seleccione un cliente para venta a crédito";
             public const string NoSeCargaronClientesPrefijo = "No se pudieron cargar los clientes: ";
+            public const string AvisoTopeClientesFormato = "Mostrando los primeros 500 de {0} clientes; use el buscador para encontrar el resto.";
             public const string FormatoTotal = "Total: L. {0:N2}";
             public const string BotonCobrar = "Cobrar";
             public const string ErrorCarritoVacio = "El carrito está vacío";
@@ -240,6 +257,10 @@ namespace Sistemas.Repuestos.Library
             public const string ErrorIndiqueMotivoAnulacion = "Indique el motivo de la anulación";
             public const string ConfirmarAnularFormato = "¿Anular la factura {0} por L. {1:N2}? Esta acción restaura el stock vendido.";
             public const string NoSeAnuloPrefijo = "No se pudo anular: ";
+            public const string BotonExportarExcel = "Exportar Excel";
+            public const string TituloExportar = "Exportar";
+            public const string FormatoExportoOk = "Se exportaron {0} venta(s) a {1}";
+            public const string NoSePudoExportarPrefijo = "No se pudo exportar: ";
         }
 
         public static class Cuentas

@@ -37,7 +37,9 @@ namespace Sistemas.Repuestos.Library.Ventas
             btnBuscar.Click += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
             _chkSoloVigentes = new CheckBox { Text = Textos.Ventas.CampoSoloVigentes, AutoSize = true, Location = new Point(380, 25), Checked = true };
             _chkSoloVigentes.CheckedChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
-            pnlTop.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, btnBuscar, _chkSoloVigentes });
+            var btnExportar = new Button { Text = Textos.Ventas.BotonExportarExcel, Location = new Point(600, 21), Size = new Size(130, 28) };
+            btnExportar.Click += BtnExportar_Click;
+            pnlTop.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, btnBuscar, _chkSoloVigentes, btnExportar });
 
             _grid = new DataGridView();
             GridStyler.Aplicar(_grid);
@@ -81,6 +83,23 @@ namespace Sistemas.Repuestos.Library.Ventas
             catch (Exception ex)
             {
                 _lblError.Text = Textos.Comun.NoSeConectoBdPrefijo + ex.Message;
+            }
+        }
+
+        private async void BtnExportar_Click(object? sender, EventArgs e)
+        {
+            using var dialogo = new SaveFileDialog { Filter = Textos.Comun.FiltroExcel, FileName = "ventas.xlsx" };
+            if (dialogo.ShowDialog(FindForm()) != DialogResult.OK) return;
+
+            try
+            {
+                var numeroFactura = string.IsNullOrWhiteSpace(_txtBuscar.Text) ? null : _txtBuscar.Text.Trim();
+                var filas = await VentaService.ExportarAExcelAsync(numeroFactura, _chkSoloVigentes.Checked, dialogo.FileName);
+                MessageBox.Show(FindForm(), string.Format(Textos.Ventas.FormatoExportoOk, filas, dialogo.FileName), Textos.Ventas.TituloExportar);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(FindForm(), Textos.Ventas.NoSePudoExportarPrefijo + ex.Message, Sistemas.Core.UI.Textos.Comun.TituloError, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

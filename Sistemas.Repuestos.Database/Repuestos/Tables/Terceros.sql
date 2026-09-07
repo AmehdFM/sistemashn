@@ -15,3 +15,19 @@ CREATE TABLE Repuestos.Terceros (
     CONSTRAINT CK_Terceros_AlMenosUnRol CHECK (EsProveedor = 1 OR EsCliente = 1)
 );
 GO
+
+-- Mismo patrón que IX_Productos_Activo_Nombre: índice filtrado sobre la
+-- columna de orden, para la combinación filtro-por-rol + orden-por-nombre
+-- que hace sp_ListarProveedores, sin necesitar key lookup.
+CREATE INDEX IX_Terceros_EsProveedor_Nombre
+    ON Repuestos.Terceros(Nombre)
+    INCLUDE (Empresa, Correo, Telefono, RTN, EsProveedor, EsCliente, Activo)
+    WHERE EsProveedor = 1;
+GO
+
+-- Mismo patrón, para sp_ListarClientes.
+CREATE INDEX IX_Terceros_EsCliente_Nombre
+    ON Repuestos.Terceros(Nombre)
+    INCLUDE (Empresa, Correo, Telefono, RTN, EsProveedor, EsCliente, Activo)
+    WHERE EsCliente = 1;
+GO

@@ -204,7 +204,7 @@ namespace Sistemas.Repuestos.Library.Ventas
                 ReciboPrinter.Imprimir(nombreNegocio, _ultimaFactura, _ultimaFecha, _ultimoTotal, _ultimasLineas, _ultimoEfectivoRecibido, _ultimoVuelto);
             };
             var btnNuevaVenta = new Button { Text = Textos.Pos.BotonNuevaVenta, Location = new Point(196, 210), Size = new Size(140, 34) };
-            btnNuevaVenta.Click += (s, e) => MostrarPanelVenta();
+            btnNuevaVenta.Click += async (s, e) => await MostrarPanelVenta();
 
             _pnlResultado.Controls.AddRange(new Control[] { _lblResumenFactura, btnImprimir, btnNuevaVenta });
 
@@ -244,10 +244,17 @@ namespace Sistemas.Repuestos.Library.Ventas
         {
             try
             {
-                var (clientes, _) = await TerceroService.ListarClientesAsync(true, null, 1, 500);
+                var (clientes, totalClientes) = await TerceroService.ListarClientesAsync(true, null, 1, 500);
                 _cboCliente.DataSource = clientes;
                 if (seleccionarId.HasValue)
                     _cboCliente.SelectedValue = seleccionarId.Value;
+
+                // El combo carga hasta 500 filas de una vez: si el negocio
+                // tiene más clientes activos que eso, se avisa en vez de
+                // truncar en silencio (el resto sigue accesible por el
+                // buscador de la pantalla de Clientes).
+                if (totalClientes > clientes.Count)
+                    _lblError.Text = string.Format(Textos.Pos.AvisoTopeClientesFormato, totalClientes);
             }
             catch (Exception ex)
             {
@@ -453,7 +460,7 @@ namespace Sistemas.Repuestos.Library.Ventas
             }
         }
 
-        private async void MostrarPanelVenta()
+        private async System.Threading.Tasks.Task MostrarPanelVenta()
         {
             _carrito.Clear();
             _chkEsCredito.Checked = false;

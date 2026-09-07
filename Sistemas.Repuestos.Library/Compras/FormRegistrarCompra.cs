@@ -136,8 +136,13 @@ namespace Sistemas.Repuestos.Library.Compras
         {
             try
             {
-                var (proveedores, _) = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
+                var (proveedores, totalProveedores) = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
                 _cboProveedor.DataSource = proveedores;
+
+                // El combo carga hasta 500 proveedores de una vez: si hay más
+                // activos que eso, se avisa en vez de truncar en silencio.
+                if (totalProveedores > proveedores.Count)
+                    _lblError.Text = string.Format(Textos.Compras.AvisoTopeProveedoresFormato, totalProveedores);
             }
             catch (Exception ex)
             {
