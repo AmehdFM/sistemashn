@@ -7,6 +7,7 @@ using Sistemas.Core.Inventory;
 using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
+using Sistemas.Repuestos.Library.Caja;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 using Sistemas.Repuestos.Library.Terceros;
@@ -29,9 +30,14 @@ namespace Sistemas.Repuestos.Library.Ventas
         private readonly ComboBox _cboCliente;
         private readonly CheckBox _chkEsCredito;
         private readonly NumericUpDown _numDiasCredito;
+        private readonly ComboBox _cboMetodoPago;
         private readonly Label _lblTotal;
         private readonly Label _lblError;
         private readonly Button _btnCobrar;
+
+        private readonly Panel _pnlAvisoCaja;
+        private readonly Label _lblAvisoCaja;
+        private readonly Button _btnAbrirCajaDesdePos;
 
         private readonly Panel _pnlResultado;
         private readonly Label _lblResumenFactura;
@@ -39,6 +45,8 @@ namespace Sistemas.Repuestos.Library.Ventas
         private string? _ultimaFactura;
         private DateTime _ultimaFecha;
         private decimal _ultimoTotal;
+        private decimal? _ultimoEfectivoRecibido;
+        private decimal? _ultimoVuelto;
         private System.Collections.Generic.List<LineaCarritoDto> _ultimasLineas = new();
 
         public PosControl()
@@ -53,7 +61,7 @@ namespace Sistemas.Repuestos.Library.Ventas
 
             var lblBuscar = new Label { Text = Textos.Pos.CampoBuscarProducto, AutoSize = true, Location = new Point(16, 8) };
             _txtBuscar = new TextBox { Location = new Point(16, 28), Size = new Size(220, 26) };
-            _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarAsync(); } };
+            _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarOEscanearAsync(); } };
 
             // Y=8 (alineado con lblBuscar), no Y=32: el texto largo del
             // checkbox ("Buscar por número equivalente (OEM)") se extiende
@@ -85,6 +93,16 @@ namespace Sistemas.Repuestos.Library.Ventas
 
             pnlBusqueda.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, _chkPorEquivalencia, btnBuscar, _cboResultado, lblCantidad, _numCantidad, btnAgregar });
 
+            // ================= Aviso de caja cerrada =================
+            // Oculto por defecto; se muestra en el Load si no hay sesión de
+            // caja abierta y bloquea el cobro hasta que se abra ahí mismo.
+            _pnlAvisoCaja = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = UiTheme.ErrorFondo, Visible = false };
+            _lblAvisoCaja = new Label { Text = Textos.Pos.AvisoCajaCerrada, AutoSize = true, ForeColor = UiTheme.Error, Location = new Point(16, 14) };
+            _btnAbrirCajaDesdePos = new Button { Text = Textos.Pos.BotonAbrirCajaDesdePos, Location = new Point(460, 8), Size = new Size(120, 28), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            _btnAbrirCajaDesdePos.FlatAppearance.BorderSize = 0;
+            _btnAbrirCajaDesdePos.Click += BtnAbrirCajaDesdePos_Click;
+            _pnlAvisoCaja.Controls.AddRange(new Control[] { _lblAvisoCaja, _btnAbrirCajaDesdePos });
+
             _gridCarrito = new DataGridView { DataSource = _carrito };
             GridStyler.Aplicar(_gridCarrito);
             _gridCarrito.AutoGenerateColumns = false;
@@ -94,7 +112,11 @@ namespace Sistemas.Repuestos.Library.Ventas
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.PrecioUnitarioReferencial), HeaderText = "Precio", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.SubtotalReferencial), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
 
-            var pnlPago = new Panel { Dock = DockStyle.Bottom, Height = 140, BackColor = Color.White };
+            // Height = 176 (antes 140): la fila de _cboMetodoPago se agregó
+            // en Y=8/Y=44 al lado de cliente/crédito, y _lblError/_btnCobrar
+            // se corrieron hacia abajo — con margen extra para no repetir
+            // los bugs de layout de revisiones anteriores.
+            var pnlPago = new Panel { Dock = DockStyle.Bottom, Height = 176, BackColor = Color.White };
             var btnQuitarLinea = new Button { Text = Textos.Pos.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(110, 28) };
             btnQuitarLinea.Click += (s, e) =>
             {
@@ -114,19 +136,24 @@ namespace Sistemas.Repuestos.Library.Ventas
             var btnNuevoCliente = new Button { Text = "+", Location = new Point(380, 8), Size = new Size(28, 28) };
             btnNuevoCliente.Click += BtnNuevoCliente_Click;
 
-            _chkEsCredito = new CheckBox { Text = Textos.Pos.CampoVentaCredito, AutoSize = true, Location = new Point(16, 46) };
+            var lblMetodoPago = new Label { Text = Textos.Pos.CampoMetodoPago, AutoSize = true, Location = new Point(420, 13) };
+            _cboMetodoPago = new ComboBox { Location = new Point(420, 33), Size = new Size(140, 26), DropDownStyle = ComboBoxStyle.DropDownList };
+            _cboMetodoPago.Items.AddRange(new object[] { Textos.Pos.MetodoPagoEfectivo, Textos.Pos.MetodoPagoTarjeta, Textos.Pos.MetodoPagoTransferencia });
+            _cboMetodoPago.SelectedItem = Textos.Pos.MetodoPagoEfectivo;
+
+            _chkEsCredito = new CheckBox { Text = Textos.Pos.CampoVentaCredito, AutoSize = true, Location = new Point(16, 68) };
             _chkEsCredito.CheckedChanged += (s, e) => _numDiasCredito.Enabled = _chkEsCredito.Checked;
-            var lblDias = new Label { Text = Textos.Pos.CampoDiasCredito, AutoSize = true, Location = new Point(150, 48) };
-            _numDiasCredito = new NumericUpDown { Location = new Point(230, 46), Size = new Size(60, 26), Minimum = 1, Maximum = 365, Value = 15, Enabled = false };
+            var lblDias = new Label { Text = Textos.Pos.CampoDiasCredito, AutoSize = true, Location = new Point(150, 70) };
+            _numDiasCredito = new NumericUpDown { Location = new Point(230, 68), Size = new Size(60, 26), Minimum = 1, Maximum = 365, Value = 15, Enabled = false };
 
-            _lblTotal = new Label { Text = string.Format(Textos.Pos.FormatoTotal, 0m), AutoSize = true, Location = new Point(450, 44), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
+            _lblTotal = new Label { Text = string.Format(Textos.Pos.FormatoTotal, 0m), AutoSize = true, Location = new Point(420, 70), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 30), Location = new Point(16, 78) };
+            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 40), Location = new Point(16, 104) };
 
             _btnCobrar = new Button
             {
                 Text = Textos.Pos.BotonCobrar,
-                Location = new Point(16, 108),
+                Location = new Point(16, 144),
                 Size = new Size(140, 30),
                 BackColor = UiTheme.Primario,
                 ForeColor = Color.White,
@@ -137,12 +164,13 @@ namespace Sistemas.Repuestos.Library.Ventas
 
             pnlPago.Controls.AddRange(new Control[]
             {
-                btnQuitarLinea, lblCliente, _cboCliente, btnNuevoCliente,
+                btnQuitarLinea, lblCliente, _cboCliente, btnNuevoCliente, lblMetodoPago, _cboMetodoPago,
                 _chkEsCredito, lblDias, _numDiasCredito, _lblTotal, _lblError, _btnCobrar
             });
 
             _pnlVenta.Controls.Add(_gridCarrito);
             _pnlVenta.Controls.Add(pnlPago);
+            _pnlVenta.Controls.Add(_pnlAvisoCaja);
             _pnlVenta.Controls.Add(pnlBusqueda);
 
             // ================= Panel de resultado =================
@@ -173,7 +201,7 @@ namespace Sistemas.Repuestos.Library.Ventas
                     nombreNegocio = Textos.Pos.FacturaVentaGenerico;
                 }
 
-                ReciboPrinter.Imprimir(nombreNegocio, _ultimaFactura, _ultimaFecha, _ultimoTotal, _ultimasLineas);
+                ReciboPrinter.Imprimir(nombreNegocio, _ultimaFactura, _ultimaFecha, _ultimoTotal, _ultimasLineas, _ultimoEfectivoRecibido, _ultimoVuelto);
             };
             var btnNuevaVenta = new Button { Text = Textos.Pos.BotonNuevaVenta, Location = new Point(196, 210), Size = new Size(140, 34) };
             btnNuevaVenta.Click += (s, e) => MostrarPanelVenta();
@@ -183,7 +211,33 @@ namespace Sistemas.Repuestos.Library.Ventas
             Controls.Add(_pnlVenta);
             Controls.Add(_pnlResultado);
 
-            Load += async (s, e) => await CargarClientesAsync(null);
+            Load += async (s, e) =>
+            {
+                await CargarClientesAsync(null);
+                await VerificarCajaAsync();
+            };
+        }
+
+        private async System.Threading.Tasks.Task VerificarCajaAsync()
+        {
+            try
+            {
+                var sesionAbierta = await CajaService.ObtenerAbiertaAsync();
+                var hayCaja = sesionAbierta != null;
+                _pnlAvisoCaja.Visible = !hayCaja;
+                _btnCobrar.Enabled = hayCaja;
+            }
+            catch (Exception ex)
+            {
+                _lblError.Text = Textos.Pos.NoSeVerificoCajaPrefijo + ex.Message;
+            }
+        }
+
+        private async void BtnAbrirCajaDesdePos_Click(object? sender, EventArgs e)
+        {
+            using var form = new FormAbrirCaja();
+            if (form.ShowDialog(FindForm()) == DialogResult.OK)
+                await VerificarCajaAsync();
         }
 
         private async System.Threading.Tasks.Task CargarClientesAsync(int? seleccionarId)
@@ -206,6 +260,39 @@ namespace Sistemas.Repuestos.Library.Ventas
             using var form = new FormTercero(null, rolProveedorPorDefecto: false);
             if (form.ShowDialog(FindForm()) == DialogResult.OK && form.TerceroIdGuardado.HasValue)
                 await CargarClientesAsync(form.TerceroIdGuardado);
+        }
+
+        // Intenta primero un match exacto de código de barras/código (para
+        // que un lector USB, que solo "teclea" el código + Enter, agregue
+        // directo al carrito sin hardware especial). Si no hay match exacto
+        // — o si el cajero está buscando por equivalencia OEM, modo que no
+        // se toca — cae al comportamiento de búsqueda parcial de siempre.
+        private async System.Threading.Tasks.Task BuscarOEscanearAsync()
+        {
+            var busqueda = _txtBuscar.Text.Trim();
+            if (busqueda.Length == 0) return;
+
+            if (!_chkPorEquivalencia.Checked)
+            {
+                try
+                {
+                    var producto = await ProductService.BuscarPorCodigoExactoAsync(busqueda);
+                    if (producto != null)
+                    {
+                        AgregarProductoAlCarrito(producto.Id, producto.Codigo, producto.Nombre, producto.PrecioUnitario, producto.TasaISV, (int)_numCantidad.Value);
+                        _txtBuscar.Clear();
+                        _lblError.Text = string.Empty;
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _lblError.Text = Textos.Comun.NoSePudoBuscarPrefijo + ex.Message;
+                    return;
+                }
+            }
+
+            await BuscarAsync();
         }
 
         private async System.Threading.Tasks.Task BuscarAsync()
@@ -253,7 +340,15 @@ namespace Sistemas.Repuestos.Library.Ventas
                     return;
             }
 
-            var cantidad = (int)_numCantidad.Value;
+            AgregarProductoAlCarrito(productoId, codigo, nombre, precio, tasaIsv, (int)_numCantidad.Value);
+            _lblError.Text = string.Empty;
+        }
+
+        // Mismo camino que usa BtnAgregar_Click para sumar/crear línea —
+        // también lo usa el escaneo/tipeo de código de barras en
+        // BuscarOEscanearAsync.
+        private void AgregarProductoAlCarrito(int productoId, string codigo, string nombre, decimal precio, decimal tasaIsv, int cantidad)
+        {
             var existente = _carrito.FirstOrDefault(l => l.ProductoId == productoId);
             if (existente != null)
             {
@@ -273,7 +368,6 @@ namespace Sistemas.Repuestos.Library.Ventas
                 });
             }
 
-            _lblError.Text = string.Empty;
             ActualizarTotal();
         }
 
@@ -299,21 +393,44 @@ namespace Sistemas.Repuestos.Library.Ventas
                 return;
             }
 
+            var metodoPago = (string)_cboMetodoPago.SelectedItem!;
+            decimal? efectivoRecibido = null;
+
+            // Solo el método Efectivo pasa por la calculadora de cambio —
+            // Tarjeta/Transferencia se registran directo, sin modal, con
+            // EfectivoRecibido en null (no afectan el cálculo de caja).
+            if (metodoPago == Textos.Pos.MetodoPagoEfectivo)
+            {
+                var totalEstimado = _carrito.Sum(l => l.SubtotalReferencial) + _carrito.Sum(l => l.SubtotalReferencial * l.TasaISVReferencial / 100m);
+                using var formCobro = new FormCobroEfectivo(totalEstimado);
+                if (formCobro.ShowDialog(FindForm()) != DialogResult.OK)
+                    return; // El cajero canceló: no se cobra nada.
+
+                efectivoRecibido = formCobro.EfectivoRecibido;
+            }
+
             _btnCobrar.Enabled = false;
             try
             {
-                var (exito, mensaje, numeroFactura, total) = await VentaService.RegistrarAsync(
+                var (exito, mensaje, numeroFactura, total, efectivoRecibidoConfirmado, vuelto) = await VentaService.RegistrarAsync(
                     _carrito.ToList(),
                     _chkEsCredito.Checked,
                     _chkEsCredito.Checked ? (int)_numDiasCredito.Value : null,
                     SessionContext.Current?.UsuarioId ?? 0,
-                    clienteId);
+                    clienteId,
+                    metodoPago,
+                    efectivoRecibido);
 
                 if (exito && numeroFactura != null && total.HasValue)
                 {
                     _ultimaFactura = numeroFactura;
                     _ultimaFecha = DateTime.Now;
                     _ultimoTotal = total.Value;
+                    // El efectivo recibido/vuelto que se guarda para el
+                    // recibo es el que devolvió sp_RegistrarVenta — nunca el
+                    // que calculó FormCobroEfectivo en pantalla.
+                    _ultimoEfectivoRecibido = efectivoRecibidoConfirmado;
+                    _ultimoVuelto = vuelto;
                     _ultimasLineas = _carrito.ToList();
 
                     _lblResumenFactura.Text = string.Format(Textos.Pos.ResumenFacturaFormato, numeroFactura, _ultimaFecha, total.Value);
@@ -336,15 +453,17 @@ namespace Sistemas.Repuestos.Library.Ventas
             }
         }
 
-        private void MostrarPanelVenta()
+        private async void MostrarPanelVenta()
         {
             _carrito.Clear();
             _chkEsCredito.Checked = false;
             _cboCliente.SelectedIndex = -1;
+            _cboMetodoPago.SelectedItem = Textos.Pos.MetodoPagoEfectivo;
             _lblError.Text = string.Empty;
             ActualizarTotal();
             _pnlResultado.Visible = false;
             _pnlVenta.Visible = true;
+            await VerificarCajaAsync();
         }
     }
 }

@@ -21,6 +21,7 @@ namespace Sistemas.Repuestos.Library.Inventario
         private readonly int? _categoriaIdInicial;
 
         private readonly TextBox _txtCodigo;
+        private readonly TextBox _txtCodigoBarra;
         private readonly TextBox _txtNombre;
         private readonly TextBox _txtDescripcion;
         private readonly NumericUpDown _numPrecio;
@@ -81,34 +82,41 @@ namespace Sistemas.Repuestos.Library.Inventario
             var lblDescripcion = new Label { Text = Textos.Inventario.CampoDescripcion, AutoSize = true, Location = new Point(20, 74) };
             _txtDescripcion = new TextBox { Location = new Point(20, 94), Size = new Size(580, 50), Multiline = true };
 
-            var lblPrecio = new Label { Text = Textos.Inventario.CampoPrecioUnitario, AutoSize = true, Location = new Point(20, 156) };
-            _numPrecio = new NumericUpDown { Location = new Point(20, 176), Size = new Size(140, 26), DecimalPlaces = 2, Maximum = 999999, ThousandsSeparator = true };
+            // Fila nueva de código de barras, debajo de la descripción — el
+            // resto de las filas (precio en adelante) se corrió 40px hacia
+            // abajo para hacerle espacio, con margen extra al final para no
+            // repetir los bugs de layout de revisiones anteriores.
+            var lblCodigoBarra = new Label { Text = Textos.Inventario.CampoCodigoBarra, AutoSize = true, Location = new Point(20, 156) };
+            _txtCodigoBarra = new TextBox { Location = new Point(20, 176), Size = new Size(220, 26) };
 
-            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, AutoSize = true, Location = new Point(180, 156) };
+            var lblPrecio = new Label { Text = Textos.Inventario.CampoPrecioUnitario, AutoSize = true, Location = new Point(20, 216) };
+            _numPrecio = new NumericUpDown { Location = new Point(20, 236), Size = new Size(140, 26), DecimalPlaces = 2, Maximum = 999999, ThousandsSeparator = true };
+
+            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, AutoSize = true, Location = new Point(180, 216) };
             _cboCategoria = new ComboBox
             {
-                Location = new Point(180, 176), Size = new Size(300, 26), DropDownStyle = ComboBoxStyle.DropDownList,
+                Location = new Point(180, 236), Size = new Size(300, 26), DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(CategoriaDto.Nombre), ValueMember = nameof(CategoriaDto.Id)
             };
-            var btnNuevaCategoria = new Button { Text = "+", Location = new Point(486, 175), Size = new Size(30, 26) };
+            var btnNuevaCategoria = new Button { Text = "+", Location = new Point(486, 235), Size = new Size(30, 26) };
             btnNuevaCategoria.Click += BtnNuevaCategoria_Click;
 
-            var lblTasaIsv = new Label { Text = Textos.Inventario.CampoTasaIsv, AutoSize = true, Location = new Point(20, 216) };
-            _cboTasaIsv = new ComboBox { Location = new Point(20, 236), Size = new Size(100, 26), DropDownStyle = ComboBoxStyle.DropDownList };
+            var lblTasaIsv = new Label { Text = Textos.Inventario.CampoTasaIsv, AutoSize = true, Location = new Point(20, 276) };
+            _cboTasaIsv = new ComboBox { Location = new Point(20, 296), Size = new Size(100, 26), DropDownStyle = ComboBoxStyle.DropDownList };
             _cboTasaIsv.Items.AddRange(new object[] { "0", "15", "18" });
             _cboTasaIsv.SelectedItem = "15";
 
-            var lblStockMinimo = new Label { Text = Textos.Inventario.CampoStockMinimo, AutoSize = true, Location = new Point(140, 216) };
-            _numStockMinimo = new NumericUpDown { Location = new Point(140, 236), Size = new Size(100, 26), Maximum = 100000 };
+            var lblStockMinimo = new Label { Text = Textos.Inventario.CampoStockMinimo, AutoSize = true, Location = new Point(140, 276) };
+            _numStockMinimo = new NumericUpDown { Location = new Point(140, 296), Size = new Size(100, 26), Maximum = 100000 };
 
-            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Location = new Point(260, 240), Checked = true, Visible = productoExistente != null };
+            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Location = new Point(260, 300), Checked = true, Visible = productoExistente != null };
 
-            _lblErrorGeneral = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(580, 32), Location = new Point(20, 274) };
+            _lblErrorGeneral = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(580, 32), Location = new Point(20, 334) };
 
             _btnGuardarGeneral = new Button
             {
                 Text = productoExistente == null ? Textos.Inventario.BotonCrearProducto : Textos.Inventario.BotonGuardarCambios,
-                Location = new Point(20, 310), Size = new Size(180, 32),
+                Location = new Point(20, 370), Size = new Size(180, 32),
                 BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat
             };
             _btnGuardarGeneral.FlatAppearance.BorderSize = 0;
@@ -117,6 +125,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             tabGeneral.Controls.AddRange(new Control[]
             {
                 lblCodigo, _txtCodigo, lblNombre, _txtNombre, lblDescripcion, _txtDescripcion,
+                lblCodigoBarra, _txtCodigoBarra,
                 lblPrecio, _numPrecio, lblCategoria, _cboCategoria, btnNuevaCategoria,
                 lblTasaIsv, _cboTasaIsv, lblStockMinimo, _numStockMinimo, _chkActivo,
                 _lblErrorGeneral, _btnGuardarGeneral
@@ -250,6 +259,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             if (productoExistente != null)
             {
                 _txtCodigo.Text = productoExistente.Codigo;
+                _txtCodigoBarra.Text = productoExistente.CodigoBarra;
                 _txtNombre.Text = productoExistente.Nombre;
                 _txtDescripcion.Text = productoExistente.Descripcion;
                 _numPrecio.Value = productoExistente.PrecioUnitario;
@@ -341,6 +351,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             int? categoriaId = _cboCategoria.SelectedValue as int?;
             decimal tasaIsv = decimal.Parse((string)_cboTasaIsv.SelectedItem!);
             var usuarioId = SessionContext.Current?.UsuarioId;
+            var codigoBarra = string.IsNullOrWhiteSpace(_txtCodigoBarra.Text) ? null : _txtCodigoBarra.Text.Trim();
 
             _btnGuardarGeneral.Enabled = false;
             try
@@ -349,7 +360,7 @@ namespace Sistemas.Repuestos.Library.Inventario
                 {
                     var (exito, mensaje, id) = await ProductService.CrearAsync(
                         codigo, nombre, _txtDescripcion.Text.Trim(), _numPrecio.Value,
-                        categoriaId, tasaIsv, (int)_numStockMinimo.Value, usuarioId);
+                        categoriaId, tasaIsv, (int)_numStockMinimo.Value, usuarioId, codigoBarra);
 
                     if (exito)
                     {
@@ -374,7 +385,7 @@ namespace Sistemas.Repuestos.Library.Inventario
                 {
                     var (exito, mensaje) = await ProductService.ActualizarAsync(
                         _productoId.Value, nombre, _txtDescripcion.Text.Trim(), _numPrecio.Value,
-                        categoriaId, tasaIsv, (int)_numStockMinimo.Value, _chkActivo.Checked, usuarioId);
+                        categoriaId, tasaIsv, (int)_numStockMinimo.Value, _chkActivo.Checked, usuarioId, codigoBarra);
 
                     _lblErrorGeneral.ForeColor = exito ? UiTheme.Primario : UiTheme.Error;
                     _lblErrorGeneral.Text = mensaje;

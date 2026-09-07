@@ -19,6 +19,7 @@ namespace Sistemas.Repuestos.Library
             public const string Clientes = "Clientes";
             public const string Compras = "Compras";
             public const string Pos = "POS";
+            public const string Caja = "Caja";
             public const string Ventas = "Ventas";
         }
 
@@ -92,6 +93,7 @@ namespace Sistemas.Repuestos.Library
             public const string TabEquivalencias = "Equivalencias OEM";
             public const string TabPrecios = "Proveedores y precios";
             public const string CampoCodigo = "Código";
+            public const string CampoCodigoBarra = "Código de barras (opcional)";
             public const string CampoNombre = "Nombre";
             public const string CampoDescripcion = "Descripción";
             public const string CampoPrecioUnitario = "Precio unitario (L.)";
@@ -204,6 +206,24 @@ namespace Sistemas.Repuestos.Library
             public const string ReciboColumnaPrecioUnitario = "P.Unit";
             public const string ReciboColumnaSubtotal = "Subtotal";
             public const string ReciboTotalFormato = "TOTAL: L. {0:N2}";
+            public const string ReciboEfectivoRecibidoFormato = "Efectivo recibido: L. {0:N2}";
+            public const string ReciboVueltoFormato = "Vuelto: L. {0:N2}";
+
+            public const string CampoMetodoPago = "Método de pago";
+            public const string MetodoPagoEfectivo = "Efectivo";
+            public const string MetodoPagoTarjeta = "Tarjeta";
+            public const string MetodoPagoTransferencia = "Transferencia";
+
+            public const string AvisoCajaCerrada = "No hay una sesión de caja abierta. Abra la caja para poder cobrar.";
+            public const string BotonAbrirCajaDesdePos = "Abrir caja";
+            public const string NoSeVerificoCajaPrefijo = "No se pudo verificar el estado de la caja: ";
+
+            public const string CobroEfectivoTitulo = "Cobro en efectivo";
+            public const string CobroEfectivoTotalFormato = "Total a cobrar: L. {0:N2}";
+            public const string CobroEfectivoCampoRecibido = "Efectivo recibido (L.)";
+            public const string CobroEfectivoBotonLimpiar = "Limpiar";
+            public const string CobroEfectivoVueltoFormato = "Vuelto: L. {0:N2}";
+            public const string CobroEfectivoBotonConfirmar = "Confirmar cobro";
         }
 
         // Historial de ventas (antes era el diálogo FormHistorialVentas,
@@ -236,6 +256,29 @@ namespace Sistemas.Repuestos.Library
             public const string CampoMetodoPago = "Método de pago";
             public const string BotonRegistrarPagoAccion = "Registrar pago";
             public const string NoSeRegistroPagoPrefijo = "No se pudo registrar el pago: ";
+        }
+
+        // Sesiones de caja: apertura, cierre e historial. Mismo estilo que
+        // Textos.Cuentas.
+        public static class Caja
+        {
+            public const string AbrirTitulo = "Abrir caja";
+            public const string CampoMontoApertura = "Monto inicial de caja (L.)";
+            public const string BotonAbrirCaja = "Abrir caja";
+            public const string NoSeAbrioCajaPrefijo = "No se pudo abrir la caja: ";
+
+            public const string CerrarTitulo = "Cerrar caja";
+            public const string CalculandoMontoEsperado = "Calculando monto esperado...";
+            public const string FormatoMontoEsperado = "Monto esperado: L. {0:N2}";
+            public const string NoSeCargoMontoEsperadoPrefijo = "No se pudo calcular el monto esperado: ";
+            public const string CampoEfectivoContado = "Efectivo contado (L.)";
+            public const string BotonCerrarCaja = "Cerrar caja";
+            public const string NoSeCerroCajaPrefijo = "No se pudo cerrar la caja: ";
+            public const string FormatoResultadoCierre = "{0}\n\nMonto calculado: L. {1:N2}\nDiferencia: L. {2:N2}";
+
+            public const string EstadoCerrada = "No hay una sesión de caja abierta.";
+            public const string EstadoAbiertaFormato = "Caja abierta por {0} desde {1:dd/MM/yyyy HH:mm} — Monto inicial: L. {2:N2}";
+            public const string UsuarioGenericoFormato = "Usuario #{0}";
         }
     }
 }

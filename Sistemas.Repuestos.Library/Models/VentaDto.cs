@@ -12,6 +12,7 @@ namespace Sistemas.Repuestos.Library.Models
         public decimal MontoISV { get; set; }
         public decimal Total { get; set; }
         public bool EsCredito { get; set; }
+        public string MetodoPago { get; set; } = string.Empty;
         public bool Anulada { get; set; }
         public int UsuarioId { get; set; }
         public int? ClienteId { get; set; }

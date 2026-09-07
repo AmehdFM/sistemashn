@@ -36,7 +36,7 @@ namespace Sistemas.Core.Inventory
 
         public static async Task<(bool Exito, string Mensaje, int? ProductoId)> CrearAsync(
             string codigo, string nombre, string? descripcion, decimal precioUnitario,
-            int? categoriaId, decimal tasaIsv, int stockMinimo, int? usuarioId)
+            int? categoriaId, decimal tasaIsv, int stockMinimo, int? usuarioId, string? codigoBarra = null)
         {
             using var conn = ConnectionFactory.CreateConnection();
             return await conn.QueryFirstAsync<(bool Exito, string Mensaje, int? ProductoId)>(
@@ -50,14 +50,15 @@ namespace Sistemas.Core.Inventory
                     CategoriaId = categoriaId,
                     TasaISV = tasaIsv,
                     StockMinimo = stockMinimo,
-                    UsuarioId = usuarioId
+                    UsuarioId = usuarioId,
+                    CodigoBarra = codigoBarra
                 },
                 commandType: CommandType.StoredProcedure);
         }
 
         public static async Task<(bool Exito, string Mensaje)> ActualizarAsync(
             int productoId, string nombre, string? descripcion, decimal precioUnitario,
-            int? categoriaId, decimal tasaIsv, int stockMinimo, bool activo, int? usuarioId)
+            int? categoriaId, decimal tasaIsv, int stockMinimo, bool activo, int? usuarioId, string? codigoBarra = null)
         {
             using var conn = ConnectionFactory.CreateConnection();
             return await conn.QueryFirstAsync<(bool Exito, string Mensaje)>(
@@ -72,8 +73,22 @@ namespace Sistemas.Core.Inventory
                     TasaISV = tasaIsv,
                     StockMinimo = stockMinimo,
                     Activo = activo,
-                    UsuarioId = usuarioId
+                    UsuarioId = usuarioId,
+                    CodigoBarra = codigoBarra
                 },
+                commandType: CommandType.StoredProcedure);
+        }
+
+        // Match exacto (Codigo o CodigoBarra) para lectores de código de
+        // barras en el POS — a diferencia de ListarAsync, nunca devuelve más
+        // de una fila. La comparación exacta-vs-parcial vive en el SP, no
+        // aquí: este método solo decide llamarlo primero.
+        public static async Task<ProductoDto?> BuscarPorCodigoExactoAsync(string codigo)
+        {
+            using var conn = ConnectionFactory.CreateConnection();
+            return await conn.QueryFirstOrDefaultAsync<ProductoDto>(
+                "Inventario.sp_BuscarProductoPorCodigo",
+                new { Codigo = codigo },
                 commandType: CommandType.StoredProcedure);
         }
 

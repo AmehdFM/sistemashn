@@ -116,6 +116,7 @@
     <Build Include="Inventario\StoredProcedures\sp_ActualizarProducto.sql" />
     <Build Include="Facturacion\StoredProcedures\sp_ObtenerConfiguracionCAI.sql" />
     <Build Include="Facturacion\StoredProcedures\sp_GuardarConfiguracionCAI.sql" />
+    <Build Include="Inventario\StoredProcedures\sp_BuscarProductoPorCodigo.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="obj\Debug\Sistemas.Core.Database.sqlproj.AssemblyReference.cache" />

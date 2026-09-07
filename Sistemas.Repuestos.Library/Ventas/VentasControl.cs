@@ -46,6 +46,7 @@ namespace Sistemas.Repuestos.Library.Ventas
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(VentaDto.Fecha), HeaderText = "Fecha", FillWeight = 18, DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy HH:mm" } });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(VentaDto.Total), HeaderText = "Total", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
             _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(VentaDto.EsCredito), HeaderText = "Crédito", FillWeight = 12 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(VentaDto.MetodoPago), HeaderText = "Método de pago", FillWeight = 15 });
             _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(VentaDto.Anulada), HeaderText = "Anulada", FillWeight = 12 });
 
             _paginacion = new PaginacionControl();

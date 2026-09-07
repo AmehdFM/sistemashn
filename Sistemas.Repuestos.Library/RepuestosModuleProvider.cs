@@ -15,6 +15,7 @@ namespace Sistemas.Repuestos.Library
             DashboardModuleRegistry.Registrar(new ClientesDashboardModule());
             DashboardModuleRegistry.Registrar(new ComprasDashboardModule());
             DashboardModuleRegistry.Registrar(new PosDashboardModule());
+            DashboardModuleRegistry.Registrar(new CajaDashboardModule());
             DashboardModuleRegistry.Registrar(new VentasDashboardModule());
         }
     }

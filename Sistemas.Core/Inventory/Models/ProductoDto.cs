@@ -7,6 +7,7 @@ namespace Sistemas.Core.Inventory.Models
     {
         public int Id { get; set; }
         public string Codigo { get; set; } = string.Empty;
+        public string? CodigoBarra { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public decimal PrecioUnitario { get; set; }

@@ -109,6 +109,12 @@
     <Build Include="Repuestos\StoredProcedures\sp_ListarCuentasPorPagar.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarCompras.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarVentas.sql" />
+    <Build Include="Repuestos\Tables\SesionesCaja.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_AbrirCaja.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_CerrarCaja.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ObtenerSesionCajaAbierta.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ObtenerMontoEsperadoCaja.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ListarSesionesCaja.sql" />
   </ItemGroup>
   <ItemGroup>
     <PostDeploy Include="Script.PostDeployment.sql" />

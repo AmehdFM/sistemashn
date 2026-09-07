@@ -25,9 +25,13 @@ namespace Sistemas.Repuestos.Library.Services
         }
 
         // El carrito solo envía ProductoId+Cantidad — nunca precio: el precio
-        // y la tasa de ISV se congelan del lado del servidor.
-        public static async Task<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total)> RegistrarAsync(
-            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId, int? clienteId = null)
+        // y la tasa de ISV se congelan del lado del servidor. El Vuelto
+        // tampoco se envía: lo calcula sp_RegistrarVenta a partir del total
+        // real que él mismo determina, y es ese valor (no el que mostró la
+        // calculadora de cambio en pantalla) el que vuelve en la respuesta.
+        public static async Task<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total, decimal? EfectivoRecibido, decimal? Vuelto)> RegistrarAsync(
+            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId, int? clienteId,
+            string metodoPago, decimal? efectivoRecibido)
         {
             var tabla = new DataTable();
             tabla.Columns.Add("ProductoId", typeof(int));
@@ -36,7 +40,7 @@ namespace Sistemas.Repuestos.Library.Services
                 tabla.Rows.Add(linea.ProductoId, linea.Cantidad);
 
             using var conn = ConnectionFactory.CreateConnection();
-            return await conn.QueryFirstAsync<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total)>(
+            return await conn.QueryFirstAsync<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total, decimal? EfectivoRecibido, decimal? Vuelto)>(
                 "Repuestos.sp_RegistrarVenta",
                 new
                 {
@@ -44,7 +48,9 @@ namespace Sistemas.Repuestos.Library.Services
                     EsCredito = esCredito,
                     DiasCredito = diasCredito,
                     ClienteId = clienteId,
-                    Detalle = tabla.AsTableValuedParameter("Repuestos.VentaDetalleTableType")
+                    Detalle = tabla.AsTableValuedParameter("Repuestos.VentaDetalleTableType"),
+                    MetodoPago = metodoPago,
+                    EfectivoRecibido = efectivoRecibido
                 },
                 commandType: CommandType.StoredProcedure);
         }

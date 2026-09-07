@@ -1,5 +1,6 @@
 CREATE PROCEDURE Inventario.sp_CrearProducto
     @Codigo NVARCHAR(30),
+    @CodigoBarra NVARCHAR(30) = NULL,
     @Nombre NVARCHAR(150),
     @Descripcion NVARCHAR(500) = NULL,
     @PrecioUnitario DECIMAL(12,2),
@@ -18,10 +19,16 @@ BEGIN
             RETURN;
         END
 
+        IF @CodigoBarra IS NOT NULL AND EXISTS (SELECT 1 FROM Inventario.Productos WHERE CodigoBarra = @CodigoBarra)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Ya existe un producto con ese código de barras' AS Mensaje, NULL AS ProductoId;
+            RETURN;
+        END
+
         BEGIN TRAN;
 
-        INSERT INTO Inventario.Productos (Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockActual, StockMinimo, Activo, FechaCreacion)
-        VALUES (@Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, 0, @StockMinimo, 1, SYSDATETIME());
+        INSERT INTO Inventario.Productos (Codigo, CodigoBarra, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockActual, StockMinimo, Activo, FechaCreacion)
+        VALUES (@Codigo, @CodigoBarra, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, 0, @StockMinimo, 1, SYSDATETIME());
 
         DECLARE @ProductoId INT = SCOPE_IDENTITY();
 
