@@ -8,6 +8,7 @@
 --
 CREATE PROCEDURE Repuestos.sp_RegistrarVenta
     @UsuarioId      INT,
+    @ClienteId      INT = NULL,
     @EsCredito      BIT = 0,
     @DiasCredito    INT = NULL,
     @Detalle        Repuestos.VentaDetalleTableType READONLY
@@ -37,6 +38,20 @@ BEGIN
         IF EXISTS (SELECT 1 FROM @Detalle WHERE Cantidad <= 0)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Hay líneas con cantidad menor o igual a cero' AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+            RETURN;
+        END
+
+        IF @EsCredito = 1 AND @ClienteId IS NULL
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Seleccione un cliente para venta a crédito' AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+            RETURN;
+        END
+
+        IF @ClienteId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Repuestos.Terceros WHERE Id = @ClienteId AND EsCliente = 1)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'El cliente especificado no existe o no tiene rol de cliente' AS Mensaje,
                    CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
             RETURN;
         END
@@ -159,8 +174,8 @@ BEGIN
 
         SET @Total = @Subtotal + @MontoISV;
 
-        INSERT INTO Repuestos.Ventas (NumeroFactura, Subtotal, MontoISV, Total, UsuarioId, EsCredito)
-        VALUES (@Correlativo, @Subtotal, @MontoISV, @Total, @UsuarioId, @EsCredito);
+        INSERT INTO Repuestos.Ventas (NumeroFactura, Subtotal, MontoISV, Total, UsuarioId, ClienteId, EsCredito)
+        VALUES (@Correlativo, @Subtotal, @MontoISV, @Total, @UsuarioId, @ClienteId, @EsCredito);
 
         SET @VentaId = SCOPE_IDENTITY();
 

@@ -7,7 +7,7 @@ CREATE TABLE Repuestos.Compras (
     UsuarioId               INT             NOT NULL,
     EsCredito               BIT             NOT NULL CONSTRAINT DF_Compras_EsCredito DEFAULT 0,
     CONSTRAINT PK_Compras PRIMARY KEY (Id),
-    CONSTRAINT FK_Compras_Proveedores FOREIGN KEY (ProveedorId) REFERENCES Repuestos.Proveedores(Id),
+    CONSTRAINT FK_Compras_Terceros FOREIGN KEY (ProveedorId) REFERENCES Repuestos.Terceros(Id),
     CONSTRAINT FK_Compras_Usuarios FOREIGN KEY (UsuarioId) REFERENCES Security.Usuarios(Id),
     CONSTRAINT CK_Compras_Total CHECK (Total >= 0)
 );

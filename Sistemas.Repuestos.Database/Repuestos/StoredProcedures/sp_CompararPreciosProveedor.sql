@@ -13,7 +13,7 @@ BEGIN
         pv.Telefono,
         pp.PrecioCompra
     FROM Repuestos.ProductoProveedor pp
-    INNER JOIN Repuestos.Proveedores pv ON pv.Id = pp.ProveedorId
+    INNER JOIN Repuestos.Terceros pv ON pv.Id = pp.ProveedorId
     WHERE pp.ProductoId = @ProductoId
       AND pv.Activo = 1
     ORDER BY pp.PrecioCompra ASC;

@@ -14,5 +14,7 @@ namespace Sistemas.Repuestos.Library.Models
         public bool EsCredito { get; set; }
         public bool Anulada { get; set; }
         public int UsuarioId { get; set; }
+        public int? ClienteId { get; set; }
+        public string? ClienteNombre { get; set; }
     }
 }

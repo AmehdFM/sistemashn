@@ -216,7 +216,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             _cboProveedor = new ComboBox
             {
                 Location = new Point(20, 30), Size = new Size(260, 26), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id)
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
             };
             var lblPrecioProveedor = new Label { Text = Textos.Inventario.CampoPrecioCompra, AutoSize = true, Location = new Point(290, 10) };
             _numPrecioProveedor = new NumericUpDown { Location = new Point(290, 30), Size = new Size(140, 26), DecimalPlaces = 2, Maximum = 999999 };
@@ -297,10 +297,10 @@ namespace Sistemas.Repuestos.Library.Inventario
                 foreach (var eq in detalle.Equivalentes)
                     _gridEquivalencias.Rows.Add(eq.NumeroOEM, eq.Fabricante);
 
-                var proveedores = await ProveedorService.ListarAsync(true, null, 1, 500);
-                _cboProveedor.DataSource = proveedores.Proveedores;
+                var proveedores = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
+                _cboProveedor.DataSource = proveedores.Terceros;
 
-                var precios = await ProveedorService.CompararPreciosAsync(_productoId.Value);
+                var precios = await TerceroService.CompararPreciosAsync(_productoId.Value);
                 _gridPrecios.Rows.Clear();
                 foreach (var pr in precios)
                     _gridPrecios.Rows.Add(pr.Nombre, pr.Telefono, pr.PrecioCompra);
@@ -495,7 +495,7 @@ namespace Sistemas.Repuestos.Library.Inventario
 
             try
             {
-                var (exito, mensaje) = await ProveedorService.GuardarPrecioAsync(
+                var (exito, mensaje) = await TerceroService.GuardarPrecioAsync(
                     _productoId.Value, proveedorId, _numPrecioProveedor.Value, SessionContext.Current?.UsuarioId);
 
                 _lblErrorPrecio.ForeColor = exito ? UiTheme.Primario : UiTheme.Error;
@@ -503,7 +503,7 @@ namespace Sistemas.Repuestos.Library.Inventario
 
                 if (exito)
                 {
-                    var precios = await ProveedorService.CompararPreciosAsync(_productoId.Value);
+                    var precios = await TerceroService.CompararPreciosAsync(_productoId.Value);
                     _gridPrecios.Rows.Clear();
                     foreach (var pr in precios)
                         _gridPrecios.Rows.Add(pr.Nombre, pr.Telefono, pr.PrecioCompra);

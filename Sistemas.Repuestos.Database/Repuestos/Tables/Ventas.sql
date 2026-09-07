@@ -6,6 +6,7 @@ CREATE TABLE Repuestos.Ventas (
     MontoISV        DECIMAL(12,2)   NOT NULL,
     Total           DECIMAL(12,2)   NOT NULL,
     UsuarioId       INT             NOT NULL,
+    ClienteId       INT             NULL,
     EsCredito       BIT             NOT NULL CONSTRAINT DF_Ventas_EsCredito DEFAULT 0,
     Anulada         BIT             NOT NULL CONSTRAINT DF_Ventas_Anulada DEFAULT 0,   -- nunca se hace DELETE: una factura con CAI emitido no se borra
     MotivoAnulacion NVARCHAR(200)   NULL,
@@ -13,6 +14,7 @@ CREATE TABLE Repuestos.Ventas (
     CONSTRAINT PK_Ventas PRIMARY KEY (Id),
     CONSTRAINT UQ_Ventas_NumeroFactura UNIQUE (NumeroFactura),
     CONSTRAINT FK_Ventas_Usuarios FOREIGN KEY (UsuarioId) REFERENCES Security.Usuarios(Id),
+    CONSTRAINT FK_Ventas_Terceros FOREIGN KEY (ClienteId) REFERENCES Repuestos.Terceros(Id),
     CONSTRAINT CK_Ventas_Subtotal CHECK (Subtotal >= 0),
     CONSTRAINT CK_Ventas_MontoISV CHECK (MontoISV >= 0),
     CONSTRAINT CK_Ventas_Total CHECK (Total >= 0),
@@ -31,4 +33,7 @@ CREATE INDEX IX_Ventas_Fecha
 GO
 
 CREATE INDEX IX_Ventas_UsuarioId ON Repuestos.Ventas(UsuarioId);
+GO
+
+CREATE INDEX IX_Ventas_ClienteId ON Repuestos.Ventas(ClienteId);
 GO

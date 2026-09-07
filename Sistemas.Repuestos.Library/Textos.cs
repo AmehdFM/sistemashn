@@ -16,10 +16,10 @@ namespace Sistemas.Repuestos.Library
         {
             public const string Inventario = "Inventario";
             public const string Proveedores = "Proveedores";
+            public const string Clientes = "Clientes";
             public const string Compras = "Compras";
             public const string Pos = "POS";
             public const string Ventas = "Ventas";
-            public const string CuentasPorCobrarPagar = "Cuentas por Cobrar/Pagar";
         }
 
         // Textos reutilizados por varias pantallas de esta vertical.
@@ -118,17 +118,39 @@ namespace Sistemas.Repuestos.Library
             public const string NoSeGuardoPrecioPrefijo = "No se pudo guardar el precio: ";
         }
 
-        public static class Proveedores
+        // Campos y mensajes compartidos entre las vistas "Proveedores" y
+        // "Clientes" — ambas son la misma entidad Tercero, así que un mismo
+        // registro de textos alimenta TerceroCamposControl/FormTercero/
+        // FormPerfilTercero/TercerosControl en las dos vistas. Los pocos
+        // textos que sí varían por vista (título, mensajes de error que
+        // nombran el rol) quedan como formato parametrizado por
+        // RolProveedor/RolCliente en vez de duplicarse por completo.
+        public static class Terceros
         {
-            public const string FormularioTituloNuevo = "Nuevo proveedor";
-            public const string FormularioTituloEditar = "Editar proveedor";
             public const string CampoNombre = "Nombre";
+            public const string CampoEmpresa = "Empresa (opcional)";
+            public const string CampoCorreo = "Correo (opcional)";
+            public const string CampoTelefono = "Teléfono (opcional)";
             public const string CampoRtnOpcional = "RTN (14 dígitos, opcional)";
-            public const string CampoTelefono = "Teléfono";
-            public const string CampoPersonaContacto = "Persona de contacto";
+            public const string CampoEsProveedor = "Es proveedor";
+            public const string CampoEsCliente = "Es cliente";
             public const string ErrorNombreRequerido = "El nombre es requerido";
             public const string ErrorRtnInvalido = "El RTN debe tener exactamente 14 dígitos, o dejarse en blanco";
-            public const string ErrorSeleccioneProveedorPrimero = "Seleccione un proveedor primero.";
+            public const string ErrorCorreoInvalido = "El correo no tiene un formato válido, o déjelo en blanco";
+            public const string ErrorAlMenosUnRol = "Debe marcar al menos un rol (proveedor o cliente)";
+
+            // Nombre del rol en minúscula/mayúscula, usado para construir los
+            // textos que varían por vista (Proveedores vs. Clientes) sin
+            // duplicar cada mensaje.
+            public const string RolProveedorMinuscula = "proveedor";
+            public const string RolClienteMinuscula = "cliente";
+            public const string RolProveedorCapitalizado = "Proveedor";
+            public const string RolClienteCapitalizado = "Cliente";
+
+            public const string FormularioTituloNuevoFormato = "Nuevo {0}";
+            public const string FormularioTituloEditarFormato = "Editar {0}";
+            public const string PerfilTituloFormato = "Perfil de {0} — {1}";
+            public const string ErrorSeleccionePrimeroFormato = "Seleccione un {0} primero.";
         }
 
         public static class Compras
@@ -162,6 +184,9 @@ namespace Sistemas.Repuestos.Library
             public const string BotonQuitarLinea = "Quitar línea";
             public const string CampoVentaCredito = "Venta a crédito";
             public const string CampoDiasCredito = "Días crédito";
+            public const string CampoCliente = "Cliente";
+            public const string ErrorSeleccioneClienteCredito = "Seleccione un cliente para venta a crédito";
+            public const string NoSeCargaronClientesPrefijo = "No se pudieron cargar los clientes: ";
             public const string FormatoTotal = "Total: L. {0:N2}";
             public const string BotonCobrar = "Cobrar";
             public const string ErrorCarritoVacio = "El carrito está vacío";
@@ -199,8 +224,6 @@ namespace Sistemas.Repuestos.Library
 
         public static class Cuentas
         {
-            public const string TabPorCobrar = "Cuentas por Cobrar";
-            public const string TabPorPagar = "Cuentas por Pagar";
             public const string CampoSoloConSaldo = "Solo con saldo pendiente";
             public const string BotonRegistrarPago = "Registrar pago";
             public const string TituloRegistrarPago = "Registrar pago";

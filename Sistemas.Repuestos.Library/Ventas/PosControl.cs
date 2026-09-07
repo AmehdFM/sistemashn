@@ -9,6 +9,7 @@ using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
+using Sistemas.Repuestos.Library.Terceros;
 
 namespace Sistemas.Repuestos.Library.Ventas
 {
@@ -25,6 +26,7 @@ namespace Sistemas.Repuestos.Library.Ventas
         private readonly ComboBox _cboResultado;
         private readonly NumericUpDown _numCantidad;
         private readonly DataGridView _gridCarrito;
+        private readonly ComboBox _cboCliente;
         private readonly CheckBox _chkEsCredito;
         private readonly NumericUpDown _numDiasCredito;
         private readonly Label _lblTotal;
@@ -103,6 +105,15 @@ namespace Sistemas.Repuestos.Library.Ventas
                 }
             };
 
+            var lblCliente = new Label { Text = Textos.Pos.CampoCliente, AutoSize = true, Location = new Point(142, 13) };
+            _cboCliente = new ComboBox
+            {
+                Location = new Point(196, 9), Size = new Size(180, 26), DropDownStyle = ComboBoxStyle.DropDownList,
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
+            };
+            var btnNuevoCliente = new Button { Text = "+", Location = new Point(380, 8), Size = new Size(28, 28) };
+            btnNuevoCliente.Click += BtnNuevoCliente_Click;
+
             _chkEsCredito = new CheckBox { Text = Textos.Pos.CampoVentaCredito, AutoSize = true, Location = new Point(16, 46) };
             _chkEsCredito.CheckedChanged += (s, e) => _numDiasCredito.Enabled = _chkEsCredito.Checked;
             var lblDias = new Label { Text = Textos.Pos.CampoDiasCredito, AutoSize = true, Location = new Point(150, 48) };
@@ -124,7 +135,11 @@ namespace Sistemas.Repuestos.Library.Ventas
             _btnCobrar.FlatAppearance.BorderSize = 0;
             _btnCobrar.Click += BtnCobrar_Click;
 
-            pnlPago.Controls.AddRange(new Control[] { btnQuitarLinea, _chkEsCredito, lblDias, _numDiasCredito, _lblTotal, _lblError, _btnCobrar });
+            pnlPago.Controls.AddRange(new Control[]
+            {
+                btnQuitarLinea, lblCliente, _cboCliente, btnNuevoCliente,
+                _chkEsCredito, lblDias, _numDiasCredito, _lblTotal, _lblError, _btnCobrar
+            });
 
             _pnlVenta.Controls.Add(_gridCarrito);
             _pnlVenta.Controls.Add(pnlPago);
@@ -167,6 +182,30 @@ namespace Sistemas.Repuestos.Library.Ventas
 
             Controls.Add(_pnlVenta);
             Controls.Add(_pnlResultado);
+
+            Load += async (s, e) => await CargarClientesAsync(null);
+        }
+
+        private async System.Threading.Tasks.Task CargarClientesAsync(int? seleccionarId)
+        {
+            try
+            {
+                var (clientes, _) = await TerceroService.ListarClientesAsync(true, null, 1, 500);
+                _cboCliente.DataSource = clientes;
+                if (seleccionarId.HasValue)
+                    _cboCliente.SelectedValue = seleccionarId.Value;
+            }
+            catch (Exception ex)
+            {
+                _lblError.Text = Textos.Pos.NoSeCargaronClientesPrefijo + ex.Message;
+            }
+        }
+
+        private async void BtnNuevoCliente_Click(object? sender, EventArgs e)
+        {
+            using var form = new FormTercero(null, rolProveedorPorDefecto: false);
+            if (form.ShowDialog(FindForm()) == DialogResult.OK && form.TerceroIdGuardado.HasValue)
+                await CargarClientesAsync(form.TerceroIdGuardado);
         }
 
         private async System.Threading.Tasks.Task BuscarAsync()
@@ -253,6 +292,13 @@ namespace Sistemas.Repuestos.Library.Ventas
                 return;
             }
 
+            var clienteId = _cboCliente.SelectedValue is int idCliente ? idCliente : (int?)null;
+            if (_chkEsCredito.Checked && clienteId == null)
+            {
+                _lblError.Text = Textos.Pos.ErrorSeleccioneClienteCredito;
+                return;
+            }
+
             _btnCobrar.Enabled = false;
             try
             {
@@ -260,7 +306,8 @@ namespace Sistemas.Repuestos.Library.Ventas
                     _carrito.ToList(),
                     _chkEsCredito.Checked,
                     _chkEsCredito.Checked ? (int)_numDiasCredito.Value : null,
-                    SessionContext.Current?.UsuarioId ?? 0);
+                    SessionContext.Current?.UsuarioId ?? 0,
+                    clienteId);
 
                 if (exito && numeroFactura != null && total.HasValue)
                 {
@@ -293,6 +340,7 @@ namespace Sistemas.Repuestos.Library.Ventas
         {
             _carrito.Clear();
             _chkEsCredito.Checked = false;
+            _cboCliente.SelectedIndex = -1;
             _lblError.Text = string.Empty;
             ActualizarTotal();
             _pnlResultado.Visible = false;

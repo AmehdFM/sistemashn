@@ -18,7 +18,7 @@ BEGIN
             RETURN;
         END
 
-        IF NOT EXISTS (SELECT 1 FROM Repuestos.Proveedores WHERE Id = @ProveedorId AND Activo = 1)
+        IF NOT EXISTS (SELECT 1 FROM Repuestos.Terceros WHERE Id = @ProveedorId AND Activo = 1)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'El proveedor especificado no existe o está inactivo' AS Mensaje;
             RETURN;

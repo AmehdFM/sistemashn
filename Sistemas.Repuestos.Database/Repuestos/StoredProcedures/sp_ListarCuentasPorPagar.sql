@@ -1,6 +1,7 @@
 -- Idéntico a sp_ListarCuentasPorCobrar, sobre Repuestos.CuentasPorPagar/Compras.
 CREATE PROCEDURE Repuestos.sp_ListarCuentasPorPagar
     @SoloConSaldo BIT = 1,
+    @ProveedorId  INT = NULL,
     @Pagina       INT = 1,
     @TamanoPagina INT = 50
 AS
@@ -18,6 +19,7 @@ BEGIN
     FROM Repuestos.CuentasPorPagar cxp
     INNER JOIN Repuestos.Compras c ON c.Id = cxp.CompraId
     WHERE (@SoloConSaldo = 0 OR cxp.SaldoPendiente > 0)
+      AND (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId)
     ORDER BY cxp.FechaVencimiento
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS
     FETCH NEXT @TamanoPagina ROWS ONLY
@@ -25,7 +27,9 @@ BEGIN
 
     SELECT COUNT(*) AS TotalFilas
     FROM Repuestos.CuentasPorPagar cxp
+    INNER JOIN Repuestos.Compras c ON c.Id = cxp.CompraId
     WHERE (@SoloConSaldo = 0 OR cxp.SaldoPendiente > 0)
+      AND (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId)
     OPTION (RECOMPILE);
 END
 GO

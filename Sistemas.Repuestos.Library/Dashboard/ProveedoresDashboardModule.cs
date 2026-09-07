@@ -1,6 +1,6 @@
-﻿using System.Windows.Forms;
+using System.Windows.Forms;
 using Sistemas.Core.UI.Dashboard;
-using Sistemas.Repuestos.Library.Proveedores;
+using Sistemas.Repuestos.Library.Terceros;
 
 namespace Sistemas.Repuestos.Library.Dashboard
 {
@@ -10,6 +10,6 @@ namespace Sistemas.Repuestos.Library.Dashboard
         public string Glyph => "";
         public int Orden => 20;
 
-        public Control CrearVista() => new ProveedoresControl();
+        public Control CrearVista() => new TercerosControl(esVistaProveedores: true);
     }
 }

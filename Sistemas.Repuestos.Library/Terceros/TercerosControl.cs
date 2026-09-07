@@ -4,12 +4,20 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
 using Sistemas.Repuestos.Library.Models;
+using Sistemas.Repuestos.Library.Services;
 
-namespace Sistemas.Repuestos.Library.Proveedores
+namespace Sistemas.Repuestos.Library.Terceros
 {
-    public sealed class ProveedoresControl : UserControl
+    // Grid+toolbar+paginación de terceros, parametrizado por rol: la misma
+    // pantalla sirve para el módulo "Proveedores" (esVistaProveedores=true,
+    // listando EsProveedor=1) y para "Clientes" (false, EsCliente=1).
+    // Reemplaza a ProveedoresControl.
+    public sealed class TercerosControl : UserControl
     {
         private const int TamanoPagina = 50;
+
+        private readonly bool _esVistaProveedores;
+        private readonly string _rolMinuscula;
 
         private readonly TextBox _txtBuscar;
         private readonly CheckBox _chkSoloActivos;
@@ -17,22 +25,29 @@ namespace Sistemas.Repuestos.Library.Proveedores
         private readonly PaginacionControl _paginacion;
         private readonly Label _lblEstado;
 
-        public ProveedoresControl()
+        public TercerosControl(bool esVistaProveedores)
         {
+            _esVistaProveedores = esVistaProveedores;
+            _rolMinuscula = esVistaProveedores ? Textos.Terceros.RolProveedorMinuscula : Textos.Terceros.RolClienteMinuscula;
+
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
             var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = Color.White };
 
             var btnNuevo = new Button { Text = Textos.Comun.BotonNuevo, Location = new Point(12, 16), Size = new Size(88, 32) };
-            btnNuevo.Click += async (s, e) => await AbrirFormularioAsync(null);
+            btnNuevo.Click += async (s, e) => await AbrirAltaRapidaAsync();
 
             var btnEditar = new Button { Text = Textos.Comun.BotonEditar, Location = new Point(108, 16), Size = new Size(88, 32) };
             btnEditar.Click += async (s, e) =>
             {
                 var seleccionado = ObtenerSeleccionado();
-                if (seleccionado == null) { MessageBox.Show(this, Textos.Proveedores.ErrorSeleccioneProveedorPrimero, Textos.Comun.BotonEditar); return; }
-                await AbrirFormularioAsync(seleccionado);
+                if (seleccionado == null)
+                {
+                    MessageBox.Show(this, string.Format(Textos.Terceros.ErrorSeleccionePrimeroFormato, _rolMinuscula), Textos.Comun.BotonEditar);
+                    return;
+                }
+                await AbrirPerfilAsync(seleccionado);
             };
 
             _txtBuscar = new TextBox { Location = new Point(220, 18), Size = new Size(220, 26) };
@@ -49,15 +64,16 @@ namespace Sistemas.Repuestos.Library.Proveedores
             _grid = new DataGridView();
             GridStyler.Aplicar(_grid);
             _grid.AutoGenerateColumns = false;
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProveedorDto.Nombre), HeaderText = "Nombre", FillWeight = 35 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProveedorDto.RTN), HeaderText = "RTN", FillWeight = 20 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProveedorDto.Telefono), HeaderText = "Teléfono", FillWeight = 15 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProveedorDto.Contacto), HeaderText = "Contacto", FillWeight = 20 });
-            _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(ProveedorDto.Activo), HeaderText = "Activo", FillWeight = 10 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.Nombre), HeaderText = "Nombre", FillWeight = 25 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.Empresa), HeaderText = "Empresa", FillWeight = 20 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.Telefono), HeaderText = "Teléfono", FillWeight = 13 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.Correo), HeaderText = "Correo", FillWeight = 20 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.RTN), HeaderText = "RTN", FillWeight = 12 });
+            _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(TerceroDto.Activo), HeaderText = "Activo", FillWeight = 10 });
             _grid.CellDoubleClick += async (s, e) =>
             {
                 var seleccionado = ObtenerSeleccionado();
-                if (seleccionado != null) await AbrirFormularioAsync(seleccionado);
+                if (seleccionado != null) await AbrirPerfilAsync(seleccionado);
             };
 
             _paginacion = new PaginacionControl();
@@ -78,10 +94,11 @@ namespace Sistemas.Repuestos.Library.Proveedores
             try
             {
                 var busqueda = string.IsNullOrWhiteSpace(_txtBuscar.Text) ? null : _txtBuscar.Text.Trim();
-                var (proveedores, total) = await Services.ProveedorService.ListarAsync(
-                    _chkSoloActivos.Checked, busqueda, _paginacion.Pagina, TamanoPagina);
+                var (terceros, total) = _esVistaProveedores
+                    ? await TerceroService.ListarProveedoresAsync(_chkSoloActivos.Checked, busqueda, _paginacion.Pagina, TamanoPagina)
+                    : await TerceroService.ListarClientesAsync(_chkSoloActivos.Checked, busqueda, _paginacion.Pagina, TamanoPagina);
 
-                _grid.DataSource = proveedores;
+                _grid.DataSource = terceros;
                 _paginacion.Actualizar(total, TamanoPagina);
                 _lblEstado.Text = string.Empty;
             }
@@ -91,11 +108,18 @@ namespace Sistemas.Repuestos.Library.Proveedores
             }
         }
 
-        private ProveedorDto? ObtenerSeleccionado() => _grid.CurrentRow?.DataBoundItem as ProveedorDto;
+        private TerceroDto? ObtenerSeleccionado() => _grid.CurrentRow?.DataBoundItem as TerceroDto;
 
-        private async Task AbrirFormularioAsync(ProveedorDto? proveedor)
+        private async Task AbrirAltaRapidaAsync()
         {
-            using var form = new FormProveedor(proveedor);
+            using var form = new FormTercero(null, rolProveedorPorDefecto: _esVistaProveedores);
+            form.ShowDialog(FindForm());
+            await CargarAsync();
+        }
+
+        private async Task AbrirPerfilAsync(TerceroDto tercero)
+        {
+            using var form = new FormPerfilTercero(tercero, vistaCuentasPorPagar: _esVistaProveedores);
             form.ShowDialog(FindForm());
             await CargarAsync();
         }

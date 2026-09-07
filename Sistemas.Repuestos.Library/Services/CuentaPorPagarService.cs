@@ -11,12 +11,12 @@ namespace Sistemas.Repuestos.Library.Services
     public static class CuentaPorPagarService
     {
         public static async Task<(List<CuentaPorPagarDto> Cuentas, int TotalFilas)> ListarAsync(
-            bool soloConSaldo, int pagina, int tamanoPagina)
+            bool soloConSaldo, int pagina, int tamanoPagina, int? proveedorId = null)
         {
             using var conn = ConnectionFactory.CreateConnection();
             using var multi = await conn.QueryMultipleAsync(
                 "Repuestos.sp_ListarCuentasPorPagar",
-                new { SoloConSaldo = soloConSaldo, Pagina = pagina, TamanoPagina = tamanoPagina },
+                new { SoloConSaldo = soloConSaldo, Pagina = pagina, TamanoPagina = tamanoPagina, ProveedorId = proveedorId },
                 commandType: CommandType.StoredProcedure);
 
             var cuentas = (await multi.ReadAsync<CuentaPorPagarDto>()).ToList();

@@ -45,7 +45,7 @@ namespace Sistemas.Repuestos.Library.Compras
             _cboProveedor = new ComboBox
             {
                 Location = new Point(16, 28), Size = new Size(280, 26), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id)
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
             };
 
             var lblNumeroFactura = new Label { Text = Textos.Compras.CampoNumeroFacturaProveedor, AutoSize = true, Location = new Point(310, 8) };
@@ -136,7 +136,7 @@ namespace Sistemas.Repuestos.Library.Compras
         {
             try
             {
-                var (proveedores, _) = await ProveedorService.ListarAsync(true, null, 1, 500);
+                var (proveedores, _) = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
                 _cboProveedor.DataSource = proveedores;
             }
             catch (Exception ex)

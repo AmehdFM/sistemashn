@@ -78,10 +78,11 @@
     <Build Include="Repuestos\StoredProcedures\sp_AgregarVehiculoCompatible.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_AgregarNumeroEquivalente.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_BuscarPorEquivalencia.sql" />
-    <Build Include="Repuestos\Tables\Proveedores.sql" />
+    <Build Include="Repuestos\Tables\Terceros.sql" />
     <Build Include="Repuestos\Tables\ProductoProveedor.sql" />
-    <Build Include="Repuestos\StoredProcedures\sp_GuardarProveedor.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_GuardarTercero.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarProveedores.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ListarClientes.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_GuardarPrecioProveedor.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_CompararPreciosProveedor.sql" />
     <Build Include="Repuestos\Tables\Compras.sql" />
@@ -108,5 +109,8 @@
     <Build Include="Repuestos\StoredProcedures\sp_ListarCuentasPorPagar.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarCompras.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarVentas.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <PostDeploy Include="Script.PostDeployment.sql" />
   </ItemGroup>
 </Project>

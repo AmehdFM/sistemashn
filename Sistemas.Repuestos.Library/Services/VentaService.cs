@@ -27,7 +27,7 @@ namespace Sistemas.Repuestos.Library.Services
         // El carrito solo envía ProductoId+Cantidad — nunca precio: el precio
         // y la tasa de ISV se congelan del lado del servidor.
         public static async Task<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total)> RegistrarAsync(
-            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId)
+            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId, int? clienteId = null)
         {
             var tabla = new DataTable();
             tabla.Columns.Add("ProductoId", typeof(int));
@@ -43,6 +43,7 @@ namespace Sistemas.Repuestos.Library.Services
                     UsuarioId = usuarioId,
                     EsCredito = esCredito,
                     DiasCredito = diasCredito,
+                    ClienteId = clienteId,
                     Detalle = tabla.AsTableValuedParameter("Repuestos.VentaDetalleTableType")
                 },
                 commandType: CommandType.StoredProcedure);

@@ -1,7 +1,7 @@
 -- Mismo patrón de sp_ListarProductos (Anexo B.7 del plan): paginación
 -- obligatoria (sección 6) y OPTION (RECOMPILE) por los parámetros opcionales.
--- Lista los terceros marcados con el rol EsProveedor.
-CREATE PROCEDURE Repuestos.sp_ListarProveedores
+-- Lista los terceros marcados con el rol EsCliente.
+CREATE PROCEDURE Repuestos.sp_ListarClientes
     @SoloActivos  BIT = 1,
     @Busqueda     NVARCHAR(150) = NULL,
     @Pagina       INT = 1,
@@ -15,7 +15,7 @@ BEGIN
 
     SELECT Id, Nombre, Empresa, Correo, Telefono, RTN, EsProveedor, EsCliente, Activo
     FROM Repuestos.Terceros
-    WHERE EsProveedor = 1
+    WHERE EsCliente = 1
       AND (@SoloActivos = 0 OR Activo = 1)
       AND (@Busqueda IS NULL OR Nombre LIKE '%' + @Busqueda + '%')
     ORDER BY Nombre
@@ -25,7 +25,7 @@ BEGIN
 
     SELECT COUNT(*) AS TotalFilas
     FROM Repuestos.Terceros
-    WHERE EsProveedor = 1
+    WHERE EsCliente = 1
       AND (@SoloActivos = 0 OR Activo = 1)
       AND (@Busqueda IS NULL OR Nombre LIKE '%' + @Busqueda + '%')
     OPTION (RECOMPILE);

@@ -13,13 +13,15 @@ namespace Sistemas.Repuestos.Library.Cuentas
     {
         private const int TamanoPagina = 50;
 
+        private readonly int? _terceroId;
         private readonly CheckBox _chkSoloConSaldo;
         private readonly DataGridView _grid;
         private readonly PaginacionControl _paginacion;
         private readonly Label _lblEstado;
 
-        public CuentasPorPagarPanel()
+        public CuentasPorPagarPanel(int? terceroId = null)
         {
+            _terceroId = terceroId;
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
@@ -63,7 +65,7 @@ namespace Sistemas.Repuestos.Library.Cuentas
         {
             try
             {
-                var (cuentas, total) = await CuentaPorPagarService.ListarAsync(_chkSoloConSaldo.Checked, _paginacion.Pagina, TamanoPagina);
+                var (cuentas, total) = await CuentaPorPagarService.ListarAsync(_chkSoloConSaldo.Checked, _paginacion.Pagina, TamanoPagina, _terceroId);
                 _grid.DataSource = cuentas;
                 _paginacion.Actualizar(total, TamanoPagina);
                 _lblEstado.Text = string.Empty;
