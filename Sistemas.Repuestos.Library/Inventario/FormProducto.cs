@@ -183,7 +183,9 @@ namespace Sistemas.Repuestos.Library.Inventario
             // ============ Pestaña Equivalencias OEM ============
             _tabEquivalencias = new TabPage(Textos.Inventario.TabEquivalencias) { Enabled = _productoId.HasValue };
 
-            var pnlEquivInputs = new Panel { Dock = DockStyle.Top, Height = 90, BackColor = Color.White };
+            // Height = 98: _lblErrorEquivalencia (y62-92) necesita 92px de
+            // alto, más margen — con 90 quedaba cortada por 2px.
+            var pnlEquivInputs = new Panel { Dock = DockStyle.Top, Height = 98, BackColor = Color.White };
             var lblNumeroOem = new Label { Text = Textos.Inventario.CampoNumeroOem, AutoSize = true, Location = new Point(20, 10) };
             _txtNumeroOem = new TextBox { Location = new Point(20, 30), Size = new Size(200, 26) };
             var lblFabricanteOem = new Label { Text = Textos.Inventario.CampoFabricante, AutoSize = true, Location = new Point(230, 10) };
@@ -207,7 +209,9 @@ namespace Sistemas.Repuestos.Library.Inventario
             // ============ Pestaña Proveedores y precios ============
             _tabPrecios = new TabPage(Textos.Inventario.TabPrecios) { Enabled = _productoId.HasValue };
 
-            var pnlPreciosInputs = new Panel { Dock = DockStyle.Top, Height = 90, BackColor = Color.White };
+            // Height = 98: _lblErrorPrecio (y62-92) necesita 92px de alto,
+            // más margen — con 90 quedaba cortada por 2px.
+            var pnlPreciosInputs = new Panel { Dock = DockStyle.Top, Height = 98, BackColor = Color.White };
             var lblProveedor = new Label { Text = Textos.Comun.CampoProveedor, AutoSize = true, Location = new Point(20, 10) };
             _cboProveedor = new ComboBox
             {

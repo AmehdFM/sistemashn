@@ -90,7 +90,11 @@ namespace Sistemas.Repuestos.Library.Compras
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.CostoUnitario), HeaderText = "Costo unit.", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Subtotal), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 96, BackColor = Color.White };
+            // Height = 110: btnQuitarLinea (y8-36) + _lblError (y42-66) +
+            // _btnRegistrar (y68-102) necesitan 102px de alto, más 8px de
+            // margen inferior — con 96 el botón quedaba cortado por el
+            // borde del panel.
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 110, BackColor = Color.White };
             var btnQuitarLinea = new Button { Text = Textos.Compras.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(120, 28) };
             btnQuitarLinea.Click += (s, e) =>
             {
@@ -103,7 +107,9 @@ namespace Sistemas.Repuestos.Library.Compras
 
             _lblTotal = new Label { Text = string.Format(Textos.Compras.FormatoTotal, 0m), AutoSize = true, Location = new Point(500, 12), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 24), Location = new Point(16, 42) };
+            // Anchor Left+Right: a MinimumSize.Width (680) el Width fijo de
+            // 680px a partir de x=16 se salía del área visible del panel.
+            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 24), Location = new Point(16, 42), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
             _btnRegistrar = new Button
             {

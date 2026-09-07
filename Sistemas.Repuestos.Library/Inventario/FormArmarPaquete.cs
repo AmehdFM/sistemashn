@@ -34,7 +34,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(560, 420);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 110, BackColor = Color.White };
+            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 122, BackColor = Color.White };
 
             var lblAviso = new Label
             {
@@ -67,7 +67,11 @@ namespace Sistemas.Repuestos.Library.Inventario
             _gridComponentes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ComponentePaqueteDto.Nombre), HeaderText = "Nombre", FillWeight = 50 });
             _gridComponentes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ComponentePaqueteDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 84, BackColor = Color.White };
+            // Height = 110: btnQuitar (y8-36) + _lblError (y40-64) +
+            // _btnGuardar (y68-102) necesitan 102px de alto, más 8px de
+            // margen inferior — con 84 el botón quedaba cortado por el
+            // borde del panel.
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 110, BackColor = Color.White };
             var btnQuitar = new Button { Text = Textos.Inventario.BotonQuitarSeleccionado, Location = new Point(16, 8), Size = new Size(160, 28) };
             btnQuitar.Click += (s, e) =>
             {

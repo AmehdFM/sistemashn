@@ -53,7 +53,12 @@ namespace Sistemas.Repuestos.Library.Ventas
             _txtBuscar = new TextBox { Location = new Point(16, 28), Size = new Size(220, 26) };
             _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarAsync(); } };
 
-            _chkPorEquivalencia = new CheckBox { Text = Textos.Pos.CampoBuscarPorEquivalencia, AutoSize = true, Location = new Point(246, 32) };
+            // Y=8 (alineado con lblBuscar), no Y=32: el texto largo del
+            // checkbox ("Buscar por número equivalente (OEM)") se extiende
+            // más allá de x=456 y a Y=32 se solapaba con lblCantidad/
+            // _numCantidad, que están en esa misma columna en la fila de
+            // abajo.
+            _chkPorEquivalencia = new CheckBox { Text = Textos.Pos.CampoBuscarPorEquivalencia, AutoSize = true, Location = new Point(246, 8) };
 
             var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(16, 60), Size = new Size(100, 28) };
             btnBuscar.Click += async (s, e) => await BuscarAsync();

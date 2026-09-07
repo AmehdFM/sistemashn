@@ -29,27 +29,41 @@ namespace Sistemas.Repuestos.Library.Inventario
             // ---- Barra de herramientas ----
             var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.White };
 
-            var btnNuevo = BotonToolbar(Textos.Comun.BotonNuevo, 12);
-            btnNuevo.Click += async (s, e) => await AbrirFormularioAsync(null);
+            // Anchos por botón: los textos más largos ("Descargar plantilla",
+            // "Importar/Exportar Excel", "Armar paquete") no cabían en los
+            // 88px fijos que sí alcanzan para "Nuevo"/"Editar" — quedaban
+            // truncados. Cada botón se posiciona a partir del borde derecho
+            // del anterior más un espacio de 8px, en vez de coordenadas X
+            // fijas que ya no calzaban al ensanchar los botones.
+            const int gap = 8;
+            int x = 12;
 
-            var btnEditar = BotonToolbar(Textos.Comun.BotonEditar, 108);
+            var btnNuevo = BotonToolbar(Textos.Comun.BotonNuevo, x, 88);
+            btnNuevo.Click += async (s, e) => await AbrirFormularioAsync(null);
+            x += 88 + gap;
+
+            var btnEditar = BotonToolbar(Textos.Comun.BotonEditar, x, 88);
             btnEditar.Click += async (s, e) =>
             {
                 var seleccionado = ObtenerSeleccionado();
                 if (seleccionado == null) { MessageBox.Show(this, Textos.Inventario.ErrorSeleccioneProductoPrimero, Textos.Inventario.TituloEditar); return; }
                 await AbrirFormularioAsync(seleccionado);
             };
+            x += 88 + gap;
 
-            var btnImportar = BotonToolbar(Textos.Inventario.BotonImportarExcel, 204);
+            var btnImportar = BotonToolbar(Textos.Inventario.BotonImportarExcel, x, 130);
             btnImportar.Click += BtnImportar_Click;
+            x += 130 + gap;
 
-            var btnExportar = BotonToolbar(Textos.Inventario.BotonExportarExcel, 320);
+            var btnExportar = BotonToolbar(Textos.Inventario.BotonExportarExcel, x, 130);
             btnExportar.Click += BtnExportar_Click;
+            x += 130 + gap;
 
-            var btnPlantilla = BotonToolbar(Textos.Inventario.BotonDescargarPlantilla, 436);
+            var btnPlantilla = BotonToolbar(Textos.Inventario.BotonDescargarPlantilla, x, 170);
             btnPlantilla.Click += BtnPlantilla_Click;
+            x += 170 + gap;
 
-            var btnArmarPaquete = BotonToolbar(Textos.Inventario.BotonArmarPaquete, 570);
+            var btnArmarPaquete = BotonToolbar(Textos.Inventario.BotonArmarPaquete, x, 130);
             btnArmarPaquete.Click += BtnArmarPaquete_Click;
 
             var lblBuscar = new Label { Text = Textos.Comun.CampoBuscar, AutoSize = true, Location = new Point(12, 56) };
@@ -107,11 +121,11 @@ namespace Sistemas.Repuestos.Library.Inventario
             Load += async (s, e) => await InicializarAsync();
         }
 
-        private static Button BotonToolbar(string texto, int x) => new()
+        private static Button BotonToolbar(string texto, int x, int ancho) => new()
         {
             Text = texto,
             Location = new Point(x, 12),
-            Size = new Size(88, 32)
+            Size = new Size(ancho, 32)
         };
 
         private async Task InicializarAsync()
