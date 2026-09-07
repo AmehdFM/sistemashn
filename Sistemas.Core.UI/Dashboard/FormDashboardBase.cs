@@ -153,7 +153,7 @@ namespace Sistemas.Core.UI.Dashboard
             // Controls.Clear() no libera los controles removidos: hay que
             // disponerlos explícitamente o cada navegación deja handles y
             // controles hijos huérfanos en memoria.
-            foreach (Control controlSaliente in _pnlContenido.Controls)
+            foreach (Control controlSaliente in _pnlContenido.Controls.Cast<Control>().ToArray())
                 controlSaliente.Dispose();
             _pnlContenido.Controls.Clear();
 
