@@ -1,10 +1,11 @@
 CREATE PROCEDURE Configuracion.sp_GuardarConfiguracion
     @NombreComercial NVARCHAR(150),
-    @RTN CHAR(14),
+    @RTN CHAR(14) = NULL,
     @Direccion NVARCHAR(300) = NULL,
     @Telefono NVARCHAR(20) = NULL,
     @CorreoContacto NVARCHAR(100) = NULL,
-    @Logo VARBINARY(MAX) = NULL,
+    @LogoRuta NVARCHAR(400) = NULL,
+    @FacturacionLegalActiva BIT = 0,
     @UsuarioId INT
 AS
 BEGIN
@@ -26,7 +27,8 @@ BEGIN
                 Direccion = @Direccion,
                 Telefono = @Telefono,
                 CorreoContacto = @CorreoContacto,
-                Logo = @Logo,
+                LogoRuta = @LogoRuta,
+                FacturacionLegalActiva = @FacturacionLegalActiva,
                 FechaActualizacion = SYSDATETIME()
             WHERE Id = 1;
         END
@@ -35,8 +37,8 @@ BEGIN
             -- Id no es IDENTITY (defecto B-2): se inserta el literal directo,
             -- sin SET IDENTITY_INSERT, que exige permiso ALTER que un usuario
             -- de aplicación con solo EXECUTE no tiene.
-            INSERT INTO Configuracion.Configuracion (Id, NombreComercial, RTN, Direccion, Telefono, CorreoContacto, Logo, FechaActualizacion)
-            VALUES (1, @NombreComercial, @RTN, @Direccion, @Telefono, @CorreoContacto, @Logo, SYSDATETIME());
+            INSERT INTO Configuracion.Configuracion (Id, NombreComercial, RTN, Direccion, Telefono, CorreoContacto, LogoRuta, FacturacionLegalActiva, FechaActualizacion)
+            VALUES (1, @NombreComercial, @RTN, @Direccion, @Telefono, @CorreoContacto, @LogoRuta, @FacturacionLegalActiva, SYSDATETIME());
         END
 
         COMMIT;

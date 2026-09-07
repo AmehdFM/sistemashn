@@ -6,11 +6,17 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>..\Sistemas.Core.UI\Assets\elements_logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Sistemas.Core\Sistemas.Core.csproj" />
+    <ProjectReference Include="..\Sistemas.Core.UI\Sistemas.Core.UI.csproj" />
     <ProjectReference Include="..\Sistemas.Repuestos.Library\Sistemas.Repuestos.Library.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

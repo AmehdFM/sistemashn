@@ -18,3 +18,9 @@ obj/
 
 # Respaldos manuales
 *.zip
+
+# Llave privada del sistema de licenciamiento — NUNCA debe subirse a ningún
+# repositorio, público o privado. Guárdala aparte en un lugar seguro (gestor
+# de contraseñas, backup cifrado): sin ella no se pueden emitir nuevas claves
+# de activación.
+Sistemas.Licencias/clave_privada.pem

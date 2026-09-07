@@ -29,7 +29,7 @@ BEGIN
         WHERE NumeroParte = @Numero
     )
     SELECT
-        p.Id, p.Codigo, p.Nombre, p.PrecioUnitario, p.StockActual, p.Activo,
+        p.Id, p.Codigo, p.Nombre, p.PrecioUnitario, p.TasaISV, p.StockActual, p.Activo,
         c.NumeroCoincidente, c.Origen
     FROM Coincidencias c
     INNER JOIN Inventario.Productos p ON p.Id = c.ProductoId

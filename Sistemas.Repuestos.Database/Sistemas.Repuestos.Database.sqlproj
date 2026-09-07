@@ -106,5 +106,7 @@
     <Build Include="Repuestos\StoredProcedures\sp_RegistrarPagoCuentaPorPagar.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarCuentasPorCobrar.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarCuentasPorPagar.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ListarCompras.sql" />
+    <Build Include="Repuestos\StoredProcedures\sp_ListarVentas.sql" />
   </ItemGroup>
 </Project>

@@ -21,6 +21,7 @@ BEGIN
     DECLARE @VentaId INT, @Subtotal DECIMAL(12,2), @MontoISV DECIMAL(12,2), @Total DECIMAL(12,2);
     DECLARE @Correlativo NVARCHAR(60), @MensajeCAI NVARCHAR(200), @ExitoCAI BIT;
     DECLARE @CodigoProblema NVARCHAR(30);
+    DECLARE @FacturacionLegalActiva BIT;
 
     DECLARE @StockRequerido TABLE (ProductoId INT PRIMARY KEY, CantidadRequerida INT NOT NULL);
 
@@ -115,23 +116,37 @@ BEGIN
             RETURN;
         END
 
-        ---------- 5. Correlativo CAI (Core) ----------
-        -- EXEC simple con OUTPUT, no INSERT...EXEC: SQL Server prohíbe
-        -- cualquier ROLLBACK dentro de un procedimiento invocado vía
-        -- INSERT...EXEC, y sp_ObtenerCorrelativoCAI necesita poder hacer
-        -- ROLLBACK TRANSACTION a su savepoint en sus rutas de error
-        -- (CAI vencido/agotado/ausente).
-        EXEC Facturacion.sp_ObtenerCorrelativoCAI
-            @ExitoOut       = @ExitoCAI OUTPUT,
-            @MensajeOut     = @MensajeCAI OUTPUT,
-            @CorrelativoOut = @Correlativo OUTPUT;
+        ---------- 5. Número de factura: CAI (Core) o numeración interna ----------
+        -- La facturación legal (CAI) es opcional a nivel de negocio: hay
+        -- clientes que aún se están formalizando y no tienen uno vigente.
+        -- Cuando está apagada, la venta usa su propia numeración secuencial
+        -- en vez de exigir un CAI activo.
+        SELECT @FacturacionLegalActiva = FacturacionLegalActiva
+        FROM Configuracion.Configuracion WHERE Id = 1;
 
-        IF @ExitoCAI = 0
+        IF ISNULL(@FacturacionLegalActiva, 0) = 1
         BEGIN
-            IF @TranPropia = 1 ROLLBACK; ELSE ROLLBACK TRANSACTION PuntoVenta;
-            SELECT CAST(0 AS BIT) AS Exito, @MensajeCAI AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
-            RETURN;
+            -- EXEC simple con OUTPUT, no INSERT...EXEC: SQL Server prohíbe
+            -- cualquier ROLLBACK dentro de un procedimiento invocado vía
+            -- INSERT...EXEC, y sp_ObtenerCorrelativoCAI necesita poder hacer
+            -- ROLLBACK TRANSACTION a su savepoint en sus rutas de error
+            -- (CAI vencido/agotado/ausente).
+            EXEC Facturacion.sp_ObtenerCorrelativoCAI
+                @ExitoOut       = @ExitoCAI OUTPUT,
+                @MensajeOut     = @MensajeCAI OUTPUT,
+                @CorrelativoOut = @Correlativo OUTPUT;
+
+            IF @ExitoCAI = 0
+            BEGIN
+                IF @TranPropia = 1 ROLLBACK; ELSE ROLLBACK TRANSACTION PuntoVenta;
+                SELECT CAST(0 AS BIT) AS Exito, @MensajeCAI AS Mensaje,
+                       CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                RETURN;
+            END
+        END
+        ELSE
+        BEGIN
+            SET @Correlativo = 'INT-' + RIGHT('00000000' + CAST(NEXT VALUE FOR Repuestos.SeqVentaInterna AS NVARCHAR(20)), 8);
         END
 
         ---------- 6. Montos sobre las LÍNEAS COMERCIALES ----------

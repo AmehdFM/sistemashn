@@ -111,11 +111,19 @@
     <Build Include="Security\Security.sql" />
     <Build Include="Security\StoredProcedures\sp_ObtenerCredencialesLogin.sql" />
     <Build Include="Security\StoredProcedures\sp_RegistrarResultadoLogin.sql" />
+    <Build Include="Security\StoredProcedures\sp_CrearUsuario.sql" />
+    <Build Include="Configuracion\StoredProcedures\sp_ObtenerConfiguracion.sql" />
+    <Build Include="Inventario\StoredProcedures\sp_ActualizarProducto.sql" />
+    <Build Include="Facturacion\StoredProcedures\sp_ObtenerConfiguracionCAI.sql" />
+    <Build Include="Facturacion\StoredProcedures\sp_GuardarConfiguracionCAI.sql" />
   </ItemGroup>
   <ItemGroup>
     <None Include="obj\Debug\Sistemas.Core.Database.sqlproj.AssemblyReference.cache" />
     <None Include="Sistemas.Core.Database.dbmdl" />
     <None Include="Sistemas.Core.Database.jfm" />
     <None Include="Sistemas.Core.Database.sqlproj.user" />
+  </ItemGroup>
+  <ItemGroup>
+    <PostDeploy Include="Script.PostDeployment.sql" />
   </ItemGroup>
 </Project>
