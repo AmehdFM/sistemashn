@@ -31,7 +31,7 @@ namespace Sistemas.Repuestos.Library.Services
         {
             var tabla = new DataTable();
             tabla.Columns.Add("ProductoId", typeof(int));
-            tabla.Columns.Add("Cantidad", typeof(int));
+            tabla.Columns.Add("Cantidad", typeof(decimal));
             foreach (var linea in detalle)
                 tabla.Rows.Add(linea.ProductoId, linea.Cantidad);
 

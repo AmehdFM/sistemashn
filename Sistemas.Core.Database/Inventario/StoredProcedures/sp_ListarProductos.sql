@@ -19,9 +19,12 @@ BEGIN
     SELECT
         p.Id, p.Codigo, p.Nombre, p.Descripcion, p.PrecioUnitario,
         p.CategoriaId, c.Nombre AS NombreCategoria,
-        p.TasaISV, p.StockActual, p.StockMinimo, p.Activo, p.FechaCreacion
+        p.TasaISV, p.StockActual, p.StockMinimo, p.Activo, p.FechaCreacion,
+        p.UnidadMedidaId, um.Codigo AS UnidadMedidaCodigo, um.Simbolo AS UnidadMedidaSimbolo,
+        um.PermiteFraccion AS PermiteFraccionUnidad
     FROM Inventario.Productos p
     LEFT JOIN Inventario.Categorias c ON p.CategoriaId = c.Id
+    LEFT JOIN Inventario.UnidadesMedida um ON p.UnidadMedidaId = um.Id
     WHERE (@SoloActivos = 0 OR p.Activo = 1)
       AND (@CategoriaId IS NULL OR p.CategoriaId = @CategoriaId)
       AND (@Busqueda IS NULL OR p.Codigo LIKE '%' + @Busqueda + '%'

@@ -7,7 +7,8 @@ namespace Sistemas.Repuestos.Library.Models
         public int ProductoId { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public string Nombre { get; set; } = string.Empty;
-        public int Cantidad { get; set; }
+        public decimal Cantidad { get; set; }
+        public bool PermiteFraccion { get; set; } = true;
         public decimal CostoUnitario { get; set; }
         public decimal Subtotal => Cantidad * CostoUnitario;
     }

@@ -51,6 +51,15 @@ BEGIN
             RETURN;
         END
 
+        IF EXISTS (SELECT 1 FROM @Componentes c
+                   INNER JOIN Inventario.Productos p ON p.Id = c.ComponenteProductoId
+                   INNER JOIN Inventario.UnidadesMedida um ON um.Id = p.UnidadMedidaId
+                   WHERE um.PermiteFraccion = 0 AND c.Cantidad <> ROUND(c.Cantidad, 0))
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Hay componentes cuya unidad de medida no admite cantidades fraccionarias' AS Mensaje;
+            RETURN;
+        END
+
         -- Decisión D-3 (c): rearmar un paquete ya vendido rompería la
         -- anulación, porque se devolverían al inventario componentes
         -- distintos a los que salieron.

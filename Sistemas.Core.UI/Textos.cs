@@ -39,6 +39,7 @@ namespace Sistemas.Core.UI
             public const string CampoRequiereFacturacionLegal = "Requiere facturación legal (CAI)";
             public const string BotonConfigurarCai = "Configurar CAI";
             public const string TituloConfigurarCai = "Configuración de CAI";
+            public const string BotonUnidadesMedida = "Unidades de medida";
             public const string CampoNombreComercial = "Nombre comercial";
             public const string CampoRtnOpcional = "RTN (14 dígitos, opcional)";
             public const string CampoDireccion = "Dirección";
@@ -128,6 +129,24 @@ namespace Sistemas.Core.UI
                 "Del {1} al {2}\n" +
                 "Correlativo actual: {3}   ·   Restantes: {4}\n" +
                 "Vigente del {5:dd/MM/yyyy} al {6:dd/MM/yyyy}";
+        }
+
+        // Catálogo de unidades de medida (libras, kilos, metros, varas
+        // cuadradas, etc.). Vive en Core porque, igual que Productos, es un
+        // concepto genérico que cualquier vertical futura reutiliza.
+        public static class UnidadesMedida
+        {
+            public const string TituloVentana = "Unidades de medida";
+            public const string CampoCodigo = "Código";
+            public const string CampoNombre = "Nombre";
+            public const string CampoSimbolo = "Símbolo";
+            public const string CampoPermiteFraccion = "Admite decimales";
+            public const string CampoSistema = "Sistema";
+            public const string CampoActivo = "Activo";
+            public const string BotonAgregar = "Agregar";
+            public const string ErrorCamposRequeridos = "Código, nombre y símbolo son requeridos";
+            public const string NoSeCargaronPrefijo = "No se pudieron cargar las unidades de medida: ";
+            public const string NoSeGuardoPrefijo = "No se pudo guardar: ";
         }
     }
 }

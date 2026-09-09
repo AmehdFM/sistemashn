@@ -17,7 +17,7 @@ namespace Sistemas.Repuestos.Library.Services
         {
             var tabla = new DataTable();
             tabla.Columns.Add("ComponenteProductoId", typeof(int));
-            tabla.Columns.Add("Cantidad", typeof(int));
+            tabla.Columns.Add("Cantidad", typeof(decimal));
             foreach (var componente in componentes)
                 tabla.Rows.Add(componente.ComponenteProductoId, componente.Cantidad);
 

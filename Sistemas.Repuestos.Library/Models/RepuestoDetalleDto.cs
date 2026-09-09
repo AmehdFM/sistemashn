@@ -12,8 +12,8 @@ namespace Sistemas.Repuestos.Library.Models
         public decimal PrecioUnitario { get; set; }
         public int? CategoriaId { get; set; }
         public decimal TasaISV { get; set; }
-        public int StockActual { get; set; }
-        public int StockMinimo { get; set; }
+        public decimal StockActual { get; set; }
+        public decimal StockMinimo { get; set; }
         public bool Activo { get; set; }
         public string? NumeroParte { get; set; }
         public string? MarcaFabricante { get; set; }

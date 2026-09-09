@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Printing;
 using System.Windows.Forms;
+using Sistemas.Core.UI;
 using Sistemas.Repuestos.Library.Models;
 
 namespace Sistemas.Repuestos.Library.Ventas
@@ -42,7 +43,7 @@ namespace Sistemas.Repuestos.Library.Ventas
             Escribir(new string('-', 60));
             Escribir(string.Format("{0,-28}{1,6}{2,12}{3,12}", Textos.Pos.ReciboColumnaProducto, Textos.Pos.ReciboColumnaCantidad, Textos.Pos.ReciboColumnaPrecioUnitario, Textos.Pos.ReciboColumnaSubtotal));
             foreach (var linea in lineas)
-                Escribir(string.Format("{0,-28}{1,6}{2,12:N2}{3,12:N2}", Truncar(linea.Nombre, 28), linea.Cantidad, linea.PrecioUnitarioReferencial, linea.SubtotalReferencial));
+                Escribir(string.Format("{0,-28}{1,6}{2,12:N2}{3,12:N2}", Truncar(linea.Nombre, 28), CantidadFormatter.FormatearCantidad(linea.Cantidad, linea.PermiteFraccion), linea.PrecioUnitarioReferencial, linea.SubtotalReferencial));
             Escribir(new string('-', 60));
             Escribir(string.Format(Textos.Pos.ReciboTotalFormato, total), fuenteTitulo);
         }

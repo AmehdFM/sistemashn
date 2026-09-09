@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Sistemas.Core.Export;
 using Sistemas.Core.Inventory;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
@@ -10,11 +11,8 @@ namespace Sistemas.Repuestos.Library.Inventario
 {
     public sealed class FormImportarExcel : FormBase
     {
-        private readonly TextBox _txtRuta;
-        private readonly Button _btnImportar;
         private readonly Label _lblResumen;
         private readonly DataGridView _grid;
-        private string? _rutaSeleccionada;
 
         public FormImportarExcel()
         {
@@ -23,36 +21,50 @@ namespace Sistemas.Repuestos.Library.Inventario
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(560, 400);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 152, BackColor = Color.White };
+            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 168, BackColor = Color.White };
 
             var lblInstrucciones = new Label
             {
                 Text = Textos.Inventario.ImportarInstruccionesPrefijo + string.Join(", ", ProductService.EncabezadosImportacion),
                 AutoSize = false,
-                Size = new Size(640, 40),
+                Size = new Size(640, 32),
                 Location = new Point(16, 12)
             };
 
-            _txtRuta = new TextBox { Location = new Point(16, 56), Size = new Size(460, 26), ReadOnly = true };
-            var btnSeleccionar = new Button { Text = Textos.Inventario.BotonSeleccionarArchivo, Location = new Point(484, 55), Size = new Size(160, 28) };
-            btnSeleccionar.Click += BtnSeleccionar_Click;
-
-            _btnImportar = new Button
+            var btnDescargarPlantilla = new Button
             {
-                Text = Textos.Inventario.BotonImportar,
-                Location = new Point(16, 96),
-                Size = new Size(140, 32),
+                Text = Textos.Inventario.BotonDescargarPlantilla,
+                AutoSize = true,
+                Padding = new Padding(14, 0, 14, 0),
+                Height = 30,
+                Location = new Point(16, 52)
+            };
+            btnDescargarPlantilla.Click += BtnDescargarPlantilla_Click;
+
+            // Botón central grande: seleccionar e importar es UN solo paso,
+            // no dos — apenas se elige el archivo arranca la importación.
+            var btnSeleccionar = new Button
+            {
+                Text = Textos.Inventario.BotonSeleccionarArchivo,
+                Size = new Size(260, 44),
                 BackColor = UiTheme.Primario,
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Enabled = false
+                FlatStyle = FlatStyle.Flat
             };
-            _btnImportar.FlatAppearance.BorderSize = 0;
-            _btnImportar.Click += BtnImportar_Click;
+            btnSeleccionar.FlatAppearance.BorderSize = 0;
+            btnSeleccionar.Location = new Point((ClientSize.Width - btnSeleccionar.Width) / 2, 96);
+            btnSeleccionar.Anchor = AnchorStyles.Top;
+            btnSeleccionar.Click += BtnSeleccionar_Click;
 
-            _lblResumen = new Label { AutoSize = false, Size = new Size(500, 32), Location = new Point(168, 100) };
+            _lblResumen = new Label
+            {
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Size = new Size(640, 24),
+                Location = new Point(16, 144)
+            };
 
-            pnlTop.Controls.AddRange(new Control[] { lblInstrucciones, _txtRuta, btnSeleccionar, _btnImportar, _lblResumen });
+            pnlTop.Controls.AddRange(new Control[] { lblInstrucciones, btnDescargarPlantilla, btnSeleccionar, _lblResumen });
 
             _grid = new DataGridView();
             GridStyler.Aplicar(_grid);
@@ -76,27 +88,35 @@ namespace Sistemas.Repuestos.Library.Inventario
             }
         }
 
-        private void BtnSeleccionar_Click(object? sender, EventArgs e)
+        private void BtnDescargarPlantilla_Click(object? sender, EventArgs e)
+        {
+            using var dialogo = new SaveFileDialog { Filter = Textos.Comun.FiltroExcel, FileName = "plantilla_productos.xlsx" };
+            if (dialogo.ShowDialog(this) != DialogResult.OK) return;
+
+            try
+            {
+                ExcelExporter.GenerarPlantilla(dialogo.FileName, ProductService.EncabezadosImportacion, ProductService.FilasEjemploImportacion);
+                MostrarInfo(Textos.Inventario.PlantillaGeneradaEnPrefijo + dialogo.FileName);
+            }
+            catch (Exception ex)
+            {
+                MostrarError(Textos.Inventario.NoSeGeneroPlantillaPrefijo + ex.Message);
+            }
+        }
+
+        private async void BtnSeleccionar_Click(object? sender, EventArgs e)
         {
             using var dialogo = new OpenFileDialog { Filter = Textos.Comun.FiltroExcel };
             if (dialogo.ShowDialog(this) != DialogResult.OK) return;
 
-            _rutaSeleccionada = dialogo.FileName;
-            _txtRuta.Text = dialogo.FileName;
-            _btnImportar.Enabled = true;
-        }
-
-        private async void BtnImportar_Click(object? sender, EventArgs e)
-        {
-            if (_rutaSeleccionada == null) return;
-
-            _btnImportar.Enabled = false;
-            _lblResumen.Text = Textos.Inventario.EstadoImportando;
+            var boton = (Button)sender!;
+            boton.Enabled = false;
             _lblResumen.ForeColor = UiTheme.TextoTenue;
+            _lblResumen.Text = Textos.Inventario.EstadoImportando;
             try
             {
                 var usuarioId = SessionContext.Current?.UsuarioId ?? 0;
-                var resultado = await ProductService.ImportarDesdeExcelAsync(_rutaSeleccionada, usuarioId);
+                var resultado = await ProductService.ImportarDesdeExcelAsync(dialogo.FileName, usuarioId);
 
                 _lblResumen.ForeColor = resultado.FilasFallidas == 0 ? UiTheme.Primario : UiTheme.Error;
                 _lblResumen.Text = resultado.Mensaje;
@@ -109,7 +129,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             }
             finally
             {
-                _btnImportar.Enabled = true;
+                boton.Enabled = true;
             }
         }
     }

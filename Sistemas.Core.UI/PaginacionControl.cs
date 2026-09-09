@@ -7,6 +7,13 @@ namespace Sistemas.Core.UI
     // Barra reutilizable de "< Anterior / Página X de Y / Siguiente >" para
     // cualquier pantalla de listado paginado (Inventario, Proveedores,
     // Compras, Ventas, Cuentas...), en cualquier vertical.
+    //
+    // Layout con TableLayoutPanel (Auto / Fill / Auto) en vez de posiciones
+    // fijas: con coordenadas fijas, un texto largo en "Página X de Y" choca
+    // contra el botón "Siguiente" y lo corta — el TableLayoutPanel reparte
+    // el espacio sobrante siempre a la columna central, así el label nunca
+    // invade a los botones sin importar el ancho de la ventana ni el largo
+    // del texto.
     public sealed class PaginacionControl : UserControl
     {
         private readonly Button _btnAnterior;
@@ -23,25 +30,36 @@ namespace Sistemas.Core.UI
             Dock = DockStyle.Bottom;
             BackColor = Color.White;
 
-            // Location fijado aquí, antes de agregarse a ningún padre —ver
-            // la nota en FormDashboardBase sobre por qué esto es necesario.
-            _btnAnterior = new Button { Text = Textos.Comun.BotonAnterior, Size = new Size(100, 28), Location = new Point(12, 6) };
+            var tabla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                Padding = new Padding(12, 6, 12, 6)
+            };
+            tabla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            tabla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+            tabla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+
+            _btnAnterior = new Button { Text = Textos.Comun.BotonAnterior, Size = new Size(100, 28), Anchor = AnchorStyles.Left };
             _btnAnterior.Click += (s, e) => { if (Pagina > 1) { Pagina--; PaginaCambiada?.Invoke(this, EventArgs.Empty); } };
 
             _lblEstado = new Label
             {
-                AutoSize = true,
+                Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter,
-                ForeColor = UiTheme.TextoTenue,
-                Location = new Point(124, 12)
+                AutoEllipsis = true,
+                ForeColor = UiTheme.TextoTenue
             };
 
-            _btnSiguiente = new Button { Text = Textos.Comun.BotonSiguiente, Size = new Size(100, 28), Location = new Point(300, 6) };
+            _btnSiguiente = new Button { Text = Textos.Comun.BotonSiguiente, Size = new Size(100, 28), Anchor = AnchorStyles.Right };
             _btnSiguiente.Click += (s, e) => { if (Pagina < _totalPaginas) { Pagina++; PaginaCambiada?.Invoke(this, EventArgs.Empty); } };
 
-            Controls.Add(_btnAnterior);
-            Controls.Add(_lblEstado);
-            Controls.Add(_btnSiguiente);
+            tabla.Controls.Add(_btnAnterior, 0, 0);
+            tabla.Controls.Add(_lblEstado, 1, 0);
+            tabla.Controls.Add(_btnSiguiente, 2, 0);
+
+            Controls.Add(tabla);
         }
 
         public void Actualizar(int totalFilas, int tamanoPagina)

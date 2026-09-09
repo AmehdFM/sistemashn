@@ -1,11 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.Inventory;
 using Sistemas.Core.Inventory.Models;
-using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 
 namespace Sistemas.Repuestos.Library.Inventario
@@ -14,10 +13,13 @@ namespace Sistemas.Repuestos.Library.Inventario
     {
         private const int TamanoPagina = 50;
 
+        private readonly Panel _panelLista;
+        private readonly Panel _panelDetalle;
+
         private readonly TextBox _txtBuscar;
         private readonly ComboBox _cboCategoria;
         private readonly CheckBox _chkSoloActivos;
-        private readonly DataGridView _grid;
+        private readonly FlowLayoutPanel _panelCards;
         private readonly PaginacionControl _paginacion;
         private readonly Label _lblEstado;
 
@@ -26,72 +28,67 @@ namespace Sistemas.Repuestos.Library.Inventario
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
-            // ---- Barra de herramientas ----
-            var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.White };
-
-            var btnNuevo = BotonToolbar(Textos.Comun.BotonNuevo, 12);
-            btnNuevo.Click += async (s, e) => await AbrirFormularioAsync(null);
-
-            var btnEditar = BotonToolbar(Textos.Comun.BotonEditar, 108);
-            btnEditar.Click += async (s, e) =>
+            // ---- Barra de herramientas: solo Crear / Descargar / Cargar ----
+            var pnlToolbar = new FlowLayoutPanel
             {
-                var seleccionado = ObtenerSeleccionado();
-                if (seleccionado == null) { MessageBox.Show(this, Textos.Inventario.ErrorSeleccioneProductoPrimero, Textos.Inventario.TituloEditar); return; }
-                await AbrirFormularioAsync(seleccionado);
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(12, 12, 12, 8)
             };
 
-            var btnImportar = BotonToolbar(Textos.Inventario.BotonImportarExcel, 204);
-            btnImportar.Click += BtnImportar_Click;
+            var btnNuevo = BotonToolbar(Textos.Comun.BotonNuevo, primario: true);
+            btnNuevo.Click += (s, e) => AbrirDetalle(null);
 
-            var btnExportar = BotonToolbar(Textos.Inventario.BotonExportarExcel, 320);
-            btnExportar.Click += BtnExportar_Click;
+            var btnDescargar = BotonToolbar(Textos.Inventario.BotonExportarExcel);
+            btnDescargar.Click += BtnDescargar_Click;
 
-            var btnPlantilla = BotonToolbar(Textos.Inventario.BotonDescargarPlantilla, 436);
-            btnPlantilla.Click += BtnPlantilla_Click;
+            var btnCargar = BotonToolbar(Textos.Inventario.BotonImportarExcel);
+            btnCargar.Click += BtnCargar_Click;
 
-            var btnArmarPaquete = BotonToolbar(Textos.Inventario.BotonArmarPaquete, 570);
-            btnArmarPaquete.Click += BtnArmarPaquete_Click;
+            pnlToolbar.Controls.AddRange(new Control[] { btnNuevo, btnDescargar, btnCargar });
 
-            var lblBuscar = new Label { Text = Textos.Comun.CampoBuscar, AutoSize = true, Location = new Point(12, 56) };
-            _txtBuscar = new TextBox { Location = new Point(12, 72), Size = new Size(200, 26) };
+            // ---- Fila de filtros ----
+            var pnlFiltros = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(12, 0, 12, 12)
+            };
+
+            var lblBuscar = new Label { Text = Textos.Comun.CampoBuscar, AutoSize = true, Margin = new Padding(0, 8, 6, 0) };
+            _txtBuscar = new TextBox { Width = 200, Margin = new Padding(0, 4, 16, 0) };
             _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _paginacion.Reiniciar(); await CargarAsync(); } };
 
-            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, AutoSize = true, Location = new Point(224, 56) };
+            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, AutoSize = true, Margin = new Padding(0, 8, 6, 0) };
             _cboCategoria = new ComboBox
             {
-                Location = new Point(224, 72), Size = new Size(220, 26), DropDownStyle = ComboBoxStyle.DropDownList,
+                Width = 200, Margin = new Padding(0, 4, 16, 0), DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(CategoriaDto.Nombre), ValueMember = nameof(CategoriaDto.Id)
             };
             _cboCategoria.SelectedIndexChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
 
-            _chkSoloActivos = new CheckBox { Text = Textos.Comun.CampoSoloActivos, AutoSize = true, Location = new Point(456, 76), Checked = true };
+            _chkSoloActivos = new CheckBox { Text = Textos.Comun.CampoSoloActivos, AutoSize = true, Checked = true, Margin = new Padding(0, 10, 16, 0) };
             _chkSoloActivos.CheckedChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
 
-            var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(600, 71), Size = new Size(80, 28) };
+            var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Padding = new Padding(12, 0, 12, 0), Height = 28, Margin = new Padding(0, 4, 0, 0) };
             btnBuscar.Click += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
 
-            pnlToolbar.Controls.AddRange(new Control[]
-            {
-                btnNuevo, btnEditar, btnImportar, btnExportar, btnPlantilla, btnArmarPaquete,
-                lblBuscar, _txtBuscar, lblCategoria, _cboCategoria, _chkSoloActivos, btnBuscar
-            });
+            pnlFiltros.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, lblCategoria, _cboCategoria, _chkSoloActivos, btnBuscar });
 
-            // ---- Grid ----
-            _grid = new DataGridView();
-            GridStyler.Aplicar(_grid);
-            _grid.AutoGenerateColumns = false;
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.Codigo), HeaderText = "Código", FillWeight = 12 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.Nombre), HeaderText = "Nombre", FillWeight = 28 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.NombreCategoria), HeaderText = "Categoría", FillWeight = 16 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.PrecioUnitario), HeaderText = "Precio", FillWeight = 10, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.TasaISV), HeaderText = "ISV %", FillWeight = 8, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.StockActual), HeaderText = "Stock", FillWeight = 8, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ProductoDto.StockMinimo), HeaderText = "Stock mín.", FillWeight = 9, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
-            _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(ProductoDto.Activo), HeaderText = "Activo", FillWeight = 7 });
-            _grid.CellDoubleClick += async (s, e) =>
+            // ---- Grilla de tarjetas ----
+            _panelCards = new FlowLayoutPanel
             {
-                var seleccionado = ObtenerSeleccionado();
-                if (seleccionado != null) await AbrirFormularioAsync(seleccionado);
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                WrapContents = true,
+                BackColor = UiTheme.FondoContenido,
+                Padding = new Padding(12)
             };
 
             _paginacion = new PaginacionControl();
@@ -99,20 +96,41 @@ namespace Sistemas.Repuestos.Library.Inventario
 
             _lblEstado = new Label { Dock = DockStyle.Bottom, Height = 24, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), ForeColor = UiTheme.Error };
 
-            Controls.Add(_grid);
-            Controls.Add(_lblEstado);
-            Controls.Add(_paginacion);
-            Controls.Add(pnlToolbar);
+            _panelLista = new Panel { Dock = DockStyle.Fill };
+            _panelLista.Controls.Add(_panelCards);
+            _panelLista.Controls.Add(_lblEstado);
+            _panelLista.Controls.Add(_paginacion);
+            _panelLista.Controls.Add(pnlFiltros);
+            _panelLista.Controls.Add(pnlToolbar);
+
+            _panelDetalle = new Panel { Dock = DockStyle.Fill, Visible = false };
+
+            Controls.Add(_panelLista);
+            Controls.Add(_panelDetalle);
 
             Load += async (s, e) => await InicializarAsync();
         }
 
-        private static Button BotonToolbar(string texto, int x) => new()
+        private static Button BotonToolbar(string texto, bool primario = false)
         {
-            Text = texto,
-            Location = new Point(x, 12),
-            Size = new Size(88, 32)
-        };
+            var boton = new Button
+            {
+                Text = texto,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Padding = new Padding(14, 0, 14, 0),
+                Height = 32,
+                Margin = new Padding(0, 0, 8, 0)
+            };
+            if (primario)
+            {
+                boton.BackColor = UiTheme.Primario;
+                boton.ForeColor = Color.White;
+                boton.FlatStyle = FlatStyle.Flat;
+                boton.FlatAppearance.BorderSize = 0;
+            }
+            return boton;
+        }
 
         private async Task InicializarAsync()
         {
@@ -140,7 +158,7 @@ namespace Sistemas.Repuestos.Library.Inventario
                 var (productos, total) = await ProductService.ListarAsync(
                     _chkSoloActivos.Checked, categoriaId, busqueda, _paginacion.Pagina, TamanoPagina);
 
-                _grid.DataSource = productos;
+                MostrarTarjetas(productos);
                 _paginacion.Actualizar(total, TamanoPagina);
                 _lblEstado.ForeColor = UiTheme.TextoTenue;
                 _lblEstado.Text = string.Empty;
@@ -152,23 +170,66 @@ namespace Sistemas.Repuestos.Library.Inventario
             }
         }
 
-        private ProductoDto? ObtenerSeleccionado() => _grid.CurrentRow?.DataBoundItem as ProductoDto;
-
-        private async Task AbrirFormularioAsync(ProductoDto? producto)
+        private void MostrarTarjetas(List<ProductoDto> productos)
         {
-            using var form = new FormProducto(producto);
-            form.ShowDialog(FindForm());
+            // Controls.Clear() no libera los controles removidos: hay que
+            // disponerlos explícitamente o cada recarga deja tarjetas
+            // huérfanas en memoria (mismo cuidado que FormDashboardBase al
+            // cambiar de módulo).
+            foreach (Control control in _panelCards.Controls)
+                control.Dispose();
+            _panelCards.Controls.Clear();
+
+            if (productos.Count == 0)
+            {
+                _panelCards.Controls.Add(new Label
+                {
+                    Text = Textos.Inventario.SinProductos,
+                    AutoSize = true,
+                    ForeColor = UiTheme.TextoTenue,
+                    Margin = new Padding(4, 12, 0, 0)
+                });
+                return;
+            }
+
+            foreach (var producto in productos)
+            {
+                var card = new ProductCard(producto);
+                card.Click += (s, e) => AbrirDetalle(card.Producto);
+                _panelCards.Controls.Add(card);
+            }
+        }
+
+        // Un solo clic en la tarjeta ya abre el detalle en el mismo lugar
+        // del grid — no hay más un botón "Editar" aparte ni un modo de
+        // selección previo.
+        private void AbrirDetalle(ProductoDto? producto)
+        {
+            var detalle = new ProductDetailControl(producto) { Dock = DockStyle.Fill };
+            detalle.Volver += (s, e) => VolverALista(detalle);
+            detalle.Guardado += async (s, e) => await CargarAsync();
+
+            foreach (Control control in _panelDetalle.Controls)
+                control.Dispose();
+            _panelDetalle.Controls.Clear();
+            _panelDetalle.Controls.Add(detalle);
+
+            _panelLista.Visible = false;
+            _panelDetalle.Visible = true;
+        }
+
+        private async void VolverALista(ProductDetailControl detalle)
+        {
+            _panelDetalle.Visible = false;
+            _panelLista.Visible = true;
+
+            _panelDetalle.Controls.Remove(detalle);
+            detalle.Dispose();
+
             await CargarAsync();
         }
 
-        private async void BtnImportar_Click(object? sender, EventArgs e)
-        {
-            using var form = new FormImportarExcel();
-            form.ShowDialog(FindForm());
-            await CargarAsync();
-        }
-
-        private async void BtnExportar_Click(object? sender, EventArgs e)
+        private async void BtnDescargar_Click(object? sender, EventArgs e)
         {
             using var dialogo = new SaveFileDialog { Filter = Textos.Comun.FiltroExcel, FileName = "inventario.xlsx" };
             if (dialogo.ShowDialog(FindForm()) != DialogResult.OK) return;
@@ -186,32 +247,9 @@ namespace Sistemas.Repuestos.Library.Inventario
             }
         }
 
-        private void BtnPlantilla_Click(object? sender, EventArgs e)
+        private async void BtnCargar_Click(object? sender, EventArgs e)
         {
-            using var dialogo = new SaveFileDialog { Filter = Textos.Comun.FiltroExcel, FileName = "plantilla_productos.xlsx" };
-            if (dialogo.ShowDialog(FindForm()) != DialogResult.OK) return;
-
-            try
-            {
-                Sistemas.Core.Export.ExcelExporter.GenerarPlantilla(dialogo.FileName, ProductService.EncabezadosImportacion);
-                MessageBox.Show(FindForm(), Textos.Inventario.PlantillaGeneradaEnPrefijo + dialogo.FileName, Textos.Inventario.TituloPlantilla);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(FindForm(), Textos.Inventario.NoSeGeneroPlantillaPrefijo + ex.Message, Sistemas.Core.UI.Textos.Comun.TituloError, MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private async void BtnArmarPaquete_Click(object? sender, EventArgs e)
-        {
-            var seleccionado = ObtenerSeleccionado();
-            if (seleccionado == null)
-            {
-                MessageBox.Show(this, Textos.Inventario.ErrorSeleccionePaqueteProducto, Textos.Inventario.TituloArmarPaquete);
-                return;
-            }
-
-            using var form = new FormArmarPaquete(seleccionado);
+            using var form = new FormImportarExcel();
             form.ShowDialog(FindForm());
             await CargarAsync();
         }

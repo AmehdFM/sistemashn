@@ -1,3 +1,4 @@
+using System.Globalization;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI.Arranque;
 using Sistemas.Core.UI.Dashboard;
@@ -13,6 +14,16 @@ namespace Sistemas.Repuestos
         [STAThread]
         static void Main()
         {
+            // Punto y coma fijos (convención hondureña, igual que en-US) sin
+            // depender del locale de Windows de cada máquina cliente — se usa
+            // DefaultThreadCurrentCulture (no solo CurrentThread.CurrentCulture)
+            // para que los hilos de threadpool (continuaciones async/Dapper)
+            // también lo hereden. en-US no tiene efecto colateral de moneda
+            // porque el sistema nunca formatea con "C", solo "N2"/"N0".
+            var cultura = CultureInfo.GetCultureInfo("en-US");
+            CultureInfo.DefaultThreadCurrentCulture = cultura;
+            CultureInfo.DefaultThreadCurrentUICulture = cultura;
+
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();

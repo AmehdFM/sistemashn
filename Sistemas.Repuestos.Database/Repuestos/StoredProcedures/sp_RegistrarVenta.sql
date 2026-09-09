@@ -23,7 +23,7 @@ BEGIN
     DECLARE @CodigoProblema NVARCHAR(30);
     DECLARE @FacturacionLegalActiva BIT;
 
-    DECLARE @StockRequerido TABLE (ProductoId INT PRIMARY KEY, CantidadRequerida INT NOT NULL);
+    DECLARE @StockRequerido TABLE (ProductoId INT PRIMARY KEY, CantidadRequerida DECIMAL(12,2) NOT NULL);
 
     BEGIN TRY
         ---------- 1. Validaciones previas, fuera de transacción ----------
@@ -59,6 +59,24 @@ BEGIN
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito,
                    CONCAT('El producto ', @CodigoProblema, ' está descontinuado y no puede venderse') AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+            RETURN;
+        END
+
+        -- La unidad de medida del producto (ej. "Unidad") puede exigir
+        -- cantidades enteras aunque la columna sea DECIMAL(12,2) para todos.
+        -- Se valida sobre la línea comercial (el paquete, si aplica), no
+        -- sobre sus componentes expandidos.
+        SELECT TOP (1) @CodigoProblema = p.Codigo
+        FROM @Detalle d
+        INNER JOIN Inventario.Productos p ON p.Id = d.ProductoId
+        INNER JOIN Inventario.UnidadesMedida um ON um.Id = p.UnidadMedidaId
+        WHERE um.PermiteFraccion = 0 AND d.Cantidad <> ROUND(d.Cantidad, 0);
+
+        IF @CodigoProblema IS NOT NULL
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito,
+                   CONCAT('El producto ', @CodigoProblema, ' usa una unidad que no admite cantidades fraccionarias') AS Mensaje,
                    CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
             RETURN;
         END

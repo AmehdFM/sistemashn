@@ -30,9 +30,11 @@ BEGIN
     )
     SELECT
         p.Id, p.Codigo, p.Nombre, p.PrecioUnitario, p.TasaISV, p.StockActual, p.Activo,
+        um.Simbolo AS UnidadMedidaSimbolo, um.PermiteFraccion AS PermiteFraccionUnidad,
         c.NumeroCoincidente, c.Origen
     FROM Coincidencias c
     INNER JOIN Inventario.Productos p ON p.Id = c.ProductoId
+    LEFT JOIN Inventario.UnidadesMedida um ON um.Id = p.UnidadMedidaId
     ORDER BY p.Nombre
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS
     FETCH NEXT @TamanoPagina ROWS ONLY

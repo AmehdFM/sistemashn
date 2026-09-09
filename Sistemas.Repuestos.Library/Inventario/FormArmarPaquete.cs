@@ -51,6 +51,11 @@ namespace Sistemas.Repuestos.Library.Inventario
 
             _cboResultado = new ComboBox { Location = new Point(16, 84), Size = new Size(320, 26), DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
             _cboResultado.Format += (s, e) => { if (e.ListItem is ProductoDto p) e.Value = $"{p.Codigo} — {p.Nombre}"; };
+            _cboResultado.SelectedIndexChanged += (s, e) =>
+            {
+                if (_cboResultado.SelectedItem is ProductoDto p)
+                    CantidadFormatter.AplicarModoCantidad(_numCantidad, p.PermiteFraccionUnidad);
+            };
 
             var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, AutoSize = true, Location = new Point(346, 60) };
             _numCantidad = new NumericUpDown { Location = new Point(346, 84), Size = new Size(70, 26), Minimum = 1, Maximum = 10000, Value = 1 };
@@ -66,6 +71,14 @@ namespace Sistemas.Repuestos.Library.Inventario
             _gridComponentes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ComponentePaqueteDto.Codigo), HeaderText = "Código", FillWeight = 20 });
             _gridComponentes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ComponentePaqueteDto.Nombre), HeaderText = "Nombre", FillWeight = 50 });
             _gridComponentes.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(ComponentePaqueteDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
+            _gridComponentes.CellFormatting += (s, e) =>
+            {
+                if (_gridComponentes.Columns[e.ColumnIndex].DataPropertyName != nameof(ComponentePaqueteDto.Cantidad)) return;
+                if (_componentes.Count <= e.RowIndex) return;
+                var comp = _componentes[e.RowIndex];
+                e.Value = CantidadFormatter.FormatearCantidad(comp.Cantidad, comp.PermiteFraccion);
+                e.FormattingApplied = true;
+            };
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 84, BackColor = Color.White };
             var btnQuitar = new Button { Text = Textos.Inventario.BotonQuitarSeleccionado, Location = new Point(16, 8), Size = new Size(160, 28) };
@@ -123,7 +136,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             var existente = _componentes.FirstOrDefault(c => c.ComponenteProductoId == seleccionado.Id);
             if (existente != null)
             {
-                existente.Cantidad += (int)_numCantidad.Value;
+                existente.Cantidad += _numCantidad.Value;
                 _componentes.ResetItem(_componentes.IndexOf(existente));
             }
             else
@@ -133,7 +146,8 @@ namespace Sistemas.Repuestos.Library.Inventario
                     ComponenteProductoId = seleccionado.Id,
                     Codigo = seleccionado.Codigo,
                     Nombre = seleccionado.Nombre,
-                    Cantidad = (int)_numCantidad.Value
+                    Cantidad = _numCantidad.Value,
+                    PermiteFraccion = seleccionado.PermiteFraccionUnidad
                 });
             }
 

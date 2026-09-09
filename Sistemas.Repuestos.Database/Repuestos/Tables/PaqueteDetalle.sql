@@ -5,7 +5,7 @@ CREATE TABLE Repuestos.PaqueteDetalle (
     Id                      INT IDENTITY(1,1) NOT NULL,
     PaqueteId               INT NOT NULL,
     ComponenteProductoId    INT NOT NULL,
-    Cantidad                INT NOT NULL,
+    Cantidad                DECIMAL(12,2) NOT NULL,
     CONSTRAINT PK_PaqueteDetalle PRIMARY KEY (Id),
     CONSTRAINT FK_PaqueteDetalle_Paquetes FOREIGN KEY (PaqueteId) REFERENCES Repuestos.Paquetes(ProductoId),
     CONSTRAINT FK_PaqueteDetalle_Productos FOREIGN KEY (ComponenteProductoId) REFERENCES Inventario.Productos(Id),

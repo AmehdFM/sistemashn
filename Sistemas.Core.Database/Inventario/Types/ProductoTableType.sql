@@ -5,6 +5,7 @@ CREATE TYPE Inventario.ProductoTableType AS TABLE (
     PrecioUnitario  DECIMAL(12,2)  NOT NULL,
     CategoriaId     INT            NULL,
     TasaISV         DECIMAL(5,2)   NULL,
-    StockMinimo     INT            NULL
+    StockMinimo     DECIMAL(12,2)  NULL,
+    UnidadMedidaCodigo NVARCHAR(10) NULL
 );
 GO

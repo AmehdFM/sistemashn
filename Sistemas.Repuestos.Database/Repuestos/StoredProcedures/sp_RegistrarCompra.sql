@@ -54,6 +54,22 @@ BEGIN
             RETURN;
         END
 
+        -- La unidad de medida del producto (ej. "Unidad") puede exigir
+        -- cantidades enteras aunque la columna sea DECIMAL(12,2) para todos.
+        SELECT TOP (1) @ProductoInvalido = p.Codigo
+        FROM @Detalle d
+        INNER JOIN Inventario.Productos p ON p.Id = d.ProductoId
+        INNER JOIN Inventario.UnidadesMedida um ON um.Id = p.UnidadMedidaId
+        WHERE um.PermiteFraccion = 0 AND d.Cantidad <> ROUND(d.Cantidad, 0);
+
+        IF @ProductoInvalido IS NOT NULL
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito,
+                   CONCAT('El producto ', @ProductoInvalido, ' usa una unidad que no admite cantidades fraccionarias') AS Mensaje,
+                   CAST(NULL AS INT) AS CompraId;
+            RETURN;
+        END
+
         SET @Total = (SELECT SUM(Cantidad * CostoUnitario) FROM @Detalle);
 
         ---------- Transacción ----------

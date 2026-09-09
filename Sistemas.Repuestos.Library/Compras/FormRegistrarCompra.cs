@@ -64,6 +64,11 @@ namespace Sistemas.Repuestos.Library.Compras
 
             _cboResultadoProducto = new ComboBox { Location = new Point(16, 122), Size = new Size(320, 26), DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
             _cboResultadoProducto.Format += (s, e) => { if (e.ListItem is ProductoDto p) e.Value = $"{p.Codigo} — {p.Nombre}"; };
+            _cboResultadoProducto.SelectedIndexChanged += (s, e) =>
+            {
+                if (_cboResultadoProducto.SelectedItem is ProductoDto p)
+                    CantidadFormatter.AplicarModoCantidad(_numCantidad, p.PermiteFraccionUnidad);
+            };
 
             var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, AutoSize = true, Location = new Point(346, 98) };
             _numCantidad = new NumericUpDown { Location = new Point(346, 122), Size = new Size(70, 26), Minimum = 1, Maximum = 100000, Value = 1 };
@@ -89,6 +94,14 @@ namespace Sistemas.Repuestos.Library.Compras
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.CostoUnitario), HeaderText = "Costo unit.", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Subtotal), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
+            _gridLineas.CellFormatting += (s, e) =>
+            {
+                if (_gridLineas.Columns[e.ColumnIndex].DataPropertyName != nameof(LineaCompraDto.Cantidad)) return;
+                if (_lineas.Count <= e.RowIndex) return;
+                var linea = _lineas[e.RowIndex];
+                e.Value = CantidadFormatter.FormatearCantidad(linea.Cantidad, linea.PermiteFraccion);
+                e.FormattingApplied = true;
+            };
 
             var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 96, BackColor = Color.White };
             var btnQuitarLinea = new Button { Text = Textos.Compras.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(120, 28) };
@@ -168,7 +181,8 @@ namespace Sistemas.Repuestos.Library.Compras
                 ProductoId = producto.Id,
                 Codigo = producto.Codigo,
                 Nombre = producto.Nombre,
-                Cantidad = (int)_numCantidad.Value,
+                Cantidad = _numCantidad.Value,
+                PermiteFraccion = producto.PermiteFraccionUnidad,
                 CostoUnitario = _numCosto.Value
             });
 

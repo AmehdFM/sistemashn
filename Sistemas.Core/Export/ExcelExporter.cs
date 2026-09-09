@@ -32,8 +32,8 @@ namespace Sistemas.Core.Export
             libro.SaveAs(rutaArchivo);
         }
 
-        public static void GenerarPlantilla(string rutaArchivo, string[] encabezados) =>
-            Exportar(rutaArchivo, encabezados, Enumerable.Empty<object?[]>());
+        public static void GenerarPlantilla(string rutaArchivo, string[] encabezados, IEnumerable<object?[]>? filasEjemplo = null) =>
+            Exportar(rutaArchivo, encabezados, filasEjemplo ?? Enumerable.Empty<object?[]>());
 
         // Compara la fila de encabezados contra los esperados (mismo orden,
         // mismo texto) ANTES de leer ninguna fila de datos — si no coincide,

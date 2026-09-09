@@ -31,14 +31,15 @@ BEGIN
     );
 
     DECLARE @Codigo NVARCHAR(30), @Nombre NVARCHAR(150), @Descripcion NVARCHAR(500),
-            @PrecioUnitario DECIMAL(12,2), @CategoriaId INT, @TasaISV DECIMAL(5,2), @StockMinimo INT;
+            @PrecioUnitario DECIMAL(12,2), @CategoriaId INT, @TasaISV DECIMAL(5,2), @StockMinimo DECIMAL(12,2),
+            @UnidadMedidaCodigo NVARCHAR(10), @UnidadMedidaId INT, @PermiteFraccion BIT;
 
     DECLARE cur CURSOR LOCAL FAST_FORWARD FOR
-        SELECT Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockMinimo
+        SELECT Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockMinimo, UnidadMedidaCodigo
         FROM @Productos;
 
     OPEN cur;
-    FETCH NEXT FROM cur INTO @Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, @StockMinimo;
+    FETCH NEXT FROM cur INTO @Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, @StockMinimo, @UnidadMedidaCodigo;
 
     WHILE @@FETCH_STATUS = 0
     BEGIN
@@ -57,31 +58,49 @@ BEGIN
                 INSERT INTO @Resultados VALUES (@Codigo, 0, 'La categoría especificada no existe', NULL);
             ELSE
             BEGIN
-                BEGIN TRAN;
+                -- Código en vez de Id: más fácil de llenar a mano en el Excel.
+                -- NULL se resuelve a "Unidad" (Id = 1), igual que el default
+                -- de la tabla, para que el importador no obligue a llenarla.
+                SET @UnidadMedidaId = NULL;
+                SET @PermiteFraccion = NULL;
+                IF @UnidadMedidaCodigo IS NOT NULL
+                    SELECT @UnidadMedidaId = Id, @PermiteFraccion = PermiteFraccion
+                    FROM Inventario.UnidadesMedida
+                    WHERE Codigo = @UnidadMedidaCodigo AND Activo = 1;
 
-                IF EXISTS (SELECT 1 FROM Inventario.Productos WHERE Codigo = @Codigo)
-                BEGIN
-                    UPDATE Inventario.Productos
-                    SET Nombre         = @Nombre,
-                        Descripcion    = @Descripcion,
-                        PrecioUnitario = @PrecioUnitario,
-                        CategoriaId    = @CategoriaId,
-                        TasaISV        = ISNULL(@TasaISV, TasaISV),
-                        StockMinimo    = ISNULL(@StockMinimo, StockMinimo)
-                    WHERE Codigo = @Codigo;
-
-                    INSERT INTO @Resultados VALUES (@Codigo, 1, 'Actualizado', 'UPDATE');
-                END
+                IF @UnidadMedidaCodigo IS NOT NULL AND @UnidadMedidaId IS NULL
+                    INSERT INTO @Resultados VALUES (@Codigo, 0, 'La unidad de medida especificada no existe o está inactiva', NULL);
+                ELSE IF @UnidadMedidaCodigo IS NOT NULL AND @PermiteFraccion = 0 AND @StockMinimo IS NOT NULL AND @StockMinimo <> ROUND(@StockMinimo, 0)
+                    INSERT INTO @Resultados VALUES (@Codigo, 0, 'Esta unidad de medida no admite cantidades fraccionarias', NULL);
                 ELSE
                 BEGIN
-                    INSERT INTO Inventario.Productos (Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockMinimo)
-                    VALUES (@Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId,
-                            ISNULL(@TasaISV, 15.00), ISNULL(@StockMinimo, 0));
+                    BEGIN TRAN;
 
-                    INSERT INTO @Resultados VALUES (@Codigo, 1, 'Creado', 'INSERT');
+                    IF EXISTS (SELECT 1 FROM Inventario.Productos WHERE Codigo = @Codigo)
+                    BEGIN
+                        UPDATE Inventario.Productos
+                        SET Nombre         = @Nombre,
+                            Descripcion    = @Descripcion,
+                            PrecioUnitario = @PrecioUnitario,
+                            CategoriaId    = @CategoriaId,
+                            TasaISV        = ISNULL(@TasaISV, TasaISV),
+                            StockMinimo    = ISNULL(@StockMinimo, StockMinimo),
+                            UnidadMedidaId = ISNULL(@UnidadMedidaId, UnidadMedidaId)
+                        WHERE Codigo = @Codigo;
+
+                        INSERT INTO @Resultados VALUES (@Codigo, 1, 'Actualizado', 'UPDATE');
+                    END
+                    ELSE
+                    BEGIN
+                        INSERT INTO Inventario.Productos (Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockMinimo, UnidadMedidaId)
+                        VALUES (@Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId,
+                                ISNULL(@TasaISV, 15.00), ISNULL(@StockMinimo, 0), ISNULL(@UnidadMedidaId, 1));
+
+                        INSERT INTO @Resultados VALUES (@Codigo, 1, 'Creado', 'INSERT');
+                    END
+
+                    COMMIT;
                 END
-
-                COMMIT;
             END
         END TRY
         BEGIN CATCH
@@ -91,7 +110,7 @@ BEGIN
             INSERT INTO @Resultados VALUES (@Codigo, 0, ERROR_MESSAGE(), NULL);
         END CATCH
 
-        FETCH NEXT FROM cur INTO @Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, @StockMinimo;
+        FETCH NEXT FROM cur INTO @Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, @StockMinimo, @UnidadMedidaCodigo;
     END
 
     CLOSE cur;

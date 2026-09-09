@@ -18,7 +18,17 @@ namespace Sistemas.Core.Inventory
         // Excel). El mismo arreglo se usa para validar la estructura del
         // archivo y para generar la plantilla en blanco.
         public static readonly string[] EncabezadosImportacion =
-            { "Codigo", "Nombre", "Descripcion", "PrecioUnitario", "Categoria", "TasaISV", "StockMinimo" };
+            { "Codigo", "Nombre", "Descripcion", "PrecioUnitario", "Categoria", "TasaISV", "StockMinimo", "UnidadMedida" };
+
+        // Filas de ejemplo para la plantilla descargable — no basta con los
+        // encabezados solos, hace falta mostrar el TIPO de dato esperado en
+        // cada columna (formato de número, qué va en Categoria/UnidadMedida).
+        public static readonly object?[][] FilasEjemploImportacion =
+        {
+            new object?[] { "TOR-001", "Tornillo hexagonal 1/4\"", "Tornillo hexagonal galvanizado de 1/4 pulgada", 5.50m, "Ferretería", 15m, 100m, "UNI" },
+            new object?[] { "PIN-002", "Pintura de aceite blanca", "Pintura de aceite color blanco, cubeta", 950.00m, "Pinturas", 15m, 10.5m, "GAL" },
+            new object?[] { "CEM-003", "Cemento gris", "Cemento gris para construcción", 180.00m, "Materiales de construcción", 15m, 25m, "QQ" }
+        };
 
         public static async Task<(List<ProductoDto> Productos, int TotalFilas)> ListarAsync(
             bool soloActivos, int? categoriaId, string? busqueda, int pagina, int tamanoPagina)
@@ -36,7 +46,7 @@ namespace Sistemas.Core.Inventory
 
         public static async Task<(bool Exito, string Mensaje, int? ProductoId)> CrearAsync(
             string codigo, string nombre, string? descripcion, decimal precioUnitario,
-            int? categoriaId, decimal tasaIsv, int stockMinimo, int? usuarioId)
+            int? categoriaId, decimal tasaIsv, decimal stockMinimo, int unidadMedidaId, int? usuarioId)
         {
             using var conn = ConnectionFactory.CreateConnection();
             return await conn.QueryFirstAsync<(bool Exito, string Mensaje, int? ProductoId)>(
@@ -50,6 +60,7 @@ namespace Sistemas.Core.Inventory
                     CategoriaId = categoriaId,
                     TasaISV = tasaIsv,
                     StockMinimo = stockMinimo,
+                    UnidadMedidaId = unidadMedidaId,
                     UsuarioId = usuarioId
                 },
                 commandType: CommandType.StoredProcedure);
@@ -57,7 +68,7 @@ namespace Sistemas.Core.Inventory
 
         public static async Task<(bool Exito, string Mensaje)> ActualizarAsync(
             int productoId, string nombre, string? descripcion, decimal precioUnitario,
-            int? categoriaId, decimal tasaIsv, int stockMinimo, bool activo, int? usuarioId)
+            int? categoriaId, decimal tasaIsv, decimal stockMinimo, int unidadMedidaId, bool activo, int? usuarioId)
         {
             using var conn = ConnectionFactory.CreateConnection();
             return await conn.QueryFirstAsync<(bool Exito, string Mensaje)>(
@@ -71,6 +82,7 @@ namespace Sistemas.Core.Inventory
                     CategoriaId = categoriaId,
                     TasaISV = tasaIsv,
                     StockMinimo = stockMinimo,
+                    UnidadMedidaId = unidadMedidaId,
                     Activo = activo,
                     UsuarioId = usuarioId
                 },
@@ -92,7 +104,8 @@ namespace Sistemas.Core.Inventory
             tabla.Columns.Add("PrecioUnitario", typeof(decimal));
             tabla.Columns.Add("CategoriaId", typeof(int));
             tabla.Columns.Add("TasaISV", typeof(decimal));
-            tabla.Columns.Add("StockMinimo", typeof(int));
+            tabla.Columns.Add("StockMinimo", typeof(decimal));
+            tabla.Columns.Add("UnidadMedidaCodigo", typeof(string));
 
             var erroresPrevios = new List<DetalleImportacionDto>();
 
@@ -140,16 +153,18 @@ namespace Sistemas.Core.Inventory
                     tasaIsv = tasa;
                 }
 
-                int? stockMinimo = null;
+                decimal? stockMinimo = null;
                 if (!string.IsNullOrWhiteSpace(fila[6]))
                 {
-                    if (!int.TryParse(fila[6], out var stock) || stock < 0)
+                    if (!decimal.TryParse(fila[6], NumberStyles.Any, CultureInfo.InvariantCulture, out var stock) || stock < 0)
                     {
                         erroresPrevios.Add(new DetalleImportacionDto { Codigo = codigo, Exito = false, Mensaje = "Stock mínimo inválido" });
                         continue;
                     }
                     stockMinimo = stock;
                 }
+
+                var unidadMedidaCodigo = string.IsNullOrWhiteSpace(fila[7]) ? null : fila[7]!.Trim().ToUpperInvariant();
 
                 var renglon = tabla.NewRow();
                 renglon["Codigo"] = codigo;
@@ -159,6 +174,7 @@ namespace Sistemas.Core.Inventory
                 renglon["CategoriaId"] = (object?)categoriaId ?? DBNull.Value;
                 renglon["TasaISV"] = (object?)tasaIsv ?? DBNull.Value;
                 renglon["StockMinimo"] = (object?)stockMinimo ?? DBNull.Value;
+                renglon["UnidadMedidaCodigo"] = (object?)unidadMedidaCodigo ?? DBNull.Value;
                 tabla.Rows.Add(renglon);
             }
 

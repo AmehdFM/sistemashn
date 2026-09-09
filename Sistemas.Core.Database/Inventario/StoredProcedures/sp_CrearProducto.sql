@@ -5,7 +5,8 @@ CREATE PROCEDURE Inventario.sp_CrearProducto
     @PrecioUnitario DECIMAL(12,2),
     @CategoriaId INT = NULL,
     @TasaISV DECIMAL(5,2) = 15.00,
-    @StockMinimo INT = 0,
+    @StockMinimo DECIMAL(12,2) = 0,
+    @UnidadMedidaId INT = 1,
     @UsuarioId INT = NULL
 AS
 BEGIN
@@ -18,10 +19,23 @@ BEGIN
             RETURN;
         END
 
+        IF NOT EXISTS (SELECT 1 FROM Inventario.UnidadesMedida WHERE Id = @UnidadMedidaId AND Activo = 1)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'La unidad de medida especificada no existe o está inactiva' AS Mensaje, NULL AS ProductoId;
+            RETURN;
+        END
+
+        IF EXISTS (SELECT 1 FROM Inventario.UnidadesMedida WHERE Id = @UnidadMedidaId AND PermiteFraccion = 0)
+           AND @StockMinimo <> ROUND(@StockMinimo, 0)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Esta unidad de medida no admite cantidades fraccionarias' AS Mensaje, NULL AS ProductoId;
+            RETURN;
+        END
+
         BEGIN TRAN;
 
-        INSERT INTO Inventario.Productos (Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockActual, StockMinimo, Activo, FechaCreacion)
-        VALUES (@Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, 0, @StockMinimo, 1, SYSDATETIME());
+        INSERT INTO Inventario.Productos (Codigo, Nombre, Descripcion, PrecioUnitario, CategoriaId, TasaISV, StockActual, StockMinimo, UnidadMedidaId, Activo, FechaCreacion)
+        VALUES (@Codigo, @Nombre, @Descripcion, @PrecioUnitario, @CategoriaId, @TasaISV, 0, @StockMinimo, @UnidadMedidaId, 1, SYSDATETIME());
 
         DECLARE @ProductoId INT = SCOPE_IDENTITY();
 

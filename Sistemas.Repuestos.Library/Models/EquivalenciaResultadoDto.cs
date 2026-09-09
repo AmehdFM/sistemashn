@@ -8,8 +8,10 @@ namespace Sistemas.Repuestos.Library.Models
         public string Nombre { get; set; } = string.Empty;
         public decimal PrecioUnitario { get; set; }
         public decimal TasaISV { get; set; }
-        public int StockActual { get; set; }
+        public decimal StockActual { get; set; }
         public bool Activo { get; set; }
+        public string? UnidadMedidaSimbolo { get; set; }
+        public bool PermiteFraccionUnidad { get; set; }
         public string NumeroCoincidente { get; set; } = string.Empty;
         public string Origen { get; set; } = string.Empty;
     }

@@ -104,6 +104,26 @@ namespace Sistemas.Core.UI.Dashboard
                 lblLogo, _picLogo, btnCambiarLogo
             });
 
+            // Editar el catálogo (crear/desactivar unidades) cambia cómo se
+            // registran ventas/compras/inventario para todos — igual criterio
+            // que la pestaña Usuarios, solo para administradores.
+            if (SessionContext.Current?.EsAdministrador == true)
+            {
+                y += 92; // la fila del logo es más alta (PictureBox de 56px) que las demás
+                var btnUnidadesMedida = new Button
+                {
+                    Text = Textos.Dashboard.BotonUnidadesMedida,
+                    Location = new Point(24, y),
+                    Size = new Size(180, 32)
+                };
+                btnUnidadesMedida.Click += (s, e) =>
+                {
+                    using var form = new FormUnidadesMedida();
+                    form.ShowDialog(this.FindForm());
+                };
+                tabGeneral.Controls.Add(btnUnidadesMedida);
+            }
+
             // ============ Pestaña Facturación ============
             var tabFacturacion = new TabPage(Textos.Dashboard.TabFacturacion) { AutoScroll = true };
 

@@ -13,8 +13,12 @@ namespace Sistemas.Core.Inventory.Models
         public int? CategoriaId { get; set; }
         public string? NombreCategoria { get; set; }
         public decimal TasaISV { get; set; }
-        public int StockActual { get; set; }
-        public int StockMinimo { get; set; }
+        public decimal StockActual { get; set; }
+        public decimal StockMinimo { get; set; }
+        public int UnidadMedidaId { get; set; }
+        public string? UnidadMedidaCodigo { get; set; }
+        public string? UnidadMedidaSimbolo { get; set; }
+        public bool PermiteFraccionUnidad { get; set; }
         public bool Activo { get; set; }
         public DateTime FechaCreacion { get; set; }
     }

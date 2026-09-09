@@ -27,6 +27,7 @@ namespace Sistemas.Repuestos.Library
         {
             public const string BotonNuevo = "Nuevo";
             public const string BotonEditar = "Editar";
+            public const string BotonCancelar = "Cancelar";
             public const string BotonBuscar = "Buscar";
             public const string BotonGuardar = "Guardar";
             public const string BotonAgregar = "Agregar";
@@ -46,6 +47,10 @@ namespace Sistemas.Repuestos.Library
         public static class Inventario
         {
             public const string CategoriaTodas = "(Todas)";
+            public const string SinCategoria = "(Sin categoría)";
+            public const string CardStockFormato = "Stock: {0} {1}";
+            public const string CardEtiquetaInactivo = "Inactivo";
+            public const string SinProductos = "No hay productos que coincidan con la búsqueda.";
             public const string BotonImportarExcel = "Importar Excel";
             public const string BotonExportarExcel = "Exportar Excel";
             public const string BotonDescargarPlantilla = "Descargar plantilla";
@@ -97,6 +102,8 @@ namespace Sistemas.Repuestos.Library
             public const string CampoPrecioUnitario = "Precio unitario (L.)";
             public const string CampoTasaIsv = "Tasa ISV";
             public const string CampoStockMinimo = "Stock mínimo";
+            public const string CampoUnidadMedida = "Unidad de medida";
+            public const string NoSeCargaronUnidadesPrefijo = "No se pudieron cargar las unidades de medida: ";
             public const string ErrorCodigoRequerido = "El código es requerido";
             public const string BotonCrearProducto = "Crear producto";
             public const string BotonGuardarCambios = "Guardar cambios";
@@ -116,6 +123,14 @@ namespace Sistemas.Repuestos.Library
             public const string BotonCerrar = "Cerrar";
             public const string NoSeCargoDetalleRepuestoPrefijo = "No se pudo cargar el detalle de repuesto: ";
             public const string NoSeGuardoPrecioPrefijo = "No se pudo guardar el precio: ";
+
+            public const string EnlaceVolver = "← Volver a Inventario";
+            public const string CampoStockActual = "Stock actual";
+            public const string BotonAgregarAPack = "Agregar a un pack";
+            public const string SeccionRepuesto = "Datos de repuesto";
+            public const string SeccionVehiculos = "Vehículos compatibles";
+            public const string SeccionEquivalencias = "Equivalencias OEM";
+            public const string SeccionPrecios = "Proveedores y precios";
         }
 
         public static class Proveedores

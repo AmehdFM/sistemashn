@@ -24,6 +24,7 @@ namespace Sistemas.Repuestos.Library.Ventas
         private readonly CheckBox _chkPorEquivalencia;
         private readonly ComboBox _cboResultado;
         private readonly NumericUpDown _numCantidad;
+        private readonly Label _lblUnidadSimbolo;
         private readonly DataGridView _gridCarrito;
         private readonly CheckBox _chkEsCredito;
         private readonly NumericUpDown _numDiasCredito;
@@ -63,20 +64,32 @@ namespace Sistemas.Repuestos.Library.Ventas
             {
                 e.Value = e.ListItem switch
                 {
-                    ProductoDto p => $"{p.Codigo} — {p.Nombre} (Stock: {p.StockActual})",
-                    EquivalenciaResultadoDto eq => $"{eq.Codigo} — {eq.Nombre} (Stock: {eq.StockActual})",
+                    ProductoDto p => $"{p.Codigo} — {p.Nombre} (Stock: {CantidadFormatter.FormatearCantidad(p.StockActual, p.PermiteFraccionUnidad)} {p.UnidadMedidaSimbolo})",
+                    EquivalenciaResultadoDto eq => $"{eq.Codigo} — {eq.Nombre} (Stock: {CantidadFormatter.FormatearCantidad(eq.StockActual, eq.PermiteFraccionUnidad)} {eq.UnidadMedidaSimbolo})",
                     _ => string.Empty
                 };
+            };
+            _cboResultado.SelectedIndexChanged += (s, e) =>
+            {
+                var (permiteFraccion, simbolo) = _cboResultado.SelectedItem switch
+                {
+                    ProductoDto p => (p.PermiteFraccionUnidad, p.UnidadMedidaSimbolo),
+                    EquivalenciaResultadoDto eq => (eq.PermiteFraccionUnidad, eq.UnidadMedidaSimbolo),
+                    _ => (true, null)
+                };
+                CantidadFormatter.AplicarModoCantidad(_numCantidad, permiteFraccion);
+                _lblUnidadSimbolo.Text = simbolo ?? string.Empty;
             };
 
             var lblCantidad = new Label { Text = Textos.Pos.CampoCantidadCorta, AutoSize = true, Location = new Point(456, 44) };
             _numCantidad = new NumericUpDown { Location = new Point(456, 60), Size = new Size(60, 28), Minimum = 1, Maximum = 10000, Value = 1 };
+            _lblUnidadSimbolo = new Label { AutoSize = true, Location = new Point(456, 90), ForeColor = UiTheme.TextoTenue };
 
             var btnAgregar = new Button { Text = Textos.Pos.BotonAgregarAlCarrito, Location = new Point(526, 59), Size = new Size(140, 30), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnAgregar.FlatAppearance.BorderSize = 0;
             btnAgregar.Click += BtnAgregar_Click;
 
-            pnlBusqueda.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, _chkPorEquivalencia, btnBuscar, _cboResultado, lblCantidad, _numCantidad, btnAgregar });
+            pnlBusqueda.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, _chkPorEquivalencia, btnBuscar, _cboResultado, lblCantidad, _numCantidad, _lblUnidadSimbolo, btnAgregar });
 
             _gridCarrito = new DataGridView { DataSource = _carrito };
             GridStyler.Aplicar(_gridCarrito);
@@ -86,6 +99,14 @@ namespace Sistemas.Repuestos.Library.Ventas
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.PrecioUnitarioReferencial), HeaderText = "Precio", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.SubtotalReferencial), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
+            _gridCarrito.CellFormatting += (s, e) =>
+            {
+                if (_gridCarrito.Columns[e.ColumnIndex].DataPropertyName != nameof(LineaCarritoDto.Cantidad)) return;
+                if (_carrito.Count <= e.RowIndex) return;
+                var linea = _carrito[e.RowIndex];
+                e.Value = CantidadFormatter.FormatearCantidad(linea.Cantidad, linea.PermiteFraccion);
+                e.FormattingApplied = true;
+            };
 
             var pnlPago = new Panel { Dock = DockStyle.Bottom, Height = 140, BackColor = Color.White };
             var btnQuitarLinea = new Button { Text = Textos.Pos.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(110, 28) };
@@ -194,22 +215,22 @@ namespace Sistemas.Repuestos.Library.Ventas
             string codigo, nombre;
             decimal precio;
             decimal tasaIsv;
-            int stockActual;
+            bool permiteFraccion;
 
             switch (_cboResultado.SelectedItem)
             {
                 case ProductoDto p:
-                    productoId = p.Id; codigo = p.Codigo; nombre = p.Nombre; precio = p.PrecioUnitario; tasaIsv = p.TasaISV; stockActual = p.StockActual;
+                    productoId = p.Id; codigo = p.Codigo; nombre = p.Nombre; precio = p.PrecioUnitario; tasaIsv = p.TasaISV; permiteFraccion = p.PermiteFraccionUnidad;
                     break;
                 case EquivalenciaResultadoDto eq:
-                    productoId = eq.Id; codigo = eq.Codigo; nombre = eq.Nombre; precio = eq.PrecioUnitario; tasaIsv = eq.TasaISV; stockActual = eq.StockActual;
+                    productoId = eq.Id; codigo = eq.Codigo; nombre = eq.Nombre; precio = eq.PrecioUnitario; tasaIsv = eq.TasaISV; permiteFraccion = eq.PermiteFraccionUnidad;
                     break;
                 default:
                     _lblError.Text = Textos.Comun.ErrorBusqueSeleccioneProductoPrimero;
                     return;
             }
 
-            var cantidad = (int)_numCantidad.Value;
+            var cantidad = _numCantidad.Value;
             var existente = _carrito.FirstOrDefault(l => l.ProductoId == productoId);
             if (existente != null)
             {
@@ -224,6 +245,7 @@ namespace Sistemas.Repuestos.Library.Ventas
                     Codigo = codigo,
                     Nombre = nombre,
                     Cantidad = cantidad,
+                    PermiteFraccion = permiteFraccion,
                     PrecioUnitarioReferencial = precio,
                     TasaISVReferencial = tasaIsv
                 });

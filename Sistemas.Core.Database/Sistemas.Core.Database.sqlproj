@@ -84,7 +84,6 @@
     <Build Include="Auditoria\Tables\Auditoria.sql" />
     <Build Include="Auditoria\Auditoria.sql" />
     <Build Include="Configuracion\StoredProcedures\sp_GuardarConfiguracion.sql" />
-    <Build Include="Configuracion\StoredProcedures\sp_ObtenerLogo.sql" />
     <Build Include="Configuracion\StoredProcedures\sp_RegistrarResultadoRespaldo.sql" />
     <Build Include="Configuracion\StoredProcedures\sp_VerificarEstadoSistema.sql" />
     <Build Include="Configuracion\Tables\Configuracion.sql" />
@@ -104,7 +103,11 @@
     <Build Include="Inventario\Tables\Etiquetas.sql" />
     <Build Include="Inventario\Tables\ProductoEtiqueta.sql" />
     <Build Include="Inventario\Tables\Productos.sql" />
+    <Build Include="Inventario\Tables\UnidadesMedida.sql" />
     <Build Include="Inventario\Types\ProductoTableType.sql" />
+    <Build Include="Inventario\StoredProcedures\sp_ListarUnidadesMedida.sql" />
+    <Build Include="Inventario\StoredProcedures\sp_CrearUnidadMedida.sql" />
+    <Build Include="Inventario\StoredProcedures\sp_ActualizarUnidadMedida.sql" />
     <Build Include="Inventario\Inventario.sql" />
     <Build Include="Security\Tables\Roles.sql" />
     <Build Include="Security\Tables\Usuarios.sql" />

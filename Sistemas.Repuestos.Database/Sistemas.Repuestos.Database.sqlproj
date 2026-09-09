@@ -60,6 +60,7 @@
     <Folder Include="Repuestos\Tables" />
     <Folder Include="Repuestos\StoredProcedures" />
     <Folder Include="Repuestos\Types" />
+    <Folder Include="Repuestos\Sequences" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Sistemas.Core.Database\Sistemas.Core.Database.sqlproj">
@@ -108,5 +109,6 @@
     <Build Include="Repuestos\StoredProcedures\sp_ListarCuentasPorPagar.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarCompras.sql" />
     <Build Include="Repuestos\StoredProcedures\sp_ListarVentas.sql" />
+    <Build Include="Repuestos\Sequences\SeqVentaInterna.sql" />
   </ItemGroup>
 </Project>
