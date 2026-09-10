@@ -23,6 +23,11 @@ namespace Sistemas.Core.UI
             public const string BotonAnterior = "< Anterior";
             public const string BotonSiguiente = "Siguiente >";
             public const string FormatoPaginacion = "Página {0} de {1}  ·  {2} fila(s)";
+
+            // Los 4 estados obligatorios de toda lista (guía UI/UX §9.6).
+            public const string EstadoCargando = "Cargando...";
+            public const string BotonLimpiarFiltros = "Limpiar filtros";
+            public const string BotonReintentar = "Reintentar";
         }
 
         public static class Dashboard

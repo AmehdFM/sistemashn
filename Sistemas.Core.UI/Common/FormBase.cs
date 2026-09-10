@@ -11,6 +11,7 @@ namespace Sistemas.Core.UI.Common
             StartPosition = FormStartPosition.CenterScreen;
             Font = UiTheme.FuenteBase;
             BackColor = UiTheme.FondoContenido;
+            AutoScaleMode = AutoScaleMode.Dpi;
         }
 
         protected void MostrarError(string mensaje) =>

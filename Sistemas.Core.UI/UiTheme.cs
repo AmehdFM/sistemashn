@@ -24,8 +24,46 @@ namespace Sistemas.Core.UI
         public static readonly Color ErrorFondo = ColorTranslator.FromHtml("#FEE2E2");
         public static readonly Color Borde = ColorTranslator.FromHtml("#E4E1DC");
 
+        // No había ningún rol de aviso (solo Éxito/Error) — se agrega para
+        // los casos que no son un error pero tampoco un éxito (crédito por
+        // vencer, stock cerca del mínimo).
+        public static readonly Color Advertencia = ColorTranslator.FromHtml("#9A6A00");
+        public static readonly Color AdvertenciaFondo = ColorTranslator.FromHtml("#FDF3DC");
+
+        // Selección de fila en grillas: mezcla de Primario al 12% sobre
+        // blanco. Nunca texto blanco sobre un fondo de acento sólido — ver
+        // GridStyler.Aplicar.
+        public static readonly Color SeleccionFila = ColorTranslator.FromHtml("#F1E5E7");
+
         public static readonly Font FuenteBase = new("Segoe UI", 9.5f);
         public static readonly Font FuenteTitulo = new("Segoe UI Semibold", 15f);
         public static readonly Font FuenteGlyph = new("Segoe MDL2 Assets", 14f);
+
+        // Escala de espaciado 4/8px de la guía UI/UX — reemplaza los
+        // números sueltos (12, 16, 24...) repetidos en cada pantalla.
+        public static class Espacio
+        {
+            public const int Xxs = 2;
+            public const int Xs = 4;
+            public const int Sm = 8;
+            public const int Md = 12;
+            public const int Lg = 16;
+            public const int Xl = 24;
+            public const int Xxl = 32;
+            public const int Huge = 48;
+        }
+
+        // Alturas/anchos de referencia para densidad "Normal" (guía §4).
+        // No incluye el ancho del sidebar: ese lo fija ADR-0010 (220/56px)
+        // y no se toca acá.
+        public static class Medidas
+        {
+            public const int AlturaControl = 30;
+            public const int AlturaFila = 28;
+            public const int AlturaEncabezadoFila = 32;
+            public const int AlturaBarraHerramientas = 48;
+            public const int AlturaBarraEstado = 24;
+            public const int AnchoMaximoFormulario = 760;
+        }
     }
 }

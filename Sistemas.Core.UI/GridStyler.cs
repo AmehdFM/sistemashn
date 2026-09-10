@@ -26,10 +26,26 @@ namespace Sistemas.Core.UI
             grid.ColumnHeadersDefaultCellStyle.BackColor = UiTheme.FondoContenido;
             grid.ColumnHeadersDefaultCellStyle.ForeColor = UiTheme.TextoOscuro;
             grid.ColumnHeadersDefaultCellStyle.Font = new Font(UiTheme.FuenteBase, FontStyle.Bold);
-            grid.DefaultCellStyle.SelectionBackColor = UiTheme.Primario;
-            grid.DefaultCellStyle.SelectionForeColor = Color.White;
+            // Selección: fondo sutil derivado del acento, nunca texto
+            // blanco sobre un color sólido (anti-patrón de la guía UI/UX).
+            grid.DefaultCellStyle.SelectionBackColor = UiTheme.SeleccionFila;
+            grid.DefaultCellStyle.SelectionForeColor = UiTheme.TextoOscuro;
             grid.DefaultCellStyle.Font = UiTheme.FuenteBase;
-            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            grid.ColumnHeadersHeight = UiTheme.Medidas.AlturaEncabezadoFila;
+            grid.RowTemplate.Height = UiTheme.Medidas.AlturaFila;
+            grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        }
+
+        // Aplica alineación a la derecha + formato N2 a una columna de
+        // dinero/cantidad — mismo criterio en toda pantalla con montos
+        // (guía UI/UX §9.1: números siempre a la derecha, texto a la
+        // izquierda).
+        public static void ComoColumnaNumerica(DataGridViewColumn columna, string formato = "N2")
+        {
+            columna.DefaultCellStyle.Format = formato;
+            columna.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            columna.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleRight;
         }
     }
 }
