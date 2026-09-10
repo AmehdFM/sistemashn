@@ -7,6 +7,7 @@ using Sistemas.Core.Inventory;
 using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Caja;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
@@ -58,23 +59,22 @@ namespace Sistemas.Repuestos.Library.Ventas
             // ================= Panel de venta =================
             _pnlVenta = new Panel { Dock = DockStyle.Fill };
 
-            var pnlBusqueda = new Panel { Dock = DockStyle.Top, Height = 116, BackColor = Color.White };
+            var pnlBusqueda = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
-            var lblBuscar = new Label { Text = Textos.Pos.CampoBuscarProducto, AutoSize = true, Location = new Point(16, 8) };
-            _txtBuscar = new TextBox { Location = new Point(16, 28), Size = new Size(220, 26) };
+            var filaBuscar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblBuscar = new Label { Text = Textos.Pos.CampoBuscarProducto, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
+            // El campo de búsqueda es el que recupera el foco tras cada
+            // línea agregada (guía UI/UX §7.3, arquetipo Transacción/Captura):
+            // código → Enter → cantidad → Enter → vuelve aquí.
+            _txtBuscar = new TextBox { Width = 220, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0) };
             _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await BuscarOEscanearAsync(); } };
+            _chkPorEquivalencia = new CheckBox { Text = Textos.Pos.CampoBuscarPorEquivalencia, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm + 2, 0, 0) };
+            filaBuscar.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, _chkPorEquivalencia });
 
-            // Y=8 (alineado con lblBuscar), no Y=32: el texto largo del
-            // checkbox ("Buscar por número equivalente (OEM)") se extiende
-            // más allá de x=456 y a Y=32 se solapaba con lblCantidad/
-            // _numCantidad, que están en esa misma columna en la fila de
-            // abajo.
-            _chkPorEquivalencia = new CheckBox { Text = Textos.Pos.CampoBuscarPorEquivalencia, AutoSize = true, Location = new Point(246, 8) };
-
-            var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(16, 60), Size = new Size(100, 28) };
+            var filaResultado = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var btnBuscar = Botones.CrearSecundario(Textos.Comun.BotonBuscar);
             btnBuscar.Click += async (s, e) => await BuscarAsync();
-
-            _cboResultado = new ComboBox { Location = new Point(126, 60), Size = new Size(320, 28), DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
+            _cboResultado = new ComboBox { Width = 320, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
             _cboResultado.Format += (s, e) =>
             {
                 e.Value = e.ListItem switch
@@ -96,25 +96,29 @@ namespace Sistemas.Repuestos.Library.Ventas
                 _lblUnidadSimbolo.Text = simbolo ?? string.Empty;
             };
 
-            var lblCantidad = new Label { Text = Textos.Pos.CampoCantidadCorta, AutoSize = true, Location = new Point(456, 44) };
-            _numCantidad = new NumericUpDown { Location = new Point(456, 60), Size = new Size(60, 28), Minimum = 1, Maximum = 10000, Value = 1 };
-            _lblUnidadSimbolo = new Label { AutoSize = true, Location = new Point(456, 90), ForeColor = UiTheme.TextoTenue };
+            var lblCantidad = new Label { Text = Textos.Pos.CampoCantidadCorta, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            _numCantidad = new NumericUpDown { Width = 70, Height = UiTheme.Medidas.AlturaControl, Minimum = 1, Maximum = 10000, Value = 1, Margin = new Padding(0, 0, UiTheme.Espacio.Xs, 0) };
+            _lblUnidadSimbolo = new Label { AutoSize = true, ForeColor = UiTheme.TextoTenue, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Md, 0) };
 
-            var btnAgregar = new Button { Text = Textos.Pos.BotonAgregarAlCarrito, Location = new Point(526, 59), Size = new Size(140, 30), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnAgregar.FlatAppearance.BorderSize = 0;
+            var btnAgregar = Botones.CrearPrimario(Textos.Pos.BotonAgregarAlCarrito);
             btnAgregar.Click += BtnAgregar_Click;
 
-            pnlBusqueda.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, _chkPorEquivalencia, btnBuscar, _cboResultado, lblCantidad, _numCantidad, _lblUnidadSimbolo, btnAgregar });
+            filaResultado.Controls.AddRange(new Control[] { btnBuscar, _cboResultado, lblCantidad, _numCantidad, _lblUnidadSimbolo, btnAgregar });
+
+            pnlBusqueda.Controls.Add(filaResultado);
+            pnlBusqueda.Controls.Add(filaBuscar);
 
             // ================= Aviso de caja cerrada =================
             // Oculto por defecto; se muestra en el Load si no hay sesión de
             // caja abierta y bloquea el cobro hasta que se abra ahí mismo.
-            _pnlAvisoCaja = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = UiTheme.ErrorFondo, Visible = false };
-            _lblAvisoCaja = new Label { Text = Textos.Pos.AvisoCajaCerrada, AutoSize = true, ForeColor = UiTheme.Error, Location = new Point(16, 14) };
-            _btnAbrirCajaDesdePos = new Button { Text = Textos.Pos.BotonAbrirCajaDesdePos, Location = new Point(460, 8), Size = new Size(120, 28), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            _btnAbrirCajaDesdePos.FlatAppearance.BorderSize = 0;
+            _pnlAvisoCaja = new Panel { Dock = DockStyle.Top, Height = 44, BackColor = UiTheme.ErrorFondo, Visible = false, Padding = new Padding(UiTheme.Espacio.Lg, 0, UiTheme.Espacio.Lg, 0) };
+            _lblAvisoCaja = new Label { Text = Textos.Pos.AvisoCajaCerrada, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = UiTheme.Error };
+            _btnAbrirCajaDesdePos = Botones.CrearPrimario(Textos.Pos.BotonAbrirCajaDesdePos);
+            _btnAbrirCajaDesdePos.Dock = DockStyle.Right;
+            _btnAbrirCajaDesdePos.Margin = new Padding(0, UiTheme.Espacio.Xs, 0, UiTheme.Espacio.Xs);
             _btnAbrirCajaDesdePos.Click += BtnAbrirCajaDesdePos_Click;
-            _pnlAvisoCaja.Controls.AddRange(new Control[] { _lblAvisoCaja, _btnAbrirCajaDesdePos });
+            _pnlAvisoCaja.Controls.Add(_btnAbrirCajaDesdePos);
+            _pnlAvisoCaja.Controls.Add(_lblAvisoCaja);
 
             _gridCarrito = new DataGridView { DataSource = _carrito };
             GridStyler.Aplicar(_gridCarrito);
@@ -122,8 +126,12 @@ namespace Sistemas.Repuestos.Library.Ventas
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.Codigo), HeaderText = "Código", FillWeight = 15 });
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.Nombre), HeaderText = "Producto", FillWeight = 35 });
             _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
-            _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.PrecioUnitarioReferencial), HeaderText = "Precio", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
-            _gridCarrito.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.SubtotalReferencial), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
+            var colPrecio = new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.PrecioUnitarioReferencial), HeaderText = "Precio", FillWeight = 15 };
+            GridStyler.ComoColumnaNumerica(colPrecio);
+            _gridCarrito.Columns.Add(colPrecio);
+            var colSubtotal = new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCarritoDto.SubtotalReferencial), HeaderText = "Subtotal", FillWeight = 20 };
+            GridStyler.ComoColumnaNumerica(colSubtotal);
+            _gridCarrito.Columns.Add(colSubtotal);
             _gridCarrito.CellFormatting += (s, e) =>
             {
                 if (_gridCarrito.Columns[e.ColumnIndex].DataPropertyName != nameof(LineaCarritoDto.Cantidad)) return;
@@ -133,12 +141,10 @@ namespace Sistemas.Repuestos.Library.Ventas
                 e.FormattingApplied = true;
             };
 
-            // Height = 176 (antes 140): la fila de _cboMetodoPago se agregó
-            // en Y=8/Y=44 al lado de cliente/crédito, y _lblError/_btnCobrar
-            // se corrieron hacia abajo — con margen extra para no repetir
-            // los bugs de layout de revisiones anteriores.
-            var pnlPago = new Panel { Dock = DockStyle.Bottom, Height = 176, BackColor = Color.White };
-            var btnQuitarLinea = new Button { Text = Textos.Pos.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(110, 28) };
+            var pnlPago = new Panel { Dock = DockStyle.Bottom, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
+
+            var filaClientePago = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var btnQuitarLinea = Botones.CrearSecundario(Textos.Pos.BotonQuitarLinea);
             btnQuitarLinea.Click += (s, e) =>
             {
                 if (_gridCarrito.CurrentRow?.DataBoundItem is LineaCarritoDto linea)
@@ -147,47 +153,48 @@ namespace Sistemas.Repuestos.Library.Ventas
                     ActualizarTotal();
                 }
             };
-
-            var lblCliente = new Label { Text = Textos.Pos.CampoCliente, AutoSize = true, Location = new Point(142, 13) };
+            var lblCliente = new Label { Text = Textos.Pos.CampoCliente, AutoSize = true, Margin = new Padding(UiTheme.Espacio.Xl, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
             _cboCliente = new ComboBox
             {
-                Location = new Point(196, 9), Size = new Size(180, 26), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
+                Width = 180, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id),
+                Margin = new Padding(0, 0, UiTheme.Espacio.Xs, 0)
             };
-            var btnNuevoCliente = new Button { Text = "+", Location = new Point(380, 8), Size = new Size(28, 28) };
+            var btnNuevoCliente = Botones.CrearSecundario("+");
+            btnNuevoCliente.Width = 30;
+            btnNuevoCliente.Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0);
             btnNuevoCliente.Click += BtnNuevoCliente_Click;
-
-            var lblMetodoPago = new Label { Text = Textos.Pos.CampoMetodoPago, AutoSize = true, Location = new Point(420, 13) };
-            _cboMetodoPago = new ComboBox { Location = new Point(420, 33), Size = new Size(140, 26), DropDownStyle = ComboBoxStyle.DropDownList };
+            var lblMetodoPago = new Label { Text = Textos.Pos.CampoMetodoPago, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
+            _cboMetodoPago = new ComboBox { Width = 140, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList };
             _cboMetodoPago.Items.AddRange(new object[] { Textos.Pos.MetodoPagoEfectivo, Textos.Pos.MetodoPagoTarjeta, Textos.Pos.MetodoPagoTransferencia });
             _cboMetodoPago.SelectedItem = Textos.Pos.MetodoPagoEfectivo;
+            filaClientePago.Controls.AddRange(new Control[] { btnQuitarLinea, lblCliente, _cboCliente, btnNuevoCliente, lblMetodoPago, _cboMetodoPago });
 
-            _chkEsCredito = new CheckBox { Text = Textos.Pos.CampoVentaCredito, AutoSize = true, Location = new Point(16, 68) };
+            var filaCreditoTotal = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            _chkEsCredito = new CheckBox { Text = Textos.Pos.CampoVentaCredito, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm + 4, UiTheme.Espacio.Md, 0) };
             _chkEsCredito.CheckedChanged += (s, e) => _numDiasCredito.Enabled = _chkEsCredito.Checked;
-            var lblDias = new Label { Text = Textos.Pos.CampoDiasCredito, AutoSize = true, Location = new Point(150, 70) };
-            _numDiasCredito = new NumericUpDown { Location = new Point(230, 68), Size = new Size(60, 26), Minimum = 1, Maximum = 365, Value = 15, Enabled = false };
+            var lblDias = new Label { Text = Textos.Pos.CampoDiasCredito, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm + 4, UiTheme.Espacio.Xs, 0) };
+            _numDiasCredito = new NumericUpDown { Width = 60, Height = UiTheme.Medidas.AlturaControl, Minimum = 1, Maximum = 365, Value = 15, Enabled = false, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
+            // El total es la tipografía más grande de toda la pantalla
+            // (guía UI/UX §7.3, arquetipo Transacción/Captura) — es lo
+            // primero que el cajero y el cliente necesitan ver claro.
+            _lblTotal = new Label { Text = string.Format(Textos.Pos.FormatoTotal, 0m), AutoSize = true, Font = new Font(UiTheme.FuenteTitulo.FontFamily, 18f, FontStyle.Bold) };
+            filaCreditoTotal.Controls.AddRange(new Control[] { _chkEsCredito, lblDias, _numDiasCredito, _lblTotal });
 
-            _lblTotal = new Label { Text = string.Format(Textos.Pos.FormatoTotal, 0m), AutoSize = true, Location = new Point(420, 70), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
+            _lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 36, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 40), Location = new Point(16, 104) };
-
-            _btnCobrar = new Button
-            {
-                Text = Textos.Pos.BotonCobrar,
-                Location = new Point(16, 144),
-                Size = new Size(140, 30),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            _btnCobrar.FlatAppearance.BorderSize = 0;
+            // Atajo de teclado visible en el botón (guía UI/UX §13): el
+            // cajero puede cobrar sin tocar el mouse.
+            _btnCobrar = Botones.CrearPrimario(Textos.Pos.BotonCobrar);
+            _btnCobrar.AutoSize = false;
+            _btnCobrar.Width = 160;
+            _btnCobrar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnCobrar.Click += BtnCobrar_Click;
 
-            pnlPago.Controls.AddRange(new Control[]
-            {
-                btnQuitarLinea, lblCliente, _cboCliente, btnNuevoCliente, lblMetodoPago, _cboMetodoPago,
-                _chkEsCredito, lblDias, _numDiasCredito, _lblTotal, _lblError, _btnCobrar
-            });
+            pnlPago.Controls.Add(_btnCobrar);
+            pnlPago.Controls.Add(_lblError);
+            pnlPago.Controls.Add(filaCreditoTotal);
+            pnlPago.Controls.Add(filaClientePago);
 
             _pnlVenta.Controls.Add(_gridCarrito);
             _pnlVenta.Controls.Add(pnlPago);
@@ -195,16 +202,16 @@ namespace Sistemas.Repuestos.Library.Ventas
             _pnlVenta.Controls.Add(pnlBusqueda);
 
             // ================= Panel de resultado =================
-            _pnlResultado = new Panel { Dock = DockStyle.Fill, Visible = false, BackColor = Color.White };
+            _pnlResultado = new Panel { Dock = DockStyle.Fill, Visible = false, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Xxl) };
             _lblResumenFactura = new Label
             {
-                AutoSize = false,
-                Size = new Size(500, 160),
-                Location = new Point(40, 40),
-                Font = new Font(UiTheme.FuenteBase.FontFamily, 12f)
+                Dock = DockStyle.Top,
+                Height = 160,
+                Font = new Font(UiTheme.FuenteBase.FontFamily, 12f),
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
-            var btnImprimir = new Button { Text = Textos.Pos.BotonImprimir, Location = new Point(40, 210), Size = new Size(140, 34), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnImprimir.FlatAppearance.BorderSize = 0;
+            var pnlAccionesResultado = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var btnImprimir = Botones.CrearPrimario(Textos.Pos.BotonImprimir);
             btnImprimir.Click += async (s, e) =>
             {
                 if (_ultimaFactura == null) return;
@@ -224,10 +231,12 @@ namespace Sistemas.Repuestos.Library.Ventas
 
                 ReciboPrinter.Imprimir(nombreNegocio, _ultimaFactura, _ultimaFecha, _ultimoTotal, _ultimasLineas, _ultimoEfectivoRecibido, _ultimoVuelto);
             };
-            var btnNuevaVenta = new Button { Text = Textos.Pos.BotonNuevaVenta, Location = new Point(196, 210), Size = new Size(140, 34) };
+            var btnNuevaVenta = Botones.CrearSecundario(Textos.Pos.BotonNuevaVenta);
             btnNuevaVenta.Click += async (s, e) => await MostrarPanelVenta();
+            pnlAccionesResultado.Controls.AddRange(new Control[] { btnImprimir, btnNuevaVenta });
 
-            _pnlResultado.Controls.AddRange(new Control[] { _lblResumenFactura, btnImprimir, btnNuevaVenta });
+            _pnlResultado.Controls.Add(pnlAccionesResultado);
+            _pnlResultado.Controls.Add(_lblResumenFactura);
 
             Controls.Add(_pnlVenta);
             Controls.Add(_pnlResultado);
