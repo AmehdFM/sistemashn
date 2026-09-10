@@ -16,6 +16,7 @@ CREATE PROCEDURE Inventario.sp_ActualizarProducto
     @StockMinimo    DECIMAL(12,2) = 0,
     @UnidadMedidaId INT = 1,
     @Activo         BIT = 1,
+    @CodigoBarra    NVARCHAR(30) = NULL,
     @UsuarioId      INT = NULL
 AS
 BEGIN
@@ -40,6 +41,12 @@ BEGIN
         IF @CategoriaId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Inventario.Categorias WHERE Id = @CategoriaId)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'La categoría especificada no existe' AS Mensaje;
+            RETURN;
+        END
+
+        IF @CodigoBarra IS NOT NULL AND EXISTS (SELECT 1 FROM Inventario.Productos WHERE CodigoBarra = @CodigoBarra AND Id <> @ProductoId)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Ya existe un producto con ese código de barras' AS Mensaje;
             RETURN;
         END
 
@@ -72,7 +79,8 @@ BEGIN
             TasaISV        = @TasaISV,
             StockMinimo    = @StockMinimo,
             UnidadMedidaId = @UnidadMedidaId,
-            Activo         = @Activo
+            Activo         = @Activo,
+            CodigoBarra    = @CodigoBarra
         WHERE Id = @ProductoId;
 
         IF @TranPropia = 1 COMMIT;

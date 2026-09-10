@@ -15,8 +15,9 @@ BEGIN
 
     SELECT
         v.Id, v.NumeroFactura, v.Fecha, v.Subtotal, v.MontoISV, v.Total,
-        v.EsCredito, v.Anulada, v.UsuarioId
+        v.EsCredito, v.Anulada, v.UsuarioId, v.ClienteId, t.Nombre AS ClienteNombre, v.MetodoPago
     FROM Repuestos.Ventas v
+    LEFT JOIN Repuestos.Terceros t ON t.Id = v.ClienteId
     WHERE (@NumeroFactura IS NULL OR v.NumeroFactura LIKE '%' + @NumeroFactura + '%')
       AND (@SoloVigentes = 0 OR v.Anulada = 0)
     ORDER BY v.Fecha DESC

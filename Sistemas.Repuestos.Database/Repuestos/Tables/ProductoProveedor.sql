@@ -6,7 +6,7 @@ CREATE TABLE Repuestos.ProductoProveedor (
     PrecioCompra    DECIMAL(12,2)   NOT NULL,
     CONSTRAINT PK_ProductoProveedor PRIMARY KEY (ProductoId, ProveedorId),
     CONSTRAINT FK_ProductoProveedor_Productos FOREIGN KEY (ProductoId) REFERENCES Inventario.Productos(Id),
-    CONSTRAINT FK_ProductoProveedor_Proveedores FOREIGN KEY (ProveedorId) REFERENCES Repuestos.Proveedores(Id),
+    CONSTRAINT FK_ProductoProveedor_Terceros FOREIGN KEY (ProveedorId) REFERENCES Repuestos.Terceros(Id),
     CONSTRAINT CK_ProductoProveedor_Precio CHECK (PrecioCompra >= 0)
 );
 GO

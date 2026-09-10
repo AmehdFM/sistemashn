@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using Sistemas.Core.UI.Common;
 
@@ -47,7 +48,7 @@ namespace Sistemas.Core.UI.Arranque
 
         public void MostrarPaso(Control paso)
         {
-            foreach (Control saliente in _pnlCentral.Controls)
+            foreach (Control saliente in _pnlCentral.Controls.Cast<Control>().ToArray())
                 saliente.Dispose();
             _pnlCentral.Controls.Clear();
 

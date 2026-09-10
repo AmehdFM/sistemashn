@@ -15,7 +15,7 @@ BEGIN
         c.Id, c.Fecha, c.ProveedorId, p.Nombre AS NombreProveedor,
         c.NumeroFacturaProveedor, c.Total, c.EsCredito, c.UsuarioId
     FROM Repuestos.Compras c
-    INNER JOIN Repuestos.Proveedores p ON p.Id = c.ProveedorId
+    INNER JOIN Repuestos.Terceros p ON p.Id = c.ProveedorId
     WHERE (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId)
     ORDER BY c.Fecha DESC
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS FETCH NEXT @TamanoPagina ROWS ONLY
@@ -23,6 +23,7 @@ BEGIN
 
     SELECT COUNT(*) AS TotalFilas
     FROM Repuestos.Compras c
-    WHERE (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId);
+    WHERE (@ProveedorId IS NULL OR c.ProveedorId = @ProveedorId)
+    OPTION (RECOMPILE);
 END
 GO

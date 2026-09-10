@@ -2,6 +2,7 @@
 -- que Express no puede correr sin Agent); se calcula al consultar.
 CREATE PROCEDURE Repuestos.sp_ListarCuentasPorCobrar
     @SoloConSaldo BIT = 1,
+    @ClienteId    INT = NULL,
     @Pagina       INT = 1,
     @TamanoPagina INT = 50
 AS
@@ -19,6 +20,7 @@ BEGIN
     FROM Repuestos.CuentasPorCobrar cxc
     INNER JOIN Repuestos.Ventas v ON v.Id = cxc.VentaId
     WHERE (@SoloConSaldo = 0 OR cxc.SaldoPendiente > 0)
+      AND (@ClienteId IS NULL OR v.ClienteId = @ClienteId)
     ORDER BY cxc.FechaVencimiento
     OFFSET (@Pagina - 1) * @TamanoPagina ROWS
     FETCH NEXT @TamanoPagina ROWS ONLY
@@ -26,7 +28,9 @@ BEGIN
 
     SELECT COUNT(*) AS TotalFilas
     FROM Repuestos.CuentasPorCobrar cxc
+    INNER JOIN Repuestos.Ventas v ON v.Id = cxc.VentaId
     WHERE (@SoloConSaldo = 0 OR cxc.SaldoPendiente > 0)
+      AND (@ClienteId IS NULL OR v.ClienteId = @ClienteId)
     OPTION (RECOMPILE);
 END
 GO

@@ -8,9 +8,12 @@
 --
 CREATE PROCEDURE Repuestos.sp_RegistrarVenta
     @UsuarioId      INT,
+    @ClienteId      INT = NULL,
     @EsCredito      BIT = 0,
     @DiasCredito    INT = NULL,
-    @Detalle        Repuestos.VentaDetalleTableType READONLY
+    @Detalle        Repuestos.VentaDetalleTableType READONLY,
+    @MetodoPago       NVARCHAR(20) = 'Efectivo',
+    @EfectivoRecibido DECIMAL(12,2) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -22,6 +25,8 @@ BEGIN
     DECLARE @Correlativo NVARCHAR(60), @MensajeCAI NVARCHAR(200), @ExitoCAI BIT;
     DECLARE @CodigoProblema NVARCHAR(30);
     DECLARE @FacturacionLegalActiva BIT;
+    DECLARE @SesionCajaId INT;
+    DECLARE @Vuelto DECIMAL(12,2);
 
     DECLARE @StockRequerido TABLE (ProductoId INT PRIMARY KEY, CantidadRequerida DECIMAL(12,2) NOT NULL);
 
@@ -30,15 +35,49 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM @Detalle)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'La venta debe tener al menos un producto' AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
         END
 
         IF EXISTS (SELECT 1 FROM @Detalle WHERE Cantidad <= 0)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Hay líneas con cantidad menor o igual a cero' AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
+        END
+
+        IF @EsCredito = 1 AND @ClienteId IS NULL
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'Seleccione un cliente para venta a crédito' AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
+            RETURN;
+        END
+
+        IF @ClienteId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Repuestos.Terceros WHERE Id = @ClienteId AND EsCliente = 1)
+        BEGIN
+            SELECT CAST(0 AS BIT) AS Exito, 'El cliente especificado no existe o no tiene rol de cliente' AS Mensaje,
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
+            RETURN;
+        END
+
+        -- Una venta al contado necesita una sesión de caja abierta para que
+        -- el historial de caja cuadre siempre contra ventas reales; una
+        -- venta a crédito no mueve efectivo todavía y no la necesita.
+        IF @EsCredito = 0
+        BEGIN
+            SELECT TOP (1) @SesionCajaId = Id FROM Repuestos.SesionesCaja WHERE Estado = 'Abierta';
+
+            IF @SesionCajaId IS NULL
+            BEGIN
+                SELECT CAST(0 AS BIT) AS Exito, 'Abra la caja antes de cobrar' AS Mensaje,
+                       CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                       CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
+                RETURN;
+            END
         END
 
         -- Defecto B-6: producto inexistente o descontinuado
@@ -46,7 +85,8 @@ BEGIN
                    WHERE NOT EXISTS (SELECT 1 FROM Inventario.Productos p WHERE p.Id = d.ProductoId))
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Hay productos en la venta que no existen' AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
         END
 
@@ -59,7 +99,8 @@ BEGIN
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito,
                    CONCAT('El producto ', @CodigoProblema, ' está descontinuado y no puede venderse') AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
         END
 
@@ -107,8 +148,35 @@ BEGIN
                    WHERE p.StockActual < sr.CantidadRequerida)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Stock insuficiente para completar la venta' AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
+        END
+
+        ---------- 3.5 Montos y validación de efectivo, TODAVÍA fuera de transacción ----------
+        -- Se factura el paquete a su propio precio, no la suma de sus componentes.
+        SELECT
+            @Subtotal = SUM(d.Cantidad * p.PrecioUnitario),
+            @MontoISV = SUM(Facturacion.fn_CalcularISV(d.Cantidad * p.PrecioUnitario, p.TasaISV))
+        FROM @Detalle d
+        INNER JOIN Inventario.Productos p ON p.Id = d.ProductoId;
+
+        SET @Total = @Subtotal + @MontoISV;
+
+        -- El vuelto SIEMPRE lo calcula el servidor con el @Total que él
+        -- mismo determinó, nunca el número que mostró el formulario: si el
+        -- efectivo declarado no alcanza, la venta se rechaza acá, sin abrir
+        -- transacción ni gastar un correlativo CAI.
+        IF @MetodoPago = 'Efectivo' AND @EsCredito = 0
+        BEGIN
+            IF @EfectivoRecibido IS NULL OR @EfectivoRecibido < @Total
+            BEGIN
+                SELECT CAST(0 AS BIT) AS Exito, 'El efectivo recibido es menor al total de la venta' AS Mensaje,
+                       CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                       CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
+                RETURN;
+            END
+            SET @Vuelto = @EfectivoRecibido - @Total;
         END
 
         ---------- 4. Transacción ----------
@@ -130,7 +198,8 @@ BEGIN
             IF @TranPropia = 1 ROLLBACK; ELSE ROLLBACK TRANSACTION PuntoVenta;
             SELECT CAST(0 AS BIT) AS Exito,
                    'Stock insuficiente: otra caja vendió el mismo producto' AS Mensaje,
-                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                   CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
             RETURN;
         END
 
@@ -158,7 +227,8 @@ BEGIN
             BEGIN
                 IF @TranPropia = 1 ROLLBACK; ELSE ROLLBACK TRANSACTION PuntoVenta;
                 SELECT CAST(0 AS BIT) AS Exito, @MensajeCAI AS Mensaje,
-                       CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+                       CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+                   CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
                 RETURN;
             END
         END
@@ -167,18 +237,9 @@ BEGIN
             SET @Correlativo = 'INT-' + RIGHT('00000000' + CAST(NEXT VALUE FOR Repuestos.SeqVentaInterna AS NVARCHAR(20)), 8);
         END
 
-        ---------- 6. Montos sobre las LÍNEAS COMERCIALES ----------
-        -- Se factura el paquete a su propio precio, no la suma de sus componentes.
-        SELECT
-            @Subtotal = SUM(d.Cantidad * p.PrecioUnitario),
-            @MontoISV = SUM(Facturacion.fn_CalcularISV(d.Cantidad * p.PrecioUnitario, p.TasaISV))
-        FROM @Detalle d
-        INNER JOIN Inventario.Productos p ON p.Id = d.ProductoId;
-
-        SET @Total = @Subtotal + @MontoISV;
-
-        INSERT INTO Repuestos.Ventas (NumeroFactura, Subtotal, MontoISV, Total, UsuarioId, EsCredito)
-        VALUES (@Correlativo, @Subtotal, @MontoISV, @Total, @UsuarioId, @EsCredito);
+        ---------- 6. Persistir la venta con los montos ya calculados ----------
+        INSERT INTO Repuestos.Ventas (NumeroFactura, Subtotal, MontoISV, Total, UsuarioId, ClienteId, EsCredito, SesionCajaId, MetodoPago, EfectivoRecibido, Vuelto)
+        VALUES (@Correlativo, @Subtotal, @MontoISV, @Total, @UsuarioId, @ClienteId, @EsCredito, @SesionCajaId, @MetodoPago, @EfectivoRecibido, @Vuelto);
 
         SET @VentaId = SCOPE_IDENTITY();
 
@@ -209,7 +270,8 @@ BEGIN
             @TablaAfectada = 'Repuestos.Ventas', @RegistroId = @VentaId, @Detalle = @Correlativo;
 
         SELECT CAST(1 AS BIT) AS Exito, 'Venta registrada' AS Mensaje,
-               @Correlativo AS NumeroFactura, @Total AS Total;
+               @Correlativo AS NumeroFactura, @Total AS Total,
+               @EfectivoRecibido AS EfectivoRecibido, @Vuelto AS Vuelto;
     END TRY
     BEGIN CATCH
         IF XACT_STATE() = -1 ROLLBACK;
@@ -219,7 +281,8 @@ BEGIN
         END
 
         SELECT CAST(0 AS BIT) AS Exito, ERROR_MESSAGE() AS Mensaje,
-               CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total;
+               CAST(NULL AS NVARCHAR(60)) AS NumeroFactura, CAST(NULL AS DECIMAL(12,2)) AS Total,
+               CAST(NULL AS DECIMAL(12,2)) AS EfectivoRecibido, CAST(NULL AS DECIMAL(12,2)) AS Vuelto;
     END CATCH
 END
 GO

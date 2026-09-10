@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Sistemas.Core.Data;
+using Sistemas.Core.Export;
 using Sistemas.Repuestos.Library.Models;
 
 namespace Sistemas.Repuestos.Library.Services
@@ -25,9 +26,13 @@ namespace Sistemas.Repuestos.Library.Services
         }
 
         // El carrito solo envía ProductoId+Cantidad — nunca precio: el precio
-        // y la tasa de ISV se congelan del lado del servidor.
-        public static async Task<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total)> RegistrarAsync(
-            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId)
+        // y la tasa de ISV se congelan del lado del servidor. El Vuelto
+        // tampoco se envía: lo calcula sp_RegistrarVenta a partir del total
+        // real que él mismo determina, y es ese valor (no el que mostró la
+        // calculadora de cambio en pantalla) el que vuelve en la respuesta.
+        public static async Task<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total, decimal? EfectivoRecibido, decimal? Vuelto)> RegistrarAsync(
+            IReadOnlyList<LineaCarritoDto> detalle, bool esCredito, int? diasCredito, int usuarioId, int? clienteId,
+            string metodoPago, decimal? efectivoRecibido)
         {
             var tabla = new DataTable();
             tabla.Columns.Add("ProductoId", typeof(int));
@@ -36,14 +41,17 @@ namespace Sistemas.Repuestos.Library.Services
                 tabla.Rows.Add(linea.ProductoId, linea.Cantidad);
 
             using var conn = ConnectionFactory.CreateConnection();
-            return await conn.QueryFirstAsync<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total)>(
+            return await conn.QueryFirstAsync<(bool Exito, string Mensaje, string? NumeroFactura, decimal? Total, decimal? EfectivoRecibido, decimal? Vuelto)>(
                 "Repuestos.sp_RegistrarVenta",
                 new
                 {
                     UsuarioId = usuarioId,
                     EsCredito = esCredito,
                     DiasCredito = diasCredito,
-                    Detalle = tabla.AsTableValuedParameter("Repuestos.VentaDetalleTableType")
+                    ClienteId = clienteId,
+                    Detalle = tabla.AsTableValuedParameter("Repuestos.VentaDetalleTableType"),
+                    MetodoPago = metodoPago,
+                    EfectivoRecibido = efectivoRecibido
                 },
                 commandType: CommandType.StoredProcedure);
         }
@@ -55,6 +63,40 @@ namespace Sistemas.Repuestos.Library.Services
                 "Repuestos.sp_AnularVenta",
                 new { VentaId = ventaId, UsuarioId = usuarioId, Motivo = motivo },
                 commandType: CommandType.StoredProcedure);
+        }
+
+        // Solo exporta — no hay ImportarDesdeExcelAsync para ventas: una
+        // venta involucra reglas que no tiene sentido saltarse en lote
+        // (precio congelado en servidor, correlativo CAI, descuento de
+        // stock en tiempo real, sesión de caja obligatoria), así que las
+        // ventas siempre se registran una por una en el POS.
+        public static async Task<int> ExportarAExcelAsync(string? numeroFactura, bool soloVigentes, string rutaArchivo)
+        {
+            var encabezados = new[] { "NumeroFactura", "Fecha", "Total", "EsCredito", "MetodoPago", "Anulada" };
+
+            var filas = new List<object?[]>();
+            var pagina = 1;
+            while (true)
+            {
+                var (ventas, _) = await ListarAsync(numeroFactura, soloVigentes, pagina, 500);
+                foreach (var v in ventas)
+                {
+                    filas.Add(new object?[]
+                    {
+                        v.NumeroFactura, v.Fecha, v.Total, v.EsCredito, v.MetodoPago, v.Anulada
+                    });
+                }
+
+                // Se corta por página vacía, no por comparar contra "total"
+                // (mismo criterio que ProductService.ExportarAExcelAsync):
+                // ese valor puede correrse si hay escrituras concurrentes
+                // durante una exportación larga.
+                if (ventas.Count < 500) break;
+                pagina++;
+            }
+
+            ExcelExporter.Exportar(rutaArchivo, encabezados, filas);
+            return filas.Count;
         }
     }
 }

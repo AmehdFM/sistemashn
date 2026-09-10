@@ -17,7 +17,7 @@ BEGIN
 
     -- Result set 1: la página
     SELECT
-        p.Id, p.Codigo, p.Nombre, p.Descripcion, p.PrecioUnitario,
+        p.Id, p.Codigo, p.CodigoBarra, p.Nombre, p.Descripcion, p.PrecioUnitario,
         p.CategoriaId, c.Nombre AS NombreCategoria,
         p.TasaISV, p.StockActual, p.StockMinimo, p.Activo, p.FechaCreacion,
         p.UnidadMedidaId, um.Codigo AS UnidadMedidaCodigo, um.Simbolo AS UnidadMedidaSimbolo,

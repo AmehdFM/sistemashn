@@ -16,10 +16,11 @@ namespace Sistemas.Repuestos.Library
         {
             public const string Inventario = "Inventario";
             public const string Proveedores = "Proveedores";
+            public const string Clientes = "Clientes";
             public const string Compras = "Compras";
             public const string Pos = "POS";
+            public const string Caja = "Caja";
             public const string Ventas = "Ventas";
-            public const string CuentasPorCobrarPagar = "Cuentas por Cobrar/Pagar";
         }
 
         // Textos reutilizados por varias pantallas de esta vertical.
@@ -97,6 +98,7 @@ namespace Sistemas.Repuestos.Library
             public const string TabEquivalencias = "Equivalencias OEM";
             public const string TabPrecios = "Proveedores y precios";
             public const string CampoCodigo = "Código";
+            public const string CampoCodigoBarra = "Código de barras (opcional)";
             public const string CampoNombre = "Nombre";
             public const string CampoDescripcion = "Descripción";
             public const string CampoPrecioUnitario = "Precio unitario (L.)";
@@ -131,19 +133,42 @@ namespace Sistemas.Repuestos.Library
             public const string SeccionVehiculos = "Vehículos compatibles";
             public const string SeccionEquivalencias = "Equivalencias OEM";
             public const string SeccionPrecios = "Proveedores y precios";
+            public const string AvisoTopeProveedoresFormato = "Mostrando los primeros 500 de {0} proveedores; use el buscador para encontrar el resto.";
         }
 
-        public static class Proveedores
+        // Campos y mensajes compartidos entre las vistas "Proveedores" y
+        // "Clientes" — ambas son la misma entidad Tercero, así que un mismo
+        // registro de textos alimenta TerceroCamposControl/FormTercero/
+        // FormPerfilTercero/TercerosControl en las dos vistas. Los pocos
+        // textos que sí varían por vista (título, mensajes de error que
+        // nombran el rol) quedan como formato parametrizado por
+        // RolProveedor/RolCliente en vez de duplicarse por completo.
+        public static class Terceros
         {
-            public const string FormularioTituloNuevo = "Nuevo proveedor";
-            public const string FormularioTituloEditar = "Editar proveedor";
             public const string CampoNombre = "Nombre";
+            public const string CampoEmpresa = "Empresa (opcional)";
+            public const string CampoCorreo = "Correo (opcional)";
+            public const string CampoTelefono = "Teléfono (opcional)";
             public const string CampoRtnOpcional = "RTN (14 dígitos, opcional)";
-            public const string CampoTelefono = "Teléfono";
-            public const string CampoPersonaContacto = "Persona de contacto";
+            public const string CampoEsProveedor = "Es proveedor";
+            public const string CampoEsCliente = "Es cliente";
             public const string ErrorNombreRequerido = "El nombre es requerido";
             public const string ErrorRtnInvalido = "El RTN debe tener exactamente 14 dígitos, o dejarse en blanco";
-            public const string ErrorSeleccioneProveedorPrimero = "Seleccione un proveedor primero.";
+            public const string ErrorCorreoInvalido = "El correo no tiene un formato válido, o déjelo en blanco";
+            public const string ErrorAlMenosUnRol = "Debe marcar al menos un rol (proveedor o cliente)";
+
+            // Nombre del rol en minúscula/mayúscula, usado para construir los
+            // textos que varían por vista (Proveedores vs. Clientes) sin
+            // duplicar cada mensaje.
+            public const string RolProveedorMinuscula = "proveedor";
+            public const string RolClienteMinuscula = "cliente";
+            public const string RolProveedorCapitalizado = "Proveedor";
+            public const string RolClienteCapitalizado = "Cliente";
+
+            public const string FormularioTituloNuevoFormato = "Nuevo {0}";
+            public const string FormularioTituloEditarFormato = "Editar {0}";
+            public const string PerfilTituloFormato = "Perfil de {0} — {1}";
+            public const string ErrorSeleccionePrimeroFormato = "Seleccione un {0} primero.";
         }
 
         public static class Compras
@@ -163,6 +188,21 @@ namespace Sistemas.Repuestos.Library
             public const string NoSeCargaronProveedoresPrefijo = "No se pudieron cargar los proveedores: ";
             public const string BotonNuevaCompra = "Nueva compra";
             public const string BotonActualizar = "Actualizar";
+            public const string AvisoTopeProveedoresFormato = "Mostrando los primeros 500 de {0} proveedores; use el buscador para encontrar el resto.";
+
+            public const string BotonImportarExcel = "Importar Excel";
+            public const string BotonExportarExcel = "Exportar Excel";
+            public const string BotonDescargarPlantilla = "Descargar plantilla";
+            public const string ImportarTituloVentana = "Importar compras desde Excel";
+            public const string ImportarInstruccionesPrefijo = "Seleccione un archivo .xlsx con las columnas exactas: ";
+            public const string EstadoImportando = "Importando...";
+            public const string NoSePudoImportarPrefijo = "No se pudo importar: ";
+            public const string TituloExportar = "Exportar";
+            public const string FormatoExportoOk = "Se exportaron {0} compra(s) a {1}";
+            public const string NoSePudoExportarPrefijo = "No se pudo exportar: ";
+            public const string TituloPlantilla = "Plantilla";
+            public const string PlantillaGeneradaEnPrefijo = "Plantilla generada en ";
+            public const string NoSeGeneroPlantillaPrefijo = "No se pudo generar la plantilla: ";
         }
 
         // Pantalla de facturación rápida (carrito + cobro + impresión). Es
@@ -177,6 +217,10 @@ namespace Sistemas.Repuestos.Library
             public const string BotonQuitarLinea = "Quitar línea";
             public const string CampoVentaCredito = "Venta a crédito";
             public const string CampoDiasCredito = "Días crédito";
+            public const string CampoCliente = "Cliente";
+            public const string ErrorSeleccioneClienteCredito = "Seleccione un cliente para venta a crédito";
+            public const string NoSeCargaronClientesPrefijo = "No se pudieron cargar los clientes: ";
+            public const string AvisoTopeClientesFormato = "Mostrando los primeros 500 de {0} clientes; use el buscador para encontrar el resto.";
             public const string FormatoTotal = "Total: L. {0:N2}";
             public const string BotonCobrar = "Cobrar";
             public const string ErrorCarritoVacio = "El carrito está vacío";
@@ -194,6 +238,24 @@ namespace Sistemas.Repuestos.Library
             public const string ReciboColumnaPrecioUnitario = "P.Unit";
             public const string ReciboColumnaSubtotal = "Subtotal";
             public const string ReciboTotalFormato = "TOTAL: L. {0:N2}";
+            public const string ReciboEfectivoRecibidoFormato = "Efectivo recibido: L. {0:N2}";
+            public const string ReciboVueltoFormato = "Vuelto: L. {0:N2}";
+
+            public const string CampoMetodoPago = "Método de pago";
+            public const string MetodoPagoEfectivo = "Efectivo";
+            public const string MetodoPagoTarjeta = "Tarjeta";
+            public const string MetodoPagoTransferencia = "Transferencia";
+
+            public const string AvisoCajaCerrada = "No hay una sesión de caja abierta. Abra la caja para poder cobrar.";
+            public const string BotonAbrirCajaDesdePos = "Abrir caja";
+            public const string NoSeVerificoCajaPrefijo = "No se pudo verificar el estado de la caja: ";
+
+            public const string CobroEfectivoTitulo = "Cobro en efectivo";
+            public const string CobroEfectivoTotalFormato = "Total a cobrar: L. {0:N2}";
+            public const string CobroEfectivoCampoRecibido = "Efectivo recibido (L.)";
+            public const string CobroEfectivoBotonLimpiar = "Limpiar";
+            public const string CobroEfectivoVueltoFormato = "Vuelto: L. {0:N2}";
+            public const string CobroEfectivoBotonConfirmar = "Confirmar cobro";
         }
 
         // Historial de ventas (antes era el diálogo FormHistorialVentas,
@@ -210,12 +272,14 @@ namespace Sistemas.Repuestos.Library
             public const string ErrorIndiqueMotivoAnulacion = "Indique el motivo de la anulación";
             public const string ConfirmarAnularFormato = "¿Anular la factura {0} por L. {1:N2}? Esta acción restaura el stock vendido.";
             public const string NoSeAnuloPrefijo = "No se pudo anular: ";
+            public const string BotonExportarExcel = "Exportar Excel";
+            public const string TituloExportar = "Exportar";
+            public const string FormatoExportoOk = "Se exportaron {0} venta(s) a {1}";
+            public const string NoSePudoExportarPrefijo = "No se pudo exportar: ";
         }
 
         public static class Cuentas
         {
-            public const string TabPorCobrar = "Cuentas por Cobrar";
-            public const string TabPorPagar = "Cuentas por Pagar";
             public const string CampoSoloConSaldo = "Solo con saldo pendiente";
             public const string BotonRegistrarPago = "Registrar pago";
             public const string TituloRegistrarPago = "Registrar pago";
@@ -228,6 +292,29 @@ namespace Sistemas.Repuestos.Library
             public const string CampoMetodoPago = "Método de pago";
             public const string BotonRegistrarPagoAccion = "Registrar pago";
             public const string NoSeRegistroPagoPrefijo = "No se pudo registrar el pago: ";
+        }
+
+        // Sesiones de caja: apertura, cierre e historial. Mismo estilo que
+        // Textos.Cuentas.
+        public static class Caja
+        {
+            public const string AbrirTitulo = "Abrir caja";
+            public const string CampoMontoApertura = "Monto inicial de caja (L.)";
+            public const string BotonAbrirCaja = "Abrir caja";
+            public const string NoSeAbrioCajaPrefijo = "No se pudo abrir la caja: ";
+
+            public const string CerrarTitulo = "Cerrar caja";
+            public const string CalculandoMontoEsperado = "Calculando monto esperado...";
+            public const string FormatoMontoEsperado = "Monto esperado: L. {0:N2}";
+            public const string NoSeCargoMontoEsperadoPrefijo = "No se pudo calcular el monto esperado: ";
+            public const string CampoEfectivoContado = "Efectivo contado (L.)";
+            public const string BotonCerrarCaja = "Cerrar caja";
+            public const string NoSeCerroCajaPrefijo = "No se pudo cerrar la caja: ";
+            public const string FormatoResultadoCierre = "{0}\n\nMonto calculado: L. {1:N2}\nDiferencia: L. {2:N2}";
+
+            public const string EstadoCerrada = "No hay una sesión de caja abierta.";
+            public const string EstadoAbiertaFormato = "Caja abierta por {0} desde {1:dd/MM/yyyy HH:mm} — Monto inicial: L. {2:N2}";
+            public const string UsuarioGenericoFormato = "Usuario #{0}";
         }
     }
 }

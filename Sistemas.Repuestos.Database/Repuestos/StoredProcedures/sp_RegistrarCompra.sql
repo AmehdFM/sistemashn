@@ -20,7 +20,7 @@ BEGIN
 
     BEGIN TRY
         ---------- Validaciones previas (fuera de transacción, regla C-6) ----------
-        IF NOT EXISTS (SELECT 1 FROM Repuestos.Proveedores WHERE Id = @ProveedorId AND Activo = 1)
+        IF NOT EXISTS (SELECT 1 FROM Repuestos.Terceros WHERE Id = @ProveedorId AND Activo = 1)
         BEGIN
             SELECT CAST(0 AS BIT) AS Exito, 'Proveedor no válido o inactivo' AS Mensaje,
                    CAST(NULL AS INT) AS CompraId;

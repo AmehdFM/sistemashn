@@ -1,6 +1,7 @@
 CREATE TABLE Inventario.Productos (
     Id                  INT IDENTITY(1,1) PRIMARY KEY,
     Codigo              NVARCHAR(30)    NOT NULL,
+    CodigoBarra         NVARCHAR(30)    NULL,
     Nombre              NVARCHAR(150)   NOT NULL,
     Descripcion         NVARCHAR(500)   NULL,
     PrecioUnitario      DECIMAL(12,2)   NOT NULL,
@@ -12,6 +13,7 @@ CREATE TABLE Inventario.Productos (
     Activo              BIT             NOT NULL DEFAULT 1,
     FechaCreacion       DATETIME2(0)    NOT NULL DEFAULT SYSDATETIME(),
     CONSTRAINT UQ_Productos_Codigo UNIQUE (Codigo),
+    CONSTRAINT UQ_Productos_CodigoBarra UNIQUE (CodigoBarra),
     CONSTRAINT FK_Productos_Categorias FOREIGN KEY (CategoriaId) REFERENCES Inventario.Categorias(Id),
     CONSTRAINT FK_Productos_UnidadMedida FOREIGN KEY (UnidadMedidaId) REFERENCES Inventario.UnidadesMedida(Id),
     CONSTRAINT CK_Productos_PrecioUnitario CHECK (PrecioUnitario >= 0),

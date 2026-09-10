@@ -45,7 +45,7 @@ namespace Sistemas.Repuestos.Library.Compras
             _cboProveedor = new ComboBox
             {
                 Location = new Point(16, 28), Size = new Size(280, 26), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id)
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
             };
 
             var lblNumeroFactura = new Label { Text = Textos.Compras.CampoNumeroFacturaProveedor, AutoSize = true, Location = new Point(310, 8) };
@@ -103,7 +103,11 @@ namespace Sistemas.Repuestos.Library.Compras
                 e.FormattingApplied = true;
             };
 
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 96, BackColor = Color.White };
+            // Height = 110: btnQuitarLinea (y8-36) + _lblError (y42-66) +
+            // _btnRegistrar (y68-102) necesitan 102px de alto, más 8px de
+            // margen inferior — con 96 el botón quedaba cortado por el
+            // borde del panel.
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 110, BackColor = Color.White };
             var btnQuitarLinea = new Button { Text = Textos.Compras.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(120, 28) };
             btnQuitarLinea.Click += (s, e) =>
             {
@@ -116,7 +120,9 @@ namespace Sistemas.Repuestos.Library.Compras
 
             _lblTotal = new Label { Text = string.Format(Textos.Compras.FormatoTotal, 0m), AutoSize = true, Location = new Point(500, 12), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 24), Location = new Point(16, 42) };
+            // Anchor Left+Right: a MinimumSize.Width (680) el Width fijo de
+            // 680px a partir de x=16 se salía del área visible del panel.
+            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 24), Location = new Point(16, 42), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
 
             _btnRegistrar = new Button
             {
@@ -143,8 +149,13 @@ namespace Sistemas.Repuestos.Library.Compras
         {
             try
             {
-                var (proveedores, _) = await ProveedorService.ListarAsync(true, null, 1, 500);
+                var (proveedores, totalProveedores) = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
                 _cboProveedor.DataSource = proveedores;
+
+                // El combo carga hasta 500 proveedores de una vez: si hay más
+                // activos que eso, se avisa en vez de truncar en silencio.
+                if (totalProveedores > proveedores.Count)
+                    _lblError.Text = string.Format(Textos.Compras.AvisoTopeProveedoresFormato, totalProveedores);
             }
             catch (Exception ex)
             {
