@@ -8,6 +8,7 @@ using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -34,36 +35,41 @@ namespace Sistemas.Repuestos.Library.Inventario
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(560, 420);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 122, BackColor = Color.White };
+            var pnlTop = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
             var lblAviso = new Label
             {
                 Text = Textos.Inventario.ArmarPaqueteAviso,
-                AutoSize = true,
-                Location = new Point(16, 8),
-                ForeColor = UiTheme.TextoTenue
+                Dock = DockStyle.Top,
+                Height = 20,
+                ForeColor = UiTheme.TextoTenue,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm)
             };
 
-            var lblBuscar = new Label { Text = Textos.Inventario.CampoBuscarComponente, AutoSize = true, Location = new Point(16, 32) };
-            _txtBuscar = new TextBox { Location = new Point(16, 52), Size = new Size(200, 26) };
-            var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(222, 51), Size = new Size(80, 28) };
+            var pnlBusqueda = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblBuscar = new Label { Text = Textos.Inventario.CampoBuscarComponente, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
+            _txtBuscar = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
+            var btnBuscar = Botones.CrearSecundario(Textos.Comun.BotonBuscar);
             btnBuscar.Click += BtnBuscar_Click;
+            pnlBusqueda.Controls.AddRange(new Control[] { lblBuscar, _txtBuscar, btnBuscar });
 
-            _cboResultado = new ComboBox { Location = new Point(16, 84), Size = new Size(320, 26), DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
+            var pnlSeleccion = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            _cboResultado = new ComboBox { Width = 320, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
             _cboResultado.Format += (s, e) => { if (e.ListItem is ProductoDto p) e.Value = $"{p.Codigo} — {p.Nombre}"; };
             _cboResultado.SelectedIndexChanged += (s, e) =>
             {
                 if (_cboResultado.SelectedItem is ProductoDto p)
                     CantidadFormatter.AplicarModoCantidad(_numCantidad, p.PermiteFraccionUnidad);
             };
-
-            var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, AutoSize = true, Location = new Point(346, 60) };
-            _numCantidad = new NumericUpDown { Location = new Point(346, 84), Size = new Size(70, 26), Minimum = 1, Maximum = 10000, Value = 1 };
-
-            var btnAgregar = new Button { Text = Textos.Comun.BotonAgregar, Location = new Point(426, 83), Size = new Size(90, 28) };
+            var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
+            _numCantidad = new NumericUpDown { Width = 70, Height = UiTheme.Medidas.AlturaControl, Minimum = 1, Maximum = 10000, Value = 1, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
+            var btnAgregar = Botones.CrearSecundario(Textos.Comun.BotonAgregar);
             btnAgregar.Click += BtnAgregar_Click;
+            pnlSeleccion.Controls.AddRange(new Control[] { _cboResultado, lblCantidad, _numCantidad, btnAgregar });
 
-            pnlTop.Controls.AddRange(new Control[] { lblAviso, lblBuscar, _txtBuscar, btnBuscar, _cboResultado, lblCantidad, _numCantidad, btnAgregar });
+            pnlTop.Controls.Add(pnlSeleccion);
+            pnlTop.Controls.Add(pnlBusqueda);
+            pnlTop.Controls.Add(lblAviso);
 
             _gridComponentes = new DataGridView { DataSource = _componentes };
             GridStyler.Aplicar(_gridComponentes);
@@ -80,33 +86,23 @@ namespace Sistemas.Repuestos.Library.Inventario
                 e.FormattingApplied = true;
             };
 
-            // Height = 110: btnQuitar (y8-36) + _lblError (y40-64) +
-            // _btnGuardar (y68-102) necesitan 102px de alto, más 8px de
-            // margen inferior — con 84 el botón quedaba cortado por el
-            // borde del panel.
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 110, BackColor = Color.White };
-            var btnQuitar = new Button { Text = Textos.Inventario.BotonQuitarSeleccionado, Location = new Point(16, 8), Size = new Size(160, 28) };
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
+
+            var pnlAcciones = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var btnQuitar = Botones.CrearSecundario(Textos.Inventario.BotonQuitarSeleccionado);
             btnQuitar.Click += (s, e) =>
             {
                 if (_gridComponentes.CurrentRow?.DataBoundItem is ComponentePaqueteDto comp)
                     _componentes.Remove(comp);
             };
-
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(600, 24), Location = new Point(16, 40) };
-
-            _btnGuardar = new Button
-            {
-                Text = Textos.Inventario.BotonGuardarPaquete,
-                Location = new Point(16, 68),
-                Size = new Size(160, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+            _btnGuardar = Botones.CrearPrimario(Textos.Inventario.BotonGuardarPaquete);
             _btnGuardar.Click += BtnGuardar_Click;
+            pnlAcciones.Controls.AddRange(new Control[] { btnQuitar, _btnGuardar });
 
-            pnlBottom.Controls.AddRange(new Control[] { btnQuitar, _lblError, _btnGuardar });
+            _lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 24 };
+
+            pnlBottom.Controls.Add(_lblError);
+            pnlBottom.Controls.Add(pnlAcciones);
 
             Controls.Add(_gridComponentes);
             Controls.Add(pnlBottom);

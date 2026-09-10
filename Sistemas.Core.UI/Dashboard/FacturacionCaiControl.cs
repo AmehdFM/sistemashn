@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Sistemas.Core.Facturacion;
 using Sistemas.Core.Security;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Core.UI.Dashboard
 {
@@ -28,55 +29,84 @@ namespace Sistemas.Core.UI.Dashboard
             BackColor = UiTheme.FondoContenido;
             AutoScroll = true;
 
-            var pnlEstado = new Panel { Dock = DockStyle.Top, Height = 150, BackColor = Color.White };
-            var lblTituloEstado = new Label { Text = Textos.Facturacion.TituloCaiActivo, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(16, 12) };
-            _lblEstadoActual = new Label { AutoSize = false, Size = new Size(600, 110), Location = new Point(16, 36), ForeColor = UiTheme.TextoTenue };
-            pnlEstado.Controls.AddRange(new Control[] { lblTituloEstado, _lblEstadoActual });
+            var pnlEstado = new Panel { Dock = DockStyle.Top, Height = 150, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg) };
+            var lblTituloEstado = new Label { Text = Textos.Facturacion.TituloCaiActivo, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24 };
+            _lblEstadoActual = new Label { Dock = DockStyle.Fill, ForeColor = UiTheme.TextoTenue };
+            pnlEstado.Controls.Add(_lblEstadoActual);
+            pnlEstado.Controls.Add(lblTituloEstado);
 
-            var pnlNuevo = new Panel { Dock = DockStyle.Top, Height = 300, BackColor = Color.White };
-            var lblTituloNuevo = new Label { Text = Textos.Facturacion.TituloRegistrarNuevoCai, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(16, 12) };
+            var pnlNuevo = new Panel { Dock = DockStyle.Top, Height = 340, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg) };
+            var lblTituloNuevo = new Label { Text = Textos.Facturacion.TituloRegistrarNuevoCai, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md) };
 
-            var lblRangoAutorizado = new Label { Text = Textos.Facturacion.CampoRangoAutorizado, AutoSize = true, Location = new Point(16, 44) };
-            _txtRangoAutorizado = new TextBox { Location = new Point(16, 64), Size = new Size(420, 26), MaxLength = 40 };
+            var grilla = FormularioLayout.CrearGrilla();
+            _txtRangoAutorizado = new TextBox { Width = 320, Height = UiTheme.Medidas.AlturaControl, MaxLength = 40 };
+            FormularioLayout.AgregarCampo(grilla, Textos.Facturacion.CampoRangoAutorizado, _txtRangoAutorizado);
 
-            var lblRangoInicial = new Label { Text = Textos.Facturacion.CampoRangoInicial, AutoSize = true, Location = new Point(16, 100) };
-            _txtRangoInicial = new TextBox { Location = new Point(16, 120), Size = new Size(220, 26), MaxLength = 16 };
+            // Rango inicial/final y fechas autorización/vencimiento van en
+            // par (guía UI/UX §8.1: dos columnas solo para campos cortos
+            // con pares naturales).
+            var filaRango = FilaDePar(
+                Textos.Facturacion.CampoRangoInicial, _txtRangoInicial = new TextBox { Width = 190, Height = UiTheme.Medidas.AlturaControl, MaxLength = 16 },
+                Textos.Facturacion.CampoRangoFinal, _txtRangoFinal = new TextBox { Width = 190, Height = UiTheme.Medidas.AlturaControl, MaxLength = 16 });
 
-            var lblRangoFinal = new Label { Text = Textos.Facturacion.CampoRangoFinal, AutoSize = true, Location = new Point(250, 100) };
-            _txtRangoFinal = new TextBox { Location = new Point(250, 120), Size = new Size(220, 26), MaxLength = 16 };
+            var filaFechas = FilaDePar(
+                Textos.Facturacion.CampoFechaAutorizacion, _dtpAutorizacion = new DateTimePicker { Width = 160, Height = UiTheme.Medidas.AlturaControl, Format = DateTimePickerFormat.Short },
+                Textos.Facturacion.CampoFechaVencimiento, _dtpVencimiento = new DateTimePicker { Width = 160, Height = UiTheme.Medidas.AlturaControl, Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddYears(1) });
 
-            var lblAutorizacion = new Label { Text = Textos.Facturacion.CampoFechaAutorizacion, AutoSize = true, Location = new Point(16, 156) };
-            _dtpAutorizacion = new DateTimePicker { Location = new Point(16, 176), Size = new Size(160, 26), Format = DateTimePickerFormat.Short };
-
-            var lblVencimiento = new Label { Text = Textos.Facturacion.CampoFechaVencimiento, AutoSize = true, Location = new Point(250, 156) };
-            _dtpVencimiento = new DateTimePicker { Location = new Point(250, 176), Size = new Size(160, 26), Format = DateTimePickerFormat.Short, Value = DateTime.Today.AddYears(1) };
-
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(600, 30), Location = new Point(16, 212) };
-
-            _btnGuardar = new Button
+            _lblError = new Label
             {
-                Text = Textos.Facturacion.BotonRegistrarCai,
-                Location = new Point(16, 246),
-                Size = new Size(160, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                ForeColor = UiTheme.Error,
+                Dock = DockStyle.Top,
+                Height = 30,
+                Margin = new Padding(0, UiTheme.Espacio.Sm, 0, UiTheme.Espacio.Sm)
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Facturacion.BotonRegistrarCai);
+            _btnGuardar.Dock = DockStyle.Top;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Width = 200;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
 
-            pnlNuevo.Controls.AddRange(new Control[]
-            {
-                lblTituloNuevo, lblRangoAutorizado, _txtRangoAutorizado,
-                lblRangoInicial, _txtRangoInicial, lblRangoFinal, _txtRangoFinal,
-                lblAutorizacion, _dtpAutorizacion, lblVencimiento, _dtpVencimiento,
-                _lblError, _btnGuardar
-            });
+            pnlNuevo.Controls.Add(_btnGuardar);
+            pnlNuevo.Controls.Add(_lblError);
+            pnlNuevo.Controls.Add(filaFechas);
+            pnlNuevo.Controls.Add(filaRango);
+            pnlNuevo.Controls.Add(grilla);
+            pnlNuevo.Controls.Add(lblTituloNuevo);
 
             Controls.Add(pnlNuevo);
             Controls.Add(pnlEstado);
 
             Load += async (s, e) => await CargarEstadoAsync();
+        }
+
+        // Fila de 2 campos lado a lado (etiqueta+control, etiqueta+control),
+        // para los pares cortos que la guía permite en dos columnas.
+        private static FlowLayoutPanel FilaDePar(string etiqueta1, Control control1, string etiqueta2, Control control2)
+        {
+            var fila = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
+            };
+            fila.Controls.Add(GrupoCampo(etiqueta1, control1));
+            fila.Controls.Add(GrupoCampo(etiqueta2, control2));
+            return fila;
+        }
+
+        private static Panel GrupoCampo(string etiqueta, Control control)
+        {
+            var lbl = new Label { Text = etiqueta, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
+            control.Dock = DockStyle.Top;
+            var grupo = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0) };
+            grupo.Controls.Add(control);
+            grupo.Controls.Add(lbl);
+            grupo.Width = control.Width;
+            return grupo;
         }
 
         private async System.Threading.Tasks.Task CargarEstadoAsync()

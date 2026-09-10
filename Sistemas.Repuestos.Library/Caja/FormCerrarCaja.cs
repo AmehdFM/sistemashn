@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Services;
 
 namespace Sistemas.Repuestos.Library.Caja
@@ -26,39 +27,47 @@ namespace Sistemas.Repuestos.Library.Caja
             _sesionCajaId = sesionCajaId;
 
             Text = Textos.Caja.CerrarTitulo;
-            ClientSize = new Size(340, 220);
+            ClientSize = new Size(360, 260);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
+
             _lblMontoEsperado = new Label
             {
-                AutoSize = true,
-                Location = new Point(20, 16),
+                Dock = DockStyle.Top,
+                Height = 28,
                 Font = new Font(UiTheme.FuenteBase, FontStyle.Bold),
-                Text = Textos.Caja.CalculandoMontoEsperado
+                Text = Textos.Caja.CalculandoMontoEsperado,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
-            var lblEfectivo = new Label { Text = Textos.Caja.CampoEfectivoContado, AutoSize = true, Location = new Point(20, 56) };
-            _numEfectivoContado = new NumericUpDown { Location = new Point(20, 76), Size = new Size(160, 26), DecimalPlaces = 2, Maximum = 999999, Minimum = 0 };
+            var grilla = FormularioLayout.CrearGrilla();
+            _numEfectivoContado = new NumericUpDown { Width = 160, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999, Minimum = 0 };
+            FormularioLayout.AgregarCampo(grilla, Textos.Caja.CampoEfectivoContado, _numEfectivoContado);
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(300, 60), Location = new Point(20, 110) };
-
-            _btnGuardar = new Button
+            _lblError = new Label
             {
-                Text = Textos.Caja.BotonCerrarCaja,
-                Location = new Point(20, 176),
-                Size = new Size(300, 32),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                ForeColor = UiTheme.Error,
+                Dock = DockStyle.Top,
+                Height = 50,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md)
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Caja.BotonCerrarCaja);
+            _btnGuardar.Dock = DockStyle.Bottom;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
             AcceptButton = _btnGuardar;
 
-            Controls.AddRange(new Control[] { _lblMontoEsperado, lblEfectivo, _numEfectivoContado, _lblError, _btnGuardar });
+            pnlContenido.Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_lblError);
+            pnlContenido.Controls.Add(grilla);
+            pnlContenido.Controls.Add(_lblMontoEsperado);
+            Controls.Add(pnlContenido);
 
             Load += async (s, e) => await CargarMontoEsperadoAsync();
         }

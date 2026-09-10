@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Services;
 
 namespace Sistemas.Repuestos.Library.Caja
@@ -22,31 +23,37 @@ namespace Sistemas.Repuestos.Library.Caja
         public FormAbrirCaja()
         {
             Text = Textos.Caja.AbrirTitulo;
-            ClientSize = new Size(340, 176);
+            ClientSize = new Size(360, 220);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
-            var lblMonto = new Label { Text = Textos.Caja.CampoMontoApertura, AutoSize = true, Location = new Point(20, 16) };
-            _numMontoApertura = new NumericUpDown { Location = new Point(20, 36), Size = new Size(160, 26), DecimalPlaces = 2, Maximum = 999999, Minimum = 0 };
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
 
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(300, 40), Location = new Point(20, 70) };
+            var grilla = FormularioLayout.CrearGrilla();
+            _numMontoApertura = new NumericUpDown { Width = 160, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999, Minimum = 0 };
+            FormularioLayout.AgregarCampo(grilla, Textos.Caja.CampoMontoApertura, _numMontoApertura);
 
-            _btnGuardar = new Button
+            _lblError = new Label
             {
-                Text = Textos.Caja.BotonAbrirCaja,
-                Location = new Point(20, 116),
-                Size = new Size(300, 32),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                ForeColor = UiTheme.Error,
+                Dock = DockStyle.Top,
+                Height = 40,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md)
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Caja.BotonAbrirCaja);
+            _btnGuardar.Dock = DockStyle.Bottom;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
             AcceptButton = _btnGuardar;
 
-            Controls.AddRange(new Control[] { lblMonto, _numMontoApertura, _lblError, _btnGuardar });
+            pnlContenido.Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_lblError);
+            pnlContenido.Controls.Add(grilla);
+            Controls.Add(pnlContenido);
         }
 
         private async void BtnGuardar_Click(object? sender, EventArgs e)

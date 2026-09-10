@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -28,39 +29,39 @@ namespace Sistemas.Repuestos.Library.Compras
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(580, 400);
 
-            // Height = 152, igual que FormImportarExcel: mismos tres
-            // controles apilados (instrucciones + selector, botón
-            // importar + resumen), sin filas adicionales.
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 152, BackColor = Color.White };
+            var pnlSuperior = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
             var lblInstrucciones = new Label
             {
                 Text = Textos.Compras.ImportarInstruccionesPrefijo + string.Join(", ", CompraService.EncabezadosImportacionCompras),
-                AutoSize = false,
-                Size = new Size(660, 40),
-                Location = new Point(16, 12)
+                Dock = DockStyle.Top,
+                Height = 40,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm)
             };
 
-            _txtRuta = new TextBox { Location = new Point(16, 56), Size = new Size(460, 26), ReadOnly = true };
-            var btnSeleccionar = new Button { Text = Textos.Inventario.BotonSeleccionarArchivo, Location = new Point(484, 55), Size = new Size(160, 28) };
+            var pnlRuta = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md) };
+            _txtRuta = new TextBox { Width = 420, Height = UiTheme.Medidas.AlturaControl, ReadOnly = true, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
+            var btnSeleccionar = Botones.CrearSecundario(Textos.Inventario.BotonSeleccionarArchivo);
             btnSeleccionar.Click += BtnSeleccionar_Click;
+            pnlRuta.Controls.AddRange(new Control[] { _txtRuta, btnSeleccionar });
 
-            _btnImportar = new Button
-            {
-                Text = Textos.Inventario.BotonImportar,
-                Location = new Point(16, 96),
-                Size = new Size(140, 32),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Enabled = false
-            };
-            _btnImportar.FlatAppearance.BorderSize = 0;
+            var pnlImportar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            _btnImportar = Botones.CrearPrimario(Textos.Inventario.BotonImportar);
+            _btnImportar.Enabled = false;
             _btnImportar.Click += BtnImportar_Click;
+            _lblResumen = new Label
+            {
+                AutoSize = false,
+                Width = 480,
+                Height = UiTheme.Medidas.AlturaControl,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(UiTheme.Espacio.Md, 0, 0, 0)
+            };
+            pnlImportar.Controls.AddRange(new Control[] { _btnImportar, _lblResumen });
 
-            _lblResumen = new Label { AutoSize = false, Size = new Size(520, 32), Location = new Point(168, 100) };
-
-            pnlTop.Controls.AddRange(new Control[] { lblInstrucciones, _txtRuta, btnSeleccionar, _btnImportar, _lblResumen });
+            pnlSuperior.Controls.Add(pnlImportar);
+            pnlSuperior.Controls.Add(pnlRuta);
+            pnlSuperior.Controls.Add(lblInstrucciones);
 
             _grid = new DataGridView();
             GridStyler.Aplicar(_grid);
@@ -72,7 +73,7 @@ namespace Sistemas.Repuestos.Library.Compras
             _grid.CellFormatting += Grid_CellFormatting;
 
             Controls.Add(_grid);
-            Controls.Add(pnlTop);
+            Controls.Add(pnlSuperior);
         }
 
         private void Grid_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)

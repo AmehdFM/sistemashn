@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -35,32 +36,36 @@ namespace Sistemas.Repuestos.Library.Terceros
             Text = string.Format(
                 existente == null ? Textos.Terceros.FormularioTituloNuevoFormato : Textos.Terceros.FormularioTituloEditarFormato,
                 rol);
-            ClientSize = new Size(420, 400);
+            ClientSize = new Size(460, 440);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
-            _campos = new TerceroCamposControl { Location = new Point(20, 20) };
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
 
-            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Location = new Point(20, 318), Checked = true };
+            _campos = new TerceroCamposControl { Dock = DockStyle.Top };
 
-            _btnGuardar = new Button
+            _chkActivo = new CheckBox
             {
-                Text = Textos.Comun.BotonGuardar,
-                Location = new Point(20, 346),
-                Size = new Size(380, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Text = Textos.Comun.CampoActivo,
+                AutoSize = true,
+                Dock = DockStyle.Top,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg),
+                Checked = true
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Comun.BotonGuardar);
+            _btnGuardar.Dock = DockStyle.Bottom;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
             AcceptButton = _btnGuardar;
 
-            Controls.Add(_campos);
-            Controls.Add(_chkActivo);
-            Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_chkActivo);
+            pnlContenido.Controls.Add(_campos);
+            Controls.Add(pnlContenido);
 
             if (existente != null)
             {

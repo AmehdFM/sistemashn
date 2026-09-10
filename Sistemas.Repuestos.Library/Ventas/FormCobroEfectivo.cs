@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Repuestos.Library.Ventas
 {
@@ -32,35 +33,48 @@ namespace Sistemas.Repuestos.Library.Ventas
             _total = total;
 
             Text = Textos.Pos.CobroEfectivoTitulo;
-            ClientSize = new Size(420, 400);
+            ClientSize = new Size(440, 460);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
+
+            // El total es la tipografía más grande de toda pantalla de
+            // captura (guía UI/UX §7.3) — es el dato que el cajero necesita
+            // ver primero y más grande mientras cuenta el efectivo.
             var lblTotal = new Label
             {
                 Text = string.Format(Textos.Pos.CobroEfectivoTotalFormato, total),
-                AutoSize = true,
-                Font = new Font(UiTheme.FuenteBase, 13f, FontStyle.Bold),
-                Location = new Point(20, 16)
+                Dock = DockStyle.Top,
+                Height = 40,
+                Font = new Font(UiTheme.FuenteTitulo.FontFamily, 20f, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
-            var lblCampoRecibido = new Label { Text = Textos.Pos.CobroEfectivoCampoRecibido, AutoSize = true, Location = new Point(20, 56) };
-            _numRecibido = new NumericUpDown { Location = new Point(20, 76), Size = new Size(160, 28), DecimalPlaces = 2, Maximum = 999999, Minimum = 0 };
+            var pnlRecibido = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
+            };
+            var lblCampoRecibido = new Label { Text = Textos.Pos.CobroEfectivoCampoRecibido, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Sm, 0) };
+            _numRecibido = new NumericUpDown { Width = 160, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999, Minimum = 0, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
             _numRecibido.ValueChanged += (s, e) => ActualizarVuelto();
-
-            var btnLimpiar = new Button { Text = Textos.Pos.CobroEfectivoBotonLimpiar, Location = new Point(190, 76), Size = new Size(100, 28) };
+            var btnLimpiar = Botones.CrearSecundario(Textos.Pos.CobroEfectivoBotonLimpiar);
             btnLimpiar.Click += (s, e) => _numRecibido.Value = 0;
+            pnlRecibido.Controls.AddRange(new Control[] { lblCampoRecibido, _numRecibido, btnLimpiar });
 
             // Fila de botones de denominación: 500/200/100/50/20/10/5/2/1
-            // (billetes) y 1/0.50/0.20/0.10 (monedas), en una grilla de 5
-            // columnas que envuelve — cada click suma esa denominación al
-            // monto recibido, como cuando el cajero cuenta el dinero.
+            // (billetes) y 1/0.50/0.20/0.10 (monedas), en una grilla que
+            // envuelve — cada click suma esa denominación al monto recibido,
+            // como cuando el cajero cuenta el dinero.
             var pnlDenominaciones = new FlowLayoutPanel
             {
-                Location = new Point(20, 116),
-                Size = new Size(380, 190),
+                Dock = DockStyle.Fill,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = true,
                 AutoScroll = true
@@ -70,8 +84,8 @@ namespace Sistemas.Repuestos.Library.Ventas
                 var boton = new Button
                 {
                     Text = "L. " + denominacion.ToString("0.##"),
-                    Size = new Size(84, 34),
-                    Margin = new Padding(4)
+                    Size = new Size(88, 36),
+                    Margin = new Padding(UiTheme.Espacio.Xs)
                 };
                 boton.Click += (s, e) => { _numRecibido.Value = Math.Min(_numRecibido.Maximum, _numRecibido.Value + denominacion); };
                 pnlDenominaciones.Controls.Add(boton);
@@ -79,28 +93,24 @@ namespace Sistemas.Repuestos.Library.Ventas
 
             _lblVuelto = new Label
             {
-                AutoSize = true,
+                Dock = DockStyle.Bottom,
+                Height = 30,
                 Font = new Font(UiTheme.FuenteBase, 14f, FontStyle.Bold),
-                Location = new Point(20, 316)
+                Margin = new Padding(0, UiTheme.Espacio.Lg, 0, UiTheme.Espacio.Sm)
             };
 
-            _btnConfirmar = new Button
-            {
-                Text = Textos.Pos.CobroEfectivoBotonConfirmar,
-                Location = new Point(20, 354),
-                Size = new Size(380, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            _btnConfirmar.FlatAppearance.BorderSize = 0;
+            _btnConfirmar = Botones.CrearPrimario(Textos.Pos.CobroEfectivoBotonConfirmar);
+            _btnConfirmar.Dock = DockStyle.Bottom;
+            _btnConfirmar.AutoSize = false;
+            _btnConfirmar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnConfirmar.Click += BtnConfirmar_Click;
 
-            Controls.AddRange(new Control[]
-            {
-                lblTotal, lblCampoRecibido, _numRecibido, btnLimpiar,
-                pnlDenominaciones, _lblVuelto, _btnConfirmar
-            });
+            pnlContenido.Controls.Add(_lblVuelto);
+            pnlContenido.Controls.Add(_btnConfirmar);
+            pnlContenido.Controls.Add(pnlRecibido);
+            pnlContenido.Controls.Add(lblTotal);
+            pnlContenido.Controls.Add(pnlDenominaciones);
+            Controls.Add(pnlContenido);
 
             ActualizarVuelto();
         }

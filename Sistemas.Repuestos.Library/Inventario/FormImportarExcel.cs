@@ -6,12 +6,14 @@ using Sistemas.Core.Inventory;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Repuestos.Library.Inventario
 {
     public sealed class FormImportarExcel : FormBase
     {
         private readonly Label _lblResumen;
+        private readonly Button _btnSeleccionar;
         private readonly DataGridView _grid;
 
         public FormImportarExcel()
@@ -21,50 +23,44 @@ namespace Sistemas.Repuestos.Library.Inventario
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(560, 400);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 168, BackColor = Color.White };
+            var pnlSuperior = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
             var lblInstrucciones = new Label
             {
                 Text = Textos.Inventario.ImportarInstruccionesPrefijo + string.Join(", ", ProductService.EncabezadosImportacion),
-                AutoSize = false,
-                Size = new Size(640, 32),
-                Location = new Point(16, 12)
+                Dock = DockStyle.Top,
+                Height = 32,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm)
             };
 
-            var btnDescargarPlantilla = new Button
-            {
-                Text = Textos.Inventario.BotonDescargarPlantilla,
-                AutoSize = true,
-                Padding = new Padding(14, 0, 14, 0),
-                Height = 30,
-                Location = new Point(16, 52)
-            };
+            var pnlBotonPlantilla = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var btnDescargarPlantilla = Botones.CrearSecundario(Textos.Inventario.BotonDescargarPlantilla);
             btnDescargarPlantilla.Click += BtnDescargarPlantilla_Click;
+            pnlBotonPlantilla.Controls.Add(btnDescargarPlantilla);
+
+            pnlSuperior.Controls.Add(pnlBotonPlantilla);
+            pnlSuperior.Controls.Add(lblInstrucciones);
 
             // Botón central grande: seleccionar e importar es UN solo paso,
             // no dos — apenas se elige el archivo arranca la importación.
-            var btnSeleccionar = new Button
-            {
-                Text = Textos.Inventario.BotonSeleccionarArchivo,
-                Size = new Size(260, 44),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            btnSeleccionar.FlatAppearance.BorderSize = 0;
-            btnSeleccionar.Location = new Point((ClientSize.Width - btnSeleccionar.Width) / 2, 96);
-            btnSeleccionar.Anchor = AnchorStyles.Top;
-            btnSeleccionar.Click += BtnSeleccionar_Click;
+            var pnlCentro = new Panel { Dock = DockStyle.Top, Height = 120, BackColor = Color.White };
+            _btnSeleccionar = Botones.CrearPrimario(Textos.Inventario.BotonSeleccionarArchivo);
+            _btnSeleccionar.AutoSize = false;
+            _btnSeleccionar.Size = new Size(260, 44);
+            _btnSeleccionar.Anchor = AnchorStyles.Top;
+            _btnSeleccionar.Click += BtnSeleccionar_Click;
+            pnlCentro.Resize += (s, e) => _btnSeleccionar.Left = (pnlCentro.Width - _btnSeleccionar.Width) / 2;
+            _btnSeleccionar.Top = UiTheme.Espacio.Xl;
 
             _lblResumen = new Label
             {
-                AutoSize = false,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Size = new Size(640, 24),
-                Location = new Point(16, 144)
+                Dock = DockStyle.Bottom,
+                Height = 28,
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            pnlTop.Controls.AddRange(new Control[] { lblInstrucciones, btnDescargarPlantilla, btnSeleccionar, _lblResumen });
+            pnlCentro.Controls.Add(_lblResumen);
+            pnlCentro.Controls.Add(_btnSeleccionar);
 
             _grid = new DataGridView();
             GridStyler.Aplicar(_grid);
@@ -76,7 +72,8 @@ namespace Sistemas.Repuestos.Library.Inventario
             _grid.CellFormatting += Grid_CellFormatting;
 
             Controls.Add(_grid);
-            Controls.Add(pnlTop);
+            Controls.Add(pnlCentro);
+            Controls.Add(pnlSuperior);
         }
 
         private void Grid_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)

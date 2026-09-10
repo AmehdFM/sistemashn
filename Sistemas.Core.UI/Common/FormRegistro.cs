@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using Sistemas.Core.Security;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Core.UI.Common
 {
@@ -23,90 +24,72 @@ namespace Sistemas.Core.UI.Common
         public FormRegistro()
         {
             Text = Textos.Dashboard.RegistroTituloVentana;
-            ClientSize = new Size(420, 420);
+            ClientSize = new Size(460, 480);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
+
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
 
             var lblTitulo = new Label
             {
                 Text = Textos.Dashboard.RegistroTitulo,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
-                AutoSize = true,
-                Location = new Point(24, 20)
+                Dock = DockStyle.Top,
+                Height = 28,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xs)
             };
 
             var lblSubtitulo = new Label
             {
                 Text = Textos.Dashboard.RegistroSubtitulo,
                 ForeColor = UiTheme.TextoTenue,
-                AutoSize = false,
-                Size = new Size(372, 36),
-                Location = new Point(24, 52)
+                Dock = DockStyle.Top,
+                Height = 36,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl)
             };
 
-            int y = 100;
-            var lblUsuario = new Label { Text = Textos.Dashboard.CampoNombreUsuario, AutoSize = true, Location = new Point(24, y) };
-            _txtNombreUsuario = new TextBox { Location = new Point(24, y + 20), Size = new Size(372, 26) };
-
-            y += 56;
-            var lblNombreCompleto = new Label { Text = Textos.Dashboard.CampoNombreCompleto, AutoSize = true, Location = new Point(24, y) };
-            _txtNombreCompleto = new TextBox { Location = new Point(24, y + 20), Size = new Size(372, 26) };
-
-            y += 56;
-            var lblPassword = new Label { Text = Textos.Dashboard.CampoPassword, AutoSize = true, Location = new Point(24, y) };
-            _txtPassword = new TextBox { Location = new Point(24, y + 20), Size = new Size(372, 26), PasswordChar = '●' };
-
-            y += 56;
-            var lblConfirmar = new Label { Text = Textos.Dashboard.CampoConfirmarPassword, AutoSize = true, Location = new Point(24, y) };
-            _txtConfirmar = new TextBox { Location = new Point(24, y + 20), Size = new Size(372, 26), PasswordChar = '●' };
-
-            y += 56;
-            var lblRol = new Label { Text = Textos.Dashboard.CampoRol, AutoSize = true, Location = new Point(24, y) };
+            var grilla = FormularioLayout.CrearGrilla();
+            _txtNombreUsuario = new TextBox { Width = 280, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoNombreUsuario, _txtNombreUsuario);
+            _txtNombreCompleto = new TextBox { Width = 280, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoNombreCompleto, _txtNombreCompleto);
+            _txtPassword = new TextBox { Width = 280, Height = UiTheme.Medidas.AlturaControl, PasswordChar = '●' };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoPassword, _txtPassword);
+            _txtConfirmar = new TextBox { Width = 280, Height = UiTheme.Medidas.AlturaControl, PasswordChar = '●' };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoConfirmarPassword, _txtConfirmar);
             _cboRol = new ComboBox
             {
-                Location = new Point(24, y + 20),
-                Size = new Size(372, 26),
+                Width = 280,
+                Height = UiTheme.Medidas.AlturaControl,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(Sistemas.Core.Security.Models.RolDto.Nombre),
                 ValueMember = nameof(Sistemas.Core.Security.Models.RolDto.Id)
             };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoRol, _cboRol);
 
-            y += 56;
             _lblError = new Label
             {
                 ForeColor = UiTheme.Error,
-                AutoSize = false,
-                Size = new Size(372, 32),
-                Location = new Point(24, y)
+                Dock = DockStyle.Top,
+                Height = 32,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md)
             };
 
-            y += 36;
-            _btnGuardar = new Button
-            {
-                Text = Textos.Dashboard.BotonGuardar,
-                Location = new Point(24, y),
-                Size = new Size(372, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+            _btnGuardar = Botones.CrearPrimario(Textos.Dashboard.BotonGuardar);
+            _btnGuardar.Dock = DockStyle.Bottom;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
-
             AcceptButton = _btnGuardar;
 
-            Controls.AddRange(new Control[]
-            {
-                lblTitulo, lblSubtitulo,
-                lblUsuario, _txtNombreUsuario,
-                lblNombreCompleto, _txtNombreCompleto,
-                lblPassword, _txtPassword,
-                lblConfirmar, _txtConfirmar,
-                lblRol, _cboRol,
-                _lblError, _btnGuardar
-            });
+            pnlContenido.Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_lblError);
+            pnlContenido.Controls.Add(grilla);
+            pnlContenido.Controls.Add(lblSubtitulo);
+            pnlContenido.Controls.Add(lblTitulo);
+            Controls.Add(pnlContenido);
 
             Load += FormRegistro_Load;
         }

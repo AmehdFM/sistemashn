@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Repuestos.Library.Cuentas
 {
@@ -25,36 +26,49 @@ namespace Sistemas.Repuestos.Library.Cuentas
             _registrarPago = registrarPago;
 
             Text = Textos.Cuentas.PagoFormularioTitulo;
-            ClientSize = new Size(360, 220);
+            ClientSize = new Size(400, 280);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
-            var lblSaldo = new Label { Text = string.Format(Textos.Cuentas.PagoSaldoPendienteFormato, saldoPendiente), AutoSize = true, Location = new Point(20, 16), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
 
-            var lblMonto = new Label { Text = Textos.Cuentas.CampoMontoAPagar, AutoSize = true, Location = new Point(20, 48) };
-            _numMonto = new NumericUpDown { Location = new Point(20, 68), Size = new Size(160, 26), DecimalPlaces = 2, Maximum = saldoPendiente, Minimum = 0.01m, Value = saldoPendiente };
-
-            var lblMetodo = new Label { Text = Textos.Cuentas.CampoMetodoPago, AutoSize = true, Location = new Point(20, 104) };
-            _txtMetodoPago = new TextBox { Location = new Point(20, 124), Size = new Size(320, 26) };
-
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(320, 24), Location = new Point(20, 154) };
-
-            _btnGuardar = new Button
+            var lblSaldo = new Label
             {
-                Text = Textos.Cuentas.BotonRegistrarPagoAccion,
-                Location = new Point(20, 180),
-                Size = new Size(320, 32),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Text = string.Format(Textos.Cuentas.PagoSaldoPendienteFormato, saldoPendiente),
+                Dock = DockStyle.Top,
+                Height = 28,
+                Font = new Font(UiTheme.FuenteBase, FontStyle.Bold),
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            var grilla = FormularioLayout.CrearGrilla();
+            _numMonto = new NumericUpDown { Width = 160, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = saldoPendiente, Minimum = 0.01m, Value = saldoPendiente };
+            FormularioLayout.AgregarCampo(grilla, Textos.Cuentas.CampoMontoAPagar, _numMonto);
+            _txtMetodoPago = new TextBox { Width = 220, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Cuentas.CampoMetodoPago, _txtMetodoPago);
+
+            _lblError = new Label
+            {
+                ForeColor = UiTheme.Error,
+                Dock = DockStyle.Top,
+                Height = 32,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md)
+            };
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Cuentas.BotonRegistrarPagoAccion);
+            _btnGuardar.Dock = DockStyle.Bottom;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
             AcceptButton = _btnGuardar;
 
-            Controls.AddRange(new Control[] { lblSaldo, lblMonto, _numMonto, lblMetodo, _txtMetodoPago, _lblError, _btnGuardar });
+            pnlContenido.Controls.Add(_btnGuardar);
+            pnlContenido.Controls.Add(_lblError);
+            pnlContenido.Controls.Add(grilla);
+            pnlContenido.Controls.Add(lblSaldo);
+            Controls.Add(pnlContenido);
         }
 
         private async void BtnGuardar_Click(object? sender, EventArgs e)
