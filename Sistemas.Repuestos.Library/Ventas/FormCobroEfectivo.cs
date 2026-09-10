@@ -95,7 +95,7 @@ namespace Sistemas.Repuestos.Library.Ventas
             {
                 Dock = DockStyle.Bottom,
                 Height = 30,
-                Font = new Font(UiTheme.FuenteBase, 14f, FontStyle.Bold),
+                Font = new Font(UiTheme.FuenteBase.FontFamily, 14f, FontStyle.Bold),
                 Margin = new Padding(0, UiTheme.Espacio.Lg, 0, UiTheme.Espacio.Sm)
             };
 

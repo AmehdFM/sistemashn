@@ -23,7 +23,6 @@ namespace Sistemas.Repuestos.Library.Caja
         private readonly DataGridView _grid;
         private readonly EstadoListaControl _estadoLista;
         private readonly PaginacionControl _paginacion;
-        private EstadoLista _estadoActual;
 
         private SesionCajaDto? _sesionAbierta;
 
@@ -140,7 +139,6 @@ namespace Sistemas.Repuestos.Library.Caja
                 if (sesiones.Count == 0)
                 {
                     _grid.Visible = false;
-                    _estadoActual = EstadoLista.VacioInicial;
                     _estadoLista.Mostrar(EstadoLista.VacioInicial, Textos.Caja.SinHistorial);
                     return;
                 }
@@ -152,7 +150,6 @@ namespace Sistemas.Repuestos.Library.Caja
             catch (Exception ex)
             {
                 _grid.Visible = false;
-                _estadoActual = EstadoLista.Error;
                 _estadoLista.Mostrar(EstadoLista.Error, Textos.Comun.NoSeConectoBdPrefijo + ex.Message, Textos.Comun.BotonReintentar);
             }
         }

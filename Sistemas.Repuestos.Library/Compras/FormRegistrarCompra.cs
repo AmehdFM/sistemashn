@@ -151,7 +151,7 @@ namespace Sistemas.Repuestos.Library.Compras
             {
                 Text = string.Format(Textos.Compras.FormatoTotal, 0m),
                 AutoSize = true,
-                Font = new Font(UiTheme.FuenteBase, 14f, FontStyle.Bold),
+                Font = new Font(UiTheme.FuenteBase.FontFamily, 14f, FontStyle.Bold),
                 Margin = new Padding(UiTheme.Espacio.Xxl, UiTheme.Espacio.Xs, 0, 0)
             };
             filaAcciones.Controls.AddRange(new Control[] { btnQuitarLinea, _lblTotal });

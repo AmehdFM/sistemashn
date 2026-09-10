@@ -693,7 +693,7 @@ namespace Sistemas.Repuestos.Library.Inventario
             cboProveedor = new ComboBox
             {
                 Width = 260, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id),
+                DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id),
                 Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0)
             };
             var lblPrecioProveedor = new Label { Text = Textos.Inventario.CampoPrecioCompra, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
@@ -733,7 +733,7 @@ namespace Sistemas.Repuestos.Library.Inventario
 
             try
             {
-                var (exito, mensaje) = await ProveedorService.GuardarPrecioAsync(
+                var (exito, mensaje) = await TerceroService.GuardarPrecioAsync(
                     _productoId.Value, proveedorId, numPrecio.Value, SessionContext.Current?.UsuarioId);
 
                 lblError.ForeColor = exito ? UiTheme.Primario : UiTheme.Error;
@@ -741,7 +741,7 @@ namespace Sistemas.Repuestos.Library.Inventario
 
                 if (exito)
                 {
-                    var precios = await ProveedorService.CompararPreciosAsync(_productoId.Value);
+                    var precios = await TerceroService.CompararPreciosAsync(_productoId.Value);
                     grid.Rows.Clear();
                     foreach (var pr in precios)
                         grid.Rows.Add(pr.Nombre, pr.Telefono, pr.PrecioCompra);
@@ -774,10 +774,10 @@ namespace Sistemas.Repuestos.Library.Inventario
                 foreach (var eq in detalle.Equivalentes)
                     _gridEquivalencias.Rows.Add(eq.NumeroOEM, eq.Fabricante);
 
-                var proveedores = await ProveedorService.ListarAsync(true, null, 1, 500);
-                _cboProveedor.DataSource = proveedores.Proveedores;
+                var proveedores = await TerceroService.ListarProveedoresAsync(true, null, 1, 500);
+                _cboProveedor.DataSource = proveedores.Terceros;
 
-                var precios = await ProveedorService.CompararPreciosAsync(_productoId.Value);
+                var precios = await TerceroService.CompararPreciosAsync(_productoId.Value);
                 _gridPrecios.Rows.Clear();
                 foreach (var pr in precios)
                     _gridPrecios.Rows.Add(pr.Nombre, pr.Telefono, pr.PrecioCompra);
