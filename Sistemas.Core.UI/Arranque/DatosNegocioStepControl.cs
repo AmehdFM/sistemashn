@@ -14,9 +14,7 @@ namespace Sistemas.Core.UI.Arranque
     // están formalizándose y todavía no cuentan con esa información.
     public sealed class DatosNegocioStepControl : UserControl
     {
-        private const int PanelAncho = 720;
         private const int Margen = 48;
-        private const int Ancho = PanelAncho - 2 * Margen;
 
         public event EventHandler? DatosGuardados;
 
@@ -42,89 +40,83 @@ namespace Sistemas.Core.UI.Arranque
             BackColor = Color.White;
             AutoScroll = true;
 
-            // Logo + título se centran como un solo grupo dentro del ancho
-            // total del panel, en vez de quedar anclados al margen izquierdo.
-            const int logoSize = 96;
-            const int gap = 24;
+            var pnlContenido = new Panel { Dock = DockStyle.Top, Padding = new Padding(Margen, UiTheme.Espacio.Xxl, Margen, 0), AutoSize = true };
+
+            // Logo + título se centran como un solo grupo horizontal.
+            var pnlEncabezado = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 96,
+                WrapContents = false,
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
+            };
+            var pic = new PictureBox { Image = BrandingAssets.LogoCreador, SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(96, 96), Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0) };
             var lblTitulo = new Label
             {
                 Text = Textos.Arranque.DatosNegocioTitulo,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
-                AutoSize = true
+                AutoSize = true,
+                Margin = new Padding(0, (96 - (int)UiTheme.FuenteTitulo.GetHeight()) / 2, 0, 0)
             };
-            int headerX = (PanelAncho - (logoSize + gap + lblTitulo.PreferredSize.Width)) / 2;
-
-            var pic = new PictureBox
-            {
-                Image = BrandingAssets.LogoCreador,
-                SizeMode = PictureBoxSizeMode.Zoom,
-                Size = new Size(logoSize, logoSize),
-                Location = new Point(headerX, 32)
-            };
-            lblTitulo.Location = new Point(headerX + logoSize + gap, 32 + (logoSize - lblTitulo.PreferredSize.Height) / 2);
+            pnlEncabezado.Controls.AddRange(new Control[] { pic, lblTitulo });
+            pnlContenido.Resize += (s, e) => pnlEncabezado.Left = Math.Max(0, (pnlContenido.ClientSize.Width - pnlEncabezado.PreferredSize.Width) / 2);
 
             var lblSubtitulo = new Label
             {
                 Text = Textos.Arranque.DatosNegocioSubtitulo,
                 ForeColor = UiTheme.TextoTenue,
-                AutoSize = false,
-                Size = new Size(Ancho, 36),
-                Location = new Point(Margen, 144),
-                TextAlign = ContentAlignment.TopCenter
+                Dock = DockStyle.Top,
+                Height = 36,
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl)
             };
 
-            int y = 200;
-            var lblNombre = new Label { Text = Textos.Dashboard.CampoNombreComercial, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtNombreComercial = new TextBox { Location = new Point(Margen, y + 24), Size = new Size(Ancho, 32) };
+            var lblNombre = new Label { Text = Textos.Dashboard.CampoNombreComercial, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtNombreComercial = new TextBox { Dock = DockStyle.Top, Height = 32, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 68;
-            var lblRTN = new Label { Text = Textos.Dashboard.CampoRtnOpcional, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtRTN = new TextBox { Location = new Point(Margen, y + 24), Size = new Size(260, 32), MaxLength = 14 };
+            var lblRTN = new Label { Text = Textos.Dashboard.CampoRtnOpcional, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtRTN = new TextBox { Dock = DockStyle.Top, Width = 260, Height = 32, MaxLength = 14, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 68;
-            var lblDireccion = new Label { Text = Textos.Arranque.CampoDireccionOpcional, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtDireccion = new TextBox { Location = new Point(Margen, y + 24), Size = new Size(Ancho, 32) };
+            var lblDireccion = new Label { Text = Textos.Arranque.CampoDireccionOpcional, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtDireccion = new TextBox { Dock = DockStyle.Top, Height = 32, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 68;
-            var lblTelefono = new Label { Text = Textos.Arranque.CampoTelefonoOpcional, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtTelefono = new TextBox { Location = new Point(Margen, y + 24), Size = new Size(260, 32) };
+            var lblTelefono = new Label { Text = Textos.Arranque.CampoTelefonoOpcional, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtTelefono = new TextBox { Dock = DockStyle.Top, Width = 260, Height = 32, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 68;
-            var lblCorreo = new Label { Text = Textos.Arranque.CampoCorreoOpcional, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtCorreo = new TextBox { Location = new Point(Margen, y + 24), Size = new Size(Ancho, 32) };
+            var lblCorreo = new Label { Text = Textos.Arranque.CampoCorreoOpcional, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtCorreo = new TextBox { Dock = DockStyle.Top, Height = 32, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 68;
-            var lblLogo = new Label { Text = Textos.Arranque.CampoLogoOpcional, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-
+            var lblLogo = new Label { Text = Textos.Arranque.CampoLogoOpcional, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            var filaLogo = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl) };
             _picLogo = new PictureBox
             {
-                Location = new Point(Margen, y + 26),
                 Size = new Size(56, 56),
                 BorderStyle = BorderStyle.FixedSingle,
                 SizeMode = PictureBoxSizeMode.Zoom,
-                BackColor = UiTheme.FondoContenido
+                BackColor = UiTheme.FondoContenido,
+                Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0)
             };
-
             var btnSeleccionarLogo = new Button
             {
                 Text = Textos.Arranque.BotonSeleccionarImagen,
-                Location = new Point(Margen + 76, y + 29),
                 Size = new Size(180, 34),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Margin = new Padding(0, (56 - 34) / 2, 0, 0)
             };
             btnSeleccionarLogo.Click += BtnSeleccionarLogo_Click;
+            filaLogo.Controls.AddRange(new Control[] { _picLogo, btnSeleccionarLogo });
 
-            y += 102;
             _lblEstado = new Label
             {
-                AutoSize = false,
-                Size = new Size(Ancho, 32),
-                Location = new Point(Margen, y),
-                TextAlign = ContentAlignment.TopCenter
+                Dock = DockStyle.Top,
+                Height = 32,
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
-            y += 48;
+            var pnlBoton = new Panel { Dock = DockStyle.Top, Height = 46 };
             _btnGuardar = new Button
             {
                 Text = Textos.Arranque.BotonContinuar,
@@ -133,23 +125,32 @@ namespace Sistemas.Core.UI.Arranque
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font(UiTheme.FuenteBase, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top
             };
-            _btnGuardar.Location = new Point(Margen + (Ancho - _btnGuardar.Width) / 2, y);
             _btnGuardar.FlatAppearance.BorderSize = 0;
             _btnGuardar.Click += BtnGuardar_Click;
+            pnlBoton.Resize += (s, e) => _btnGuardar.Left = (pnlBoton.Width - _btnGuardar.Width) / 2;
+            pnlBoton.Controls.Add(_btnGuardar);
 
-            Controls.AddRange(new Control[]
-            {
-                pic, lblTitulo, lblSubtitulo,
-                lblNombre, _txtNombreComercial,
-                lblRTN, _txtRTN,
-                lblDireccion, _txtDireccion,
-                lblTelefono, _txtTelefono,
-                lblCorreo, _txtCorreo,
-                lblLogo, _picLogo, btnSeleccionarLogo,
-                _lblEstado, _btnGuardar
-            });
+            pnlContenido.Controls.Add(pnlBoton);
+            pnlContenido.Controls.Add(_lblEstado);
+            pnlContenido.Controls.Add(filaLogo);
+            pnlContenido.Controls.Add(lblLogo);
+            pnlContenido.Controls.Add(_txtCorreo);
+            pnlContenido.Controls.Add(lblCorreo);
+            pnlContenido.Controls.Add(_txtTelefono);
+            pnlContenido.Controls.Add(lblTelefono);
+            pnlContenido.Controls.Add(_txtDireccion);
+            pnlContenido.Controls.Add(lblDireccion);
+            pnlContenido.Controls.Add(_txtRTN);
+            pnlContenido.Controls.Add(lblRTN);
+            pnlContenido.Controls.Add(_txtNombreComercial);
+            pnlContenido.Controls.Add(lblNombre);
+            pnlContenido.Controls.Add(lblSubtitulo);
+            pnlContenido.Controls.Add(pnlEncabezado);
+
+            Controls.Add(pnlContenido);
         }
 
         private void BtnSeleccionarLogo_Click(object? sender, EventArgs e)

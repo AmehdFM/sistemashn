@@ -11,9 +11,7 @@ namespace Sistemas.Core.UI.Arranque
     // usuario nuevo" desde Ajustes sigue usando FormRegistro como diálogo.
     public sealed class PrimerUsuarioStepControl : UserControl
     {
-        private const int PanelAncho = 720;
         private const int Margen = 48;
-        private const int Ancho = PanelAncho - 2 * Margen;
 
         public event EventHandler<int>? UsuarioCreado;
 
@@ -30,75 +28,64 @@ namespace Sistemas.Core.UI.Arranque
             Dock = DockStyle.Fill;
             BackColor = Color.White;
 
-            // Logo + título se centran como un solo grupo dentro del ancho
-            // total del panel, en vez de quedar anclados al margen izquierdo.
-            const int logoSize = 96;
-            const int gap = 24;
+            var pnlContenido = new Panel { Dock = DockStyle.Top, Padding = new Padding(Margen, UiTheme.Espacio.Xxl, Margen, 0), AutoSize = true };
+
+            var pnlEncabezado = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 96, WrapContents = false, AutoSize = true, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg) };
+            var pic = new PictureBox { Image = BrandingAssets.LogoCreador, SizeMode = PictureBoxSizeMode.Zoom, Size = new Size(96, 96), Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0) };
             var lblTitulo = new Label
             {
                 Text = Textos.Arranque.PrimerUsuarioTitulo,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
-                AutoSize = true
+                AutoSize = true,
+                Margin = new Padding(0, (96 - (int)UiTheme.FuenteTitulo.GetHeight()) / 2, 0, 0)
             };
-            int headerX = (PanelAncho - (logoSize + gap + lblTitulo.PreferredSize.Width)) / 2;
-
-            var pic = new PictureBox
-            {
-                Image = BrandingAssets.LogoCreador,
-                SizeMode = PictureBoxSizeMode.Zoom,
-                Size = new Size(logoSize, logoSize),
-                Location = new Point(headerX, 40)
-            };
-            lblTitulo.Location = new Point(headerX + logoSize + gap, 40 + (logoSize - lblTitulo.PreferredSize.Height) / 2);
+            pnlEncabezado.Controls.AddRange(new Control[] { pic, lblTitulo });
+            pnlContenido.Resize += (s, e) => pnlEncabezado.Left = Math.Max(0, (pnlContenido.ClientSize.Width - pnlEncabezado.PreferredSize.Width) / 2);
 
             var lblSubtitulo = new Label
             {
                 Text = Textos.Arranque.PrimerUsuarioSubtitulo,
                 ForeColor = UiTheme.TextoTenue,
-                AutoSize = false,
-                Size = new Size(Ancho, 24),
-                Location = new Point(Margen, 156),
-                TextAlign = ContentAlignment.TopCenter
+                Dock = DockStyle.Top,
+                Height = 24,
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl)
             };
 
-            int y = 212;
-            var lblUsuario = new Label { Text = Textos.Dashboard.CampoNombreUsuario, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtNombreUsuario = new TextBox { Location = new Point(Margen, y + 26), Size = new Size(Ancho, 34) };
+            var lblUsuario = new Label { Text = Textos.Dashboard.CampoNombreUsuario, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtNombreUsuario = new TextBox { Dock = DockStyle.Top, Height = 34, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 78;
-            var lblNombreCompleto = new Label { Text = Textos.Dashboard.CampoNombreCompleto, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtNombreCompleto = new TextBox { Location = new Point(Margen, y + 26), Size = new Size(Ancho, 34) };
+            var lblNombreCompleto = new Label { Text = Textos.Dashboard.CampoNombreCompleto, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtNombreCompleto = new TextBox { Dock = DockStyle.Top, Height = 34, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 78;
-            var lblPassword = new Label { Text = Textos.Dashboard.CampoPassword, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtPassword = new TextBox { Location = new Point(Margen, y + 26), Size = new Size(Ancho, 34), PasswordChar = '●' };
+            var lblPassword = new Label { Text = Textos.Dashboard.CampoPassword, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtPassword = new TextBox { Dock = DockStyle.Top, Height = 34, PasswordChar = '●', Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 78;
-            var lblConfirmar = new Label { Text = Textos.Dashboard.CampoConfirmarPassword, ForeColor = UiTheme.TextoOscuro, AutoSize = true, Location = new Point(Margen, y) };
-            _txtConfirmar = new TextBox { Location = new Point(Margen, y + 26), Size = new Size(Ancho, 34), PasswordChar = '●' };
+            var lblConfirmar = new Label { Text = Textos.Dashboard.CampoConfirmarPassword, ForeColor = UiTheme.TextoOscuro, Dock = DockStyle.Top, Height = 20 };
+            _txtConfirmar = new TextBox { Dock = DockStyle.Top, Height = 34, PasswordChar = '●', Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            y += 78;
+            // Fijo en Administrador para el primer usuario, no se muestra.
             _cboRol = new ComboBox
             {
-                Location = new Point(Margen, y),
-                Size = new Size(Ancho, 34),
+                Dock = DockStyle.Top,
+                Height = 34,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(Sistemas.Core.Security.Models.RolDto.Nombre),
                 ValueMember = nameof(Sistemas.Core.Security.Models.RolDto.Id),
-                Visible = false // fijo en Administrador para el primer usuario, no se muestra
+                Visible = false
             };
 
             _lblError = new Label
             {
                 ForeColor = UiTheme.Error,
-                AutoSize = false,
-                Size = new Size(Ancho, 32),
-                Location = new Point(Margen, y),
-                TextAlign = ContentAlignment.TopCenter
+                Dock = DockStyle.Top,
+                Height = 32,
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
-            y += 56;
+            var pnlBoton = new Panel { Dock = DockStyle.Top, Height = 46 };
             _btnGuardar = new Button
             {
                 Text = Textos.Arranque.PrimerUsuarioTitulo,
@@ -107,22 +94,29 @@ namespace Sistemas.Core.UI.Arranque
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font(UiTheme.FuenteBase, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top
             };
-            _btnGuardar.Location = new Point(Margen + (Ancho - _btnGuardar.Width) / 2, y);
             _btnGuardar.FlatAppearance.BorderSize = 0;
             _btnGuardar.Click += BtnGuardar_Click;
+            pnlBoton.Resize += (s, e) => _btnGuardar.Left = (pnlBoton.Width - _btnGuardar.Width) / 2;
+            pnlBoton.Controls.Add(_btnGuardar);
 
-            Controls.AddRange(new Control[]
-            {
-                pic, lblTitulo, lblSubtitulo,
-                lblUsuario, _txtNombreUsuario,
-                lblNombreCompleto, _txtNombreCompleto,
-                lblPassword, _txtPassword,
-                lblConfirmar, _txtConfirmar,
-                _cboRol,
-                _lblError, _btnGuardar
-            });
+            pnlContenido.Controls.Add(pnlBoton);
+            pnlContenido.Controls.Add(_lblError);
+            pnlContenido.Controls.Add(_cboRol);
+            pnlContenido.Controls.Add(_txtConfirmar);
+            pnlContenido.Controls.Add(lblConfirmar);
+            pnlContenido.Controls.Add(_txtPassword);
+            pnlContenido.Controls.Add(lblPassword);
+            pnlContenido.Controls.Add(_txtNombreCompleto);
+            pnlContenido.Controls.Add(lblNombreCompleto);
+            pnlContenido.Controls.Add(_txtNombreUsuario);
+            pnlContenido.Controls.Add(lblUsuario);
+            pnlContenido.Controls.Add(lblSubtitulo);
+            pnlContenido.Controls.Add(pnlEncabezado);
+
+            Controls.Add(pnlContenido);
 
             Load += PrimerUsuarioStepControl_Load;
         }

@@ -7,11 +7,12 @@ namespace Sistemas.Core.UI.Arranque
 {
     // Mismo contenido que tenía FormActivation como Form independiente, ahora
     // como paso embebido en la ventana única de arranque (FormArranque).
+    // El panel central de FormArranque tiene ancho fijo (720px, ver
+    // ADR-0010) — los márgenes izquierdo/derecho del paso se logran con
+    // Padding del contenedor, no con Location por control.
     public sealed class ActivacionStepControl : UserControl
     {
-        private const int PanelAncho = 720;
         private const int Margen = 48;
-        private const int Ancho = PanelAncho - 2 * Margen;
 
         public event EventHandler? Activado;
 
@@ -25,93 +26,89 @@ namespace Sistemas.Core.UI.Arranque
             Dock = DockStyle.Fill;
             BackColor = Color.White;
 
-            // Logo + título se centran como un solo grupo dentro del ancho
-            // total del panel, en vez de quedar anclados al margen izquierdo.
-            const int logoSize = 96;
-            const int gap = 24;
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Margen, UiTheme.Espacio.Xxl, Margen, 0) };
+
+            // Logo + título se centran como un solo grupo horizontal.
+            var pnlEncabezado = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 96,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Anchor = AnchorStyles.Top,
+                AutoSize = true,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl)
+            };
+            var pic = new PictureBox
+            {
+                Image = BrandingAssets.LogoCreador,
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Size = new Size(96, 96),
+                Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0)
+            };
             var lblTitulo = new Label
             {
                 Text = Textos.Arranque.ActivacionTitulo,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
-                AutoSize = true
+                AutoSize = true,
+                Margin = new Padding(0, (96 - (int)UiTheme.FuenteTitulo.GetHeight()) / 2, 0, 0)
             };
-            int headerX = (PanelAncho - (logoSize + gap + lblTitulo.PreferredSize.Width)) / 2;
-
-            var pic = new PictureBox
-            {
-                Image = BrandingAssets.LogoCreador,
-                SizeMode = PictureBoxSizeMode.Zoom,
-                Size = new Size(logoSize, logoSize),
-                Location = new Point(headerX, 44)
-            };
-            lblTitulo.Location = new Point(headerX + logoSize + gap, 44 + (logoSize - lblTitulo.PreferredSize.Height) / 2);
+            pnlEncabezado.Controls.AddRange(new Control[] { pic, lblTitulo });
+            // Centrado horizontal del grupo dentro del panel disponible.
+            pnlContenido.Resize += (s, e) => pnlEncabezado.Left = Math.Max(0, (pnlContenido.ClientSize.Width - pnlEncabezado.PreferredSize.Width) / 2);
 
             var lblInstrucciones = new Label
             {
                 Text = Textos.Arranque.ActivacionInstrucciones,
-                AutoSize = false,
-                Size = new Size(Ancho, 48),
-                Location = new Point(Margen, 184),
+                Dock = DockStyle.Top,
+                Height = 48,
                 ForeColor = UiTheme.TextoTenue,
-                TextAlign = ContentAlignment.TopCenter
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl)
             };
 
-            var lblFingerprintTitulo = new Label
-            {
-                Text = Textos.Arranque.ActivacionCodigoMaquina,
-                AutoSize = true,
-                ForeColor = UiTheme.TextoOscuro,
-                Location = new Point(Margen, 258)
-            };
+            var lblFingerprintTitulo = new Label { Text = Textos.Arranque.ActivacionCodigoMaquina, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoOscuro };
 
-            _txtFingerprint = new TextBox
-            {
-                ReadOnly = true,
-                Location = new Point(Margen, 284),
-                Size = new Size(Ancho - 116, 34),
-                Text = ActivationService.GetHardwareFingerprint(),
-                BackColor = UiTheme.FondoContenido
-            };
-
-            var btnCopiar = new Button
-            {
-                Text = Textos.Arranque.BotonCopiar,
-                Location = new Point(Margen + Ancho - 108, 284),
-                Size = new Size(108, 34),
-                Cursor = Cursors.Hand
-            };
+            var filaFingerprint = new Panel { Dock = DockStyle.Top, Height = 34, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl) };
+            var btnCopiar = new Button { Text = Textos.Arranque.BotonCopiar, Dock = DockStyle.Right, Width = 108, Height = 34, Cursor = Cursors.Hand };
             btnCopiar.Click += (s, e) =>
             {
                 try { Clipboard.SetText(_txtFingerprint.Text); MostrarInfo(Textos.Arranque.CodigoCopiado); }
                 catch { /* portapapeles no disponible, no es crítico */ }
             };
-
-            var lblClaveTitulo = new Label
+            _txtFingerprint = new TextBox
             {
-                Text = Textos.Arranque.ActivacionClaveTitulo,
-                AutoSize = true,
-                ForeColor = UiTheme.TextoOscuro,
-                Location = new Point(Margen, 344)
+                ReadOnly = true,
+                Dock = DockStyle.Fill,
+                Text = ActivationService.GetHardwareFingerprint(),
+                BackColor = UiTheme.FondoContenido,
+                Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0)
             };
+            filaFingerprint.Controls.Add(_txtFingerprint);
+            filaFingerprint.Controls.Add(btnCopiar);
+
+            var lblClaveTitulo = new Label { Text = Textos.Arranque.ActivacionClaveTitulo, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoOscuro };
 
             _txtClave = new TextBox
             {
                 Multiline = true,
-                Location = new Point(Margen, 370),
-                Size = new Size(Ancho, 128),
-                ScrollBars = ScrollBars.Vertical
+                Dock = DockStyle.Top,
+                Height = 128,
+                ScrollBars = ScrollBars.Vertical,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xxl)
             };
 
             _lblEstado = new Label
             {
-                AutoSize = false,
-                Size = new Size(Ancho, 40),
-                Location = new Point(Margen, 510),
+                Dock = DockStyle.Top,
+                Height = 40,
                 ForeColor = UiTheme.Error,
-                TextAlign = ContentAlignment.TopCenter
+                TextAlign = ContentAlignment.TopCenter,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
+            var pnlBoton = new Panel { Dock = DockStyle.Top, Height = 46 };
             _btnValidar = new Button
             {
                 Text = Textos.Arranque.BotonActivar,
@@ -120,17 +117,24 @@ namespace Sistemas.Core.UI.Arranque
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Font = new Font(UiTheme.FuenteBase, FontStyle.Bold),
-                Cursor = Cursors.Hand
+                Cursor = Cursors.Hand,
+                Anchor = AnchorStyles.Top
             };
-            _btnValidar.Location = new Point(Margen + (Ancho - _btnValidar.Width) / 2, 566);
             _btnValidar.FlatAppearance.BorderSize = 0;
             _btnValidar.Click += BtnValidar_Click;
+            pnlBoton.Resize += (s, e) => _btnValidar.Left = (pnlBoton.Width - _btnValidar.Width) / 2;
+            pnlBoton.Controls.Add(_btnValidar);
 
-            Controls.AddRange(new Control[]
-            {
-                pic, lblTitulo, lblInstrucciones, lblFingerprintTitulo, _txtFingerprint, btnCopiar,
-                lblClaveTitulo, _txtClave, _lblEstado, _btnValidar
-            });
+            pnlContenido.Controls.Add(pnlBoton);
+            pnlContenido.Controls.Add(_lblEstado);
+            pnlContenido.Controls.Add(_txtClave);
+            pnlContenido.Controls.Add(lblClaveTitulo);
+            pnlContenido.Controls.Add(filaFingerprint);
+            pnlContenido.Controls.Add(lblFingerprintTitulo);
+            pnlContenido.Controls.Add(lblInstrucciones);
+            pnlContenido.Controls.Add(pnlEncabezado);
+
+            Controls.Add(pnlContenido);
         }
 
         private void BtnValidar_Click(object? sender, EventArgs e)
