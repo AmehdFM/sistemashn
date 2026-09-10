@@ -8,6 +8,7 @@ using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -39,52 +40,79 @@ namespace Sistemas.Repuestos.Library.Compras
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(680, 480);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 172, BackColor = Color.White };
+            var pnlTop = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
-            var lblProveedor = new Label { Text = Textos.Compras.CampoProveedor, AutoSize = true, Location = new Point(16, 8) };
+            var filaProveedor = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md) };
+            var grupoProveedor = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblProveedor = new Label { Text = Textos.Compras.CampoProveedor, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
             _cboProveedor = new ComboBox
             {
-                Location = new Point(16, 28), Size = new Size(280, 26), DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Top, Width = 280, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(TerceroDto.Nombre), ValueMember = nameof(TerceroDto.Id)
             };
+            grupoProveedor.Controls.Add(_cboProveedor);
+            grupoProveedor.Controls.Add(lblProveedor);
 
-            var lblNumeroFactura = new Label { Text = Textos.Compras.CampoNumeroFacturaProveedor, AutoSize = true, Location = new Point(310, 8) };
-            _txtNumeroFactura = new TextBox { Location = new Point(310, 28), Size = new Size(180, 26) };
+            var grupoFactura = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblNumeroFactura = new Label { Text = Textos.Compras.CampoNumeroFacturaProveedor, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _txtNumeroFactura = new TextBox { Dock = DockStyle.Top, Width = 180, Height = UiTheme.Medidas.AlturaControl };
+            grupoFactura.Controls.Add(_txtNumeroFactura);
+            grupoFactura.Controls.Add(lblNumeroFactura);
 
-            _chkEsCredito = new CheckBox { Text = Textos.Compras.CampoCompraCredito, AutoSize = true, Location = new Point(510, 12) };
+            var grupoCredito = new Panel { AutoSize = true };
+            _chkEsCredito = new CheckBox { Text = Textos.Compras.CampoCompraCredito, AutoSize = true, Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xs) };
             _chkEsCredito.CheckedChanged += (s, e) => _numDiasCredito.Enabled = _chkEsCredito.Checked;
+            var filaDias = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var lblDias = new Label { Text = Textos.Compras.CampoDiasCredito, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            _numDiasCredito = new NumericUpDown { Width = 70, Height = UiTheme.Medidas.AlturaControl, Minimum = 1, Maximum = 365, Value = 30, Enabled = false };
+            filaDias.Controls.AddRange(new Control[] { lblDias, _numDiasCredito });
+            grupoCredito.Controls.Add(filaDias);
+            grupoCredito.Controls.Add(_chkEsCredito);
 
-            var lblDias = new Label { Text = Textos.Compras.CampoDiasCredito, AutoSize = true, Location = new Point(510, 36) };
-            _numDiasCredito = new NumericUpDown { Location = new Point(600, 34), Size = new Size(70, 26), Minimum = 1, Maximum = 365, Value = 30, Enabled = false };
+            filaProveedor.Controls.AddRange(new Control[] { grupoProveedor, grupoFactura, grupoCredito });
 
-            var lblBuscar = new Label { Text = Textos.Compras.CampoBuscarProducto, AutoSize = true, Location = new Point(16, 70) };
-            _txtBuscarProducto = new TextBox { Location = new Point(16, 90), Size = new Size(200, 26) };
-            var btnBuscarProducto = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(222, 89), Size = new Size(80, 28) };
+            var filaProducto = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var grupoBuscar = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblBuscar = new Label { Text = Textos.Compras.CampoBuscarProducto, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            var filaBuscar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            _txtBuscarProducto = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Xs, 0) };
+            var btnBuscarProducto = Botones.CrearSecundario(Textos.Comun.BotonBuscar);
             btnBuscarProducto.Click += BtnBuscarProducto_Click;
+            filaBuscar.Controls.AddRange(new Control[] { _txtBuscarProducto, btnBuscarProducto });
+            grupoBuscar.Controls.Add(filaBuscar);
+            grupoBuscar.Controls.Add(lblBuscar);
 
-            _cboResultadoProducto = new ComboBox { Location = new Point(16, 122), Size = new Size(320, 26), DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
+            var grupoResultado = new Panel { AutoSize = true, Margin = new Padding(0, 18, UiTheme.Espacio.Md, 0) };
+            _cboResultadoProducto = new ComboBox { Dock = DockStyle.Top, Width = 320, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList, FormattingEnabled = true };
             _cboResultadoProducto.Format += (s, e) => { if (e.ListItem is ProductoDto p) e.Value = $"{p.Codigo} — {p.Nombre}"; };
             _cboResultadoProducto.SelectedIndexChanged += (s, e) =>
             {
                 if (_cboResultadoProducto.SelectedItem is ProductoDto p)
                     CantidadFormatter.AplicarModoCantidad(_numCantidad, p.PermiteFraccionUnidad);
             };
+            grupoResultado.Controls.Add(_cboResultadoProducto);
 
-            var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, AutoSize = true, Location = new Point(346, 98) };
-            _numCantidad = new NumericUpDown { Location = new Point(346, 122), Size = new Size(70, 26), Minimum = 1, Maximum = 100000, Value = 1 };
+            var grupoCantidad = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblCantidad = new Label { Text = Textos.Comun.CampoCantidad, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _numCantidad = new NumericUpDown { Dock = DockStyle.Top, Width = 70, Height = UiTheme.Medidas.AlturaControl, Minimum = 1, Maximum = 100000, Value = 1 };
+            grupoCantidad.Controls.Add(_numCantidad);
+            grupoCantidad.Controls.Add(lblCantidad);
 
-            var lblCosto = new Label { Text = Textos.Compras.CampoCostoUnitario, AutoSize = true, Location = new Point(426, 98) };
-            _numCosto = new NumericUpDown { Location = new Point(426, 122), Size = new Size(100, 26), DecimalPlaces = 2, Maximum = 999999 };
+            var grupoCosto = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblCosto = new Label { Text = Textos.Compras.CampoCostoUnitario, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _numCosto = new NumericUpDown { Dock = DockStyle.Top, Width = 100, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999 };
+            grupoCosto.Controls.Add(_numCosto);
+            grupoCosto.Controls.Add(lblCosto);
 
-            var btnAgregarLinea = new Button { Text = Textos.Comun.BotonAgregar, Location = new Point(536, 121), Size = new Size(90, 28) };
+            var grupoAgregar = new Panel { AutoSize = true, Margin = new Padding(0, 18, 0, 0) };
+            var btnAgregarLinea = Botones.CrearPrimario(Textos.Comun.BotonAgregar);
             btnAgregarLinea.Click += BtnAgregarLinea_Click;
+            grupoAgregar.Controls.Add(btnAgregarLinea);
 
-            pnlTop.Controls.AddRange(new Control[]
-            {
-                lblProveedor, _cboProveedor, lblNumeroFactura, _txtNumeroFactura, _chkEsCredito, lblDias, _numDiasCredito,
-                lblBuscar, _txtBuscarProducto, btnBuscarProducto, _cboResultadoProducto, lblCantidad, _numCantidad,
-                lblCosto, _numCosto, btnAgregarLinea
-            });
+            filaProducto.Controls.AddRange(new Control[] { grupoBuscar, grupoResultado, grupoCantidad, grupoCosto, grupoAgregar });
+
+            pnlTop.Controls.Add(filaProducto);
+            pnlTop.Controls.Add(filaProveedor);
 
             _gridLineas = new DataGridView { DataSource = _lineas };
             GridStyler.Aplicar(_gridLineas);
@@ -92,8 +120,12 @@ namespace Sistemas.Repuestos.Library.Compras
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Codigo), HeaderText = "Código", FillWeight = 15 });
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Nombre), HeaderText = "Nombre", FillWeight = 35 });
             _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Cantidad), HeaderText = "Cantidad", FillWeight = 15 });
-            _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.CostoUnitario), HeaderText = "Costo unit.", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
-            _gridLineas.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Subtotal), HeaderText = "Subtotal", FillWeight = 20, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
+            var colCosto = new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.CostoUnitario), HeaderText = "Costo unit.", FillWeight = 15 };
+            GridStyler.ComoColumnaNumerica(colCosto);
+            _gridLineas.Columns.Add(colCosto);
+            var colSubtotal = new DataGridViewTextBoxColumn { DataPropertyName = nameof(LineaCompraDto.Subtotal), HeaderText = "Subtotal", FillWeight = 20 };
+            GridStyler.ComoColumnaNumerica(colSubtotal);
+            _gridLineas.Columns.Add(colSubtotal);
             _gridLineas.CellFormatting += (s, e) =>
             {
                 if (_gridLineas.Columns[e.ColumnIndex].DataPropertyName != nameof(LineaCompraDto.Cantidad)) return;
@@ -103,12 +135,10 @@ namespace Sistemas.Repuestos.Library.Compras
                 e.FormattingApplied = true;
             };
 
-            // Height = 110: btnQuitarLinea (y8-36) + _lblError (y42-66) +
-            // _btnRegistrar (y68-102) necesitan 102px de alto, más 8px de
-            // margen inferior — con 96 el botón quedaba cortado por el
-            // borde del panel.
-            var pnlBottom = new Panel { Dock = DockStyle.Bottom, Height = 110, BackColor = Color.White };
-            var btnQuitarLinea = new Button { Text = Textos.Compras.BotonQuitarLinea, Location = new Point(16, 8), Size = new Size(120, 28) };
+            var pnlBottom = new Panel { Dock = DockStyle.Bottom, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
+
+            var filaAcciones = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var btnQuitarLinea = Botones.CrearSecundario(Textos.Compras.BotonQuitarLinea);
             btnQuitarLinea.Click += (s, e) =>
             {
                 if (_gridLineas.CurrentRow?.DataBoundItem is LineaCompraDto linea)
@@ -117,26 +147,26 @@ namespace Sistemas.Repuestos.Library.Compras
                     ActualizarTotal();
                 }
             };
-
-            _lblTotal = new Label { Text = string.Format(Textos.Compras.FormatoTotal, 0m), AutoSize = true, Location = new Point(500, 12), Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
-
-            // Anchor Left+Right: a MinimumSize.Width (680) el Width fijo de
-            // 680px a partir de x=16 se salía del área visible del panel.
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(680, 24), Location = new Point(16, 42), Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-
-            _btnRegistrar = new Button
+            _lblTotal = new Label
             {
-                Text = Textos.Compras.RegistrarTituloVentana,
-                Location = new Point(16, 68),
-                Size = new Size(180, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Text = string.Format(Textos.Compras.FormatoTotal, 0m),
+                AutoSize = true,
+                Font = new Font(UiTheme.FuenteBase, 14f, FontStyle.Bold),
+                Margin = new Padding(UiTheme.Espacio.Xxl, UiTheme.Espacio.Xs, 0, 0)
             };
-            _btnRegistrar.FlatAppearance.BorderSize = 0;
+            filaAcciones.Controls.AddRange(new Control[] { btnQuitarLinea, _lblTotal });
+
+            _lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+
+            _btnRegistrar = Botones.CrearPrimario(Textos.Compras.RegistrarTituloVentana);
+            _btnRegistrar.AutoSize = false;
+            _btnRegistrar.Width = 200;
+            _btnRegistrar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnRegistrar.Click += BtnRegistrar_Click;
 
-            pnlBottom.Controls.AddRange(new Control[] { btnQuitarLinea, _lblTotal, _lblError, _btnRegistrar });
+            pnlBottom.Controls.Add(_btnRegistrar);
+            pnlBottom.Controls.Add(_lblError);
+            pnlBottom.Controls.Add(filaAcciones);
 
             Controls.Add(_gridLineas);
             Controls.Add(pnlBottom);
