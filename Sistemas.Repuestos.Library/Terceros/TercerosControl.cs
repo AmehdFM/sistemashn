@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -22,8 +23,9 @@ namespace Sistemas.Repuestos.Library.Terceros
         private readonly TextBox _txtBuscar;
         private readonly CheckBox _chkSoloActivos;
         private readonly DataGridView _grid;
+        private readonly EstadoListaControl _estado;
         private readonly PaginacionControl _paginacion;
-        private readonly Label _lblEstado;
+        private EstadoLista _estadoActual;
 
         public TercerosControl(bool esVistaProveedores)
         {
@@ -33,12 +35,18 @@ namespace Sistemas.Repuestos.Library.Terceros
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
-            var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 64, BackColor = Color.White };
-
-            var btnNuevo = new Button { Text = Textos.Comun.BotonNuevo, Location = new Point(12, 16), Size = new Size(88, 32) };
+            var pnlToolbar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Md, UiTheme.Espacio.Md, UiTheme.Espacio.Sm)
+            };
+            var btnNuevo = Botones.CrearToolbar(Textos.Comun.BotonNuevo, primario: true);
             btnNuevo.Click += async (s, e) => await AbrirAltaRapidaAsync();
-
-            var btnEditar = new Button { Text = Textos.Comun.BotonEditar, Location = new Point(108, 16), Size = new Size(88, 32) };
+            var btnEditar = Botones.CrearToolbar(Textos.Comun.BotonEditar);
             btnEditar.Click += async (s, e) =>
             {
                 var seleccionado = ObtenerSeleccionado();
@@ -49,19 +57,26 @@ namespace Sistemas.Repuestos.Library.Terceros
                 }
                 await AbrirPerfilAsync(seleccionado);
             };
+            pnlToolbar.Controls.AddRange(new Control[] { btnNuevo, btnEditar });
 
-            _txtBuscar = new TextBox { Location = new Point(220, 18), Size = new Size(220, 26) };
+            var pnlFiltros = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(UiTheme.Espacio.Md, 0, UiTheme.Espacio.Md, UiTheme.Espacio.Md)
+            };
+            _txtBuscar = new TextBox { Width = 220, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Sm, 0) };
             _txtBuscar.KeyDown += async (s, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; _paginacion.Reiniciar(); await CargarAsync(); } };
-
-            var btnBuscar = new Button { Text = Textos.Comun.BotonBuscar, Location = new Point(448, 17), Size = new Size(80, 28) };
+            var btnBuscar = Botones.CrearSecundario(Textos.Comun.BotonBuscar);
             btnBuscar.Click += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
-
-            _chkSoloActivos = new CheckBox { Text = Textos.Comun.CampoSoloActivos, AutoSize = true, Location = new Point(540, 22), Checked = true };
+            _chkSoloActivos = new CheckBox { Text = Textos.Comun.CampoSoloActivos, AutoSize = true, Checked = true, Margin = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Sm + 2, 0, 0) };
             _chkSoloActivos.CheckedChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
+            pnlFiltros.Controls.AddRange(new Control[] { _txtBuscar, btnBuscar, _chkSoloActivos });
 
-            pnlToolbar.Controls.AddRange(new Control[] { btnNuevo, btnEditar, _txtBuscar, btnBuscar, _chkSoloActivos });
-
-            _grid = new DataGridView();
+            _grid = new DataGridView { Visible = false };
             GridStyler.Aplicar(_grid);
             _grid.AutoGenerateColumns = false;
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(TerceroDto.Nombre), HeaderText = "Nombre", FillWeight = 25 });
@@ -76,14 +91,35 @@ namespace Sistemas.Repuestos.Library.Terceros
                 if (seleccionado != null) await AbrirPerfilAsync(seleccionado);
             };
 
+            _estado = new EstadoListaControl();
+            _estado.AccionSolicitada += async (s, e) =>
+            {
+                switch (_estadoActual)
+                {
+                    case EstadoLista.VacioInicial:
+                        await AbrirAltaRapidaAsync();
+                        break;
+                    case EstadoLista.VacioPorFiltro:
+                        _txtBuscar.Clear();
+                        _paginacion.Reiniciar();
+                        await CargarAsync();
+                        break;
+                    case EstadoLista.Error:
+                        await CargarAsync();
+                        break;
+                }
+            };
+
+            var pnlGrid = new Panel { Dock = DockStyle.Fill };
+            pnlGrid.Controls.Add(_grid);
+            pnlGrid.Controls.Add(_estado);
+
             _paginacion = new PaginacionControl();
             _paginacion.PaginaCambiada += async (s, e) => await CargarAsync();
 
-            _lblEstado = new Label { Dock = DockStyle.Bottom, Height = 24, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), ForeColor = UiTheme.Error };
-
-            Controls.Add(_grid);
-            Controls.Add(_lblEstado);
+            Controls.Add(pnlGrid);
             Controls.Add(_paginacion);
+            Controls.Add(pnlFiltros);
             Controls.Add(pnlToolbar);
 
             Load += async (s, e) => await CargarAsync();
@@ -98,13 +134,30 @@ namespace Sistemas.Repuestos.Library.Terceros
                     ? await TerceroService.ListarProveedoresAsync(_chkSoloActivos.Checked, busqueda, _paginacion.Pagina, TamanoPagina)
                     : await TerceroService.ListarClientesAsync(_chkSoloActivos.Checked, busqueda, _paginacion.Pagina, TamanoPagina);
 
-                _grid.DataSource = terceros;
                 _paginacion.Actualizar(total, TamanoPagina);
-                _lblEstado.Text = string.Empty;
+
+                if (terceros.Count == 0)
+                {
+                    _grid.Visible = false;
+                    _estadoActual = busqueda != null ? EstadoLista.VacioPorFiltro : EstadoLista.VacioInicial;
+                    _estado.Mostrar(
+                        _estadoActual,
+                        _estadoActual == EstadoLista.VacioPorFiltro
+                            ? string.Format(Textos.Terceros.SinResultadosBusquedaFormato, _rolMinuscula)
+                            : string.Format(Textos.Terceros.SinRegistrosFormato, _rolMinuscula),
+                        _estadoActual == EstadoLista.VacioPorFiltro ? Textos.Comun.BotonLimpiarFiltros : Textos.Comun.BotonNuevo);
+                    return;
+                }
+
+                _grid.DataSource = terceros;
+                _grid.Visible = true;
+                _estado.Ocultar();
             }
             catch (Exception ex)
             {
-                _lblEstado.Text = Textos.Comun.NoSeConectoBdPrefijo + ex.Message;
+                _grid.Visible = false;
+                _estadoActual = EstadoLista.Error;
+                _estado.Mostrar(EstadoLista.Error, Textos.Comun.NoSeConectoBdPrefijo + ex.Message, Textos.Comun.BotonReintentar);
             }
         }
 

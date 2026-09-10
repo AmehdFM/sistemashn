@@ -7,6 +7,7 @@ using Sistemas.Core.Inventory;
 using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Core.UI.Dashboard
 {
@@ -33,33 +34,53 @@ namespace Sistemas.Core.UI.Dashboard
             StartPosition = FormStartPosition.CenterParent;
             MinimumSize = new Size(620, 420);
 
-            var pnlTop = new Panel { Dock = DockStyle.Top, Height = 96, BackColor = Color.White };
+            var pnlTop = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Lg), AutoSize = true };
 
-            var lblCodigo = new Label { Text = Textos.UnidadesMedida.CampoCodigo, AutoSize = true, Location = new Point(16, 8) };
-            _txtCodigo = new TextBox { Location = new Point(16, 28), Size = new Size(80, 26), MaxLength = 10 };
+            var pnlCampos = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            var lblNombre = new Label { Text = Textos.UnidadesMedida.CampoNombre, AutoSize = true, Location = new Point(106, 8) };
-            _txtNombre = new TextBox { Location = new Point(106, 28), Size = new Size(180, 26), MaxLength = 50 };
+            var grupoCodigo = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblCodigo = new Label { Text = Textos.UnidadesMedida.CampoCodigo, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
+            _txtCodigo = new TextBox { Width = 80, Height = UiTheme.Medidas.AlturaControl, Dock = DockStyle.Top, MaxLength = 10 };
+            grupoCodigo.Controls.Add(_txtCodigo);
+            grupoCodigo.Controls.Add(lblCodigo);
 
-            var lblSimbolo = new Label { Text = Textos.UnidadesMedida.CampoSimbolo, AutoSize = true, Location = new Point(296, 8) };
-            _txtSimbolo = new TextBox { Location = new Point(296, 28), Size = new Size(70, 26), MaxLength = 10 };
+            var grupoNombre = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblNombre = new Label { Text = Textos.UnidadesMedida.CampoNombre, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
+            _txtNombre = new TextBox { Width = 180, Height = UiTheme.Medidas.AlturaControl, Dock = DockStyle.Top, MaxLength = 50 };
+            grupoNombre.Controls.Add(_txtNombre);
+            grupoNombre.Controls.Add(lblNombre);
 
-            var lblSistema = new Label { Text = Textos.UnidadesMedida.CampoSistema, AutoSize = true, Location = new Point(376, 8) };
-            _txtSistema = new TextBox { Location = new Point(376, 28), Size = new Size(110, 26), MaxLength = 20 };
+            var grupoSimbolo = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblSimbolo = new Label { Text = Textos.UnidadesMedida.CampoSimbolo, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
+            _txtSimbolo = new TextBox { Width = 70, Height = UiTheme.Medidas.AlturaControl, Dock = DockStyle.Top, MaxLength = 10 };
+            grupoSimbolo.Controls.Add(_txtSimbolo);
+            grupoSimbolo.Controls.Add(lblSimbolo);
 
-            _chkPermiteFraccion = new CheckBox { Text = Textos.UnidadesMedida.CampoPermiteFraccion, AutoSize = true, Location = new Point(496, 32), Checked = true };
+            var grupoSistema = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblSistema = new Label { Text = Textos.UnidadesMedida.CampoSistema, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
+            _txtSistema = new TextBox { Width = 110, Height = UiTheme.Medidas.AlturaControl, Dock = DockStyle.Top, MaxLength = 20 };
+            grupoSistema.Controls.Add(_txtSistema);
+            grupoSistema.Controls.Add(lblSistema);
 
-            var btnAgregar = new Button { Text = Textos.UnidadesMedida.BotonAgregar, Location = new Point(16, 60), Size = new Size(110, 28), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnAgregar.FlatAppearance.BorderSize = 0;
+            _chkPermiteFraccion = new CheckBox { Text = Textos.UnidadesMedida.CampoPermiteFraccion, AutoSize = true, Checked = true, Margin = new Padding(0, UiTheme.Espacio.Xl, 0, 0) };
+
+            pnlCampos.Controls.AddRange(new Control[] { grupoCodigo, grupoNombre, grupoSimbolo, grupoSistema, _chkPermiteFraccion });
+
+            var pnlAccion = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
+            var btnAgregar = Botones.CrearPrimario(Textos.UnidadesMedida.BotonAgregar);
             btnAgregar.Click += BtnAgregar_Click;
-
-            _lblEstado = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(500, 24), Location = new Point(136, 64) };
-
-            pnlTop.Controls.AddRange(new Control[]
+            _lblEstado = new Label
             {
-                lblCodigo, _txtCodigo, lblNombre, _txtNombre, lblSimbolo, _txtSimbolo,
-                lblSistema, _txtSistema, _chkPermiteFraccion, btnAgregar, _lblEstado
-            });
+                ForeColor = UiTheme.Error,
+                AutoSize = false,
+                Width = 480,
+                Height = UiTheme.Medidas.AlturaControl,
+                Margin = new Padding(UiTheme.Espacio.Md, 0, 0, 0)
+            };
+            pnlAccion.Controls.AddRange(new Control[] { btnAgregar, _lblEstado });
+
+            pnlTop.Controls.Add(pnlAccion);
+            pnlTop.Controls.Add(pnlCampos);
 
             _grid = new DataGridView { DataSource = _unidades };
             GridStyler.Aplicar(_grid);

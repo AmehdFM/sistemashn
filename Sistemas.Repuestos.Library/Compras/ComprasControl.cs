@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -13,86 +14,96 @@ namespace Sistemas.Repuestos.Library.Compras
         private const int TamanoPagina = 50;
 
         private readonly DataGridView _grid;
+        private readonly EstadoListaControl _estado;
         private readonly PaginacionControl _paginacion;
-        private readonly Label _lblEstado;
+        private EstadoLista _estadoActual;
 
         public ComprasControl()
         {
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
-            var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 56, BackColor = Color.White };
+            var pnlToolbar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(UiTheme.Espacio.Md)
+            };
 
-            // Anchos por botón, no fijos iguales (mismo patrón que
-            // Inventario/InventarioControl.cs): "Descargar plantilla"
-            // necesita más espacio que "Nueva compra"/"Actualizar", cada
-            // botón se posiciona a partir del borde derecho del anterior.
-            const int gap = 8;
-            int x = 12;
-
-            var btnNuevaCompra = new Button { Text = Textos.Compras.BotonNuevaCompra, Location = new Point(x, 12), Size = new Size(140, 32), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnNuevaCompra.FlatAppearance.BorderSize = 0;
+            var btnNuevaCompra = Botones.CrearToolbar(Textos.Compras.BotonNuevaCompra, primario: true);
             btnNuevaCompra.Click += BtnNuevaCompra_Click;
-            x += 140 + gap;
-
-            var btnActualizar = BotonToolbar(Textos.Compras.BotonActualizar, x, 100);
+            var btnActualizar = Botones.CrearToolbar(Textos.Compras.BotonActualizar);
             btnActualizar.Click += async (s, e) => await CargarAsync();
-            x += 100 + gap;
-
-            var btnImportar = BotonToolbar(Textos.Compras.BotonImportarExcel, x, 130);
+            var btnImportar = Botones.CrearToolbar(Textos.Compras.BotonImportarExcel);
             btnImportar.Click += BtnImportar_Click;
-            x += 130 + gap;
-
-            var btnExportar = BotonToolbar(Textos.Compras.BotonExportarExcel, x, 130);
+            var btnExportar = Botones.CrearToolbar(Textos.Compras.BotonExportarExcel);
             btnExportar.Click += BtnExportar_Click;
-            x += 130 + gap;
-
-            var btnPlantilla = BotonToolbar(Textos.Compras.BotonDescargarPlantilla, x, 170);
+            var btnPlantilla = Botones.CrearToolbar(Textos.Compras.BotonDescargarPlantilla);
             btnPlantilla.Click += BtnPlantilla_Click;
 
             pnlToolbar.Controls.AddRange(new Control[] { btnNuevaCompra, btnActualizar, btnImportar, btnExportar, btnPlantilla });
 
-            _grid = new DataGridView();
+            _grid = new DataGridView { Visible = false };
             GridStyler.Aplicar(_grid);
             _grid.AutoGenerateColumns = false;
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CompraDto.Fecha), HeaderText = "Fecha", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy HH:mm" } });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CompraDto.NombreProveedor), HeaderText = "Proveedor", FillWeight = 25 });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CompraDto.NumeroFacturaProveedor), HeaderText = "N° factura proveedor", FillWeight = 20 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CompraDto.Total), HeaderText = "Total", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+            var colTotal = new DataGridViewTextBoxColumn { DataPropertyName = nameof(CompraDto.Total), HeaderText = "Total", FillWeight = 15 };
+            GridStyler.ComoColumnaNumerica(colTotal);
+            _grid.Columns.Add(colTotal);
             _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(CompraDto.EsCredito), HeaderText = "Crédito", FillWeight = 10 });
+
+            _estado = new EstadoListaControl();
+            _estado.AccionSolicitada += async (s, e) =>
+            {
+                if (_estadoActual == EstadoLista.Error)
+                    await CargarAsync();
+                else
+                    BtnNuevaCompra_Click(this, EventArgs.Empty);
+            };
+
+            var pnlGrid = new Panel { Dock = DockStyle.Fill };
+            pnlGrid.Controls.Add(_grid);
+            pnlGrid.Controls.Add(_estado);
 
             _paginacion = new PaginacionControl();
             _paginacion.PaginaCambiada += async (s, e) => await CargarAsync();
 
-            _lblEstado = new Label { Dock = DockStyle.Bottom, Height = 24, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), ForeColor = UiTheme.Error };
-
-            Controls.Add(_grid);
-            Controls.Add(_lblEstado);
+            Controls.Add(pnlGrid);
             Controls.Add(_paginacion);
             Controls.Add(pnlToolbar);
 
             Load += async (s, e) => await CargarAsync();
         }
 
-        private static Button BotonToolbar(string texto, int x, int ancho) => new()
-        {
-            Text = texto,
-            Location = new Point(x, 12),
-            Size = new Size(ancho, 32)
-        };
-
         private async Task CargarAsync()
         {
             try
             {
                 var (compras, total) = await CompraService.ListarAsync(null, _paginacion.Pagina, TamanoPagina);
-                _grid.DataSource = compras;
                 _paginacion.Actualizar(total, TamanoPagina);
-                _lblEstado.Text = string.Empty;
+
+                if (compras.Count == 0)
+                {
+                    _grid.Visible = false;
+                    _estadoActual = EstadoLista.VacioInicial;
+                    _estado.Mostrar(EstadoLista.VacioInicial, Textos.Compras.SinCompras, Textos.Compras.BotonNuevaCompra);
+                    return;
+                }
+
+                _grid.DataSource = compras;
+                _grid.Visible = true;
+                _estado.Ocultar();
             }
             catch (Exception ex)
             {
-                _lblEstado.Text = Textos.Comun.NoSeConectoBdPrefijo + ex.Message;
+                _grid.Visible = false;
+                _estadoActual = EstadoLista.Error;
+                _estado.Mostrar(EstadoLista.Error, Textos.Comun.NoSeConectoBdPrefijo + ex.Message, Textos.Comun.BotonReintentar);
             }
         }
 

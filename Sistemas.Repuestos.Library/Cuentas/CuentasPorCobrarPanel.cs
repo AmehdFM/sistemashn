@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -16,8 +17,8 @@ namespace Sistemas.Repuestos.Library.Cuentas
         private readonly int? _terceroId;
         private readonly CheckBox _chkSoloConSaldo;
         private readonly DataGridView _grid;
+        private readonly EstadoListaControl _estado;
         private readonly PaginacionControl _paginacion;
-        private readonly Label _lblEstado;
 
         public CuentasPorCobrarPanel(int? terceroId = null)
         {
@@ -25,20 +26,31 @@ namespace Sistemas.Repuestos.Library.Cuentas
             Dock = DockStyle.Fill;
             BackColor = UiTheme.FondoContenido;
 
-            var pnlToolbar = new Panel { Dock = DockStyle.Top, Height = 56, BackColor = Color.White };
-            _chkSoloConSaldo = new CheckBox { Text = Textos.Cuentas.CampoSoloConSaldo, AutoSize = true, Location = new Point(12, 18), Checked = true };
-            _chkSoloConSaldo.CheckedChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
-            var btnRegistrarPago = new Button { Text = Textos.Cuentas.BotonRegistrarPago, Location = new Point(220, 12), Size = new Size(130, 32), BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnRegistrarPago.FlatAppearance.BorderSize = 0;
+            var pnlToolbar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(UiTheme.Espacio.Md)
+            };
+            var btnRegistrarPago = Botones.CrearToolbar(Textos.Cuentas.BotonRegistrarPago, primario: true);
             btnRegistrarPago.Click += BtnRegistrarPago_Click;
-            pnlToolbar.Controls.AddRange(new Control[] { _chkSoloConSaldo, btnRegistrarPago });
+            _chkSoloConSaldo = new CheckBox { Text = Textos.Cuentas.CampoSoloConSaldo, AutoSize = true, Checked = true, Margin = new Padding(UiTheme.Espacio.Sm, UiTheme.Espacio.Sm + 2, 0, 0) };
+            _chkSoloConSaldo.CheckedChanged += async (s, e) => { _paginacion.Reiniciar(); await CargarAsync(); };
+            pnlToolbar.Controls.AddRange(new Control[] { btnRegistrarPago, _chkSoloConSaldo });
 
-            _grid = new DataGridView();
+            _grid = new DataGridView { Visible = false };
             GridStyler.Aplicar(_grid);
             _grid.AutoGenerateColumns = false;
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.NumeroFactura), HeaderText = "Factura", FillWeight = 20 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.MontoOriginal), HeaderText = "Monto original", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.SaldoPendiente), HeaderText = "Saldo pendiente", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2" } });
+            var colMonto = new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.MontoOriginal), HeaderText = "Monto original", FillWeight = 15 };
+            GridStyler.ComoColumnaNumerica(colMonto);
+            _grid.Columns.Add(colMonto);
+            var colSaldo = new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.SaldoPendiente), HeaderText = "Saldo pendiente", FillWeight = 15 };
+            GridStyler.ComoColumnaNumerica(colSaldo);
+            _grid.Columns.Add(colSaldo);
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.FechaVencimiento), HeaderText = "Vence", FillWeight = 15, DefaultCellStyle = new DataGridViewCellStyle { Format = "dd/MM/yyyy" } });
             _grid.Columns.Add(new DataGridViewTextBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.Estado), HeaderText = "Estado", FillWeight = 15 });
             _grid.Columns.Add(new DataGridViewCheckBoxColumn { DataPropertyName = nameof(CuentaPorCobrarDto.EstaVencida), HeaderText = "Vencida", FillWeight = 12 });
@@ -48,13 +60,17 @@ namespace Sistemas.Repuestos.Library.Cuentas
                     e.CellStyle!.BackColor = UiTheme.ErrorFondo;
             };
 
+            _estado = new EstadoListaControl();
+            _estado.AccionSolicitada += async (s, e) => await CargarAsync();
+
+            var pnlGrid = new Panel { Dock = DockStyle.Fill };
+            pnlGrid.Controls.Add(_grid);
+            pnlGrid.Controls.Add(_estado);
+
             _paginacion = new PaginacionControl();
             _paginacion.PaginaCambiada += async (s, e) => await CargarAsync();
 
-            _lblEstado = new Label { Dock = DockStyle.Bottom, Height = 24, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), ForeColor = UiTheme.Error };
-
-            Controls.Add(_grid);
-            Controls.Add(_lblEstado);
+            Controls.Add(pnlGrid);
             Controls.Add(_paginacion);
             Controls.Add(pnlToolbar);
 
@@ -66,13 +82,23 @@ namespace Sistemas.Repuestos.Library.Cuentas
             try
             {
                 var (cuentas, total) = await CuentaPorCobrarService.ListarAsync(_chkSoloConSaldo.Checked, _paginacion.Pagina, TamanoPagina, _terceroId);
-                _grid.DataSource = cuentas;
                 _paginacion.Actualizar(total, TamanoPagina);
-                _lblEstado.Text = string.Empty;
+
+                if (cuentas.Count == 0)
+                {
+                    _grid.Visible = false;
+                    _estado.Mostrar(EstadoLista.VacioInicial, Textos.Cuentas.SinCuentasPorCobrar);
+                    return;
+                }
+
+                _grid.DataSource = cuentas;
+                _grid.Visible = true;
+                _estado.Ocultar();
             }
             catch (Exception ex)
             {
-                _lblEstado.Text = Textos.Comun.NoSeConectoBdPrefijo + ex.Message;
+                _grid.Visible = false;
+                _estado.Mostrar(EstadoLista.Error, Textos.Comun.NoSeConectoBdPrefijo + ex.Message, Textos.Comun.BotonReintentar);
             }
         }
 

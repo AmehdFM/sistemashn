@@ -43,6 +43,10 @@ namespace Sistemas.Repuestos.Library
             public const string NoSePudoBuscarPrefijo = "No se pudo buscar: ";
             public const string NoSePudoAgregarPrefijo = "No se pudo agregar: ";
             public const string FiltroExcel = "Excel (*.xlsx)|*.xlsx";
+
+            // Los 4 estados obligatorios de toda lista (guía UI/UX §9.6).
+            public const string BotonLimpiarFiltros = "Limpiar filtros";
+            public const string BotonReintentar = "Reintentar";
         }
 
         public static class Inventario
@@ -169,6 +173,12 @@ namespace Sistemas.Repuestos.Library
             public const string FormularioTituloEditarFormato = "Editar {0}";
             public const string PerfilTituloFormato = "Perfil de {0} — {1}";
             public const string ErrorSeleccionePrimeroFormato = "Seleccione un {0} primero.";
+
+            // Los 2 mensajes de "vacío" de toda lista de terceros (guía
+            // UI/UX §9.6): vacío inicial vs. vacío por filtro son mensajes
+            // distintos a propósito.
+            public const string SinRegistrosFormato = "Aún no hay ningún {0} registrado.";
+            public const string SinResultadosBusquedaFormato = "Ningún {0} coincide con la búsqueda.";
         }
 
         public static class Compras
@@ -187,6 +197,7 @@ namespace Sistemas.Repuestos.Library
             public const string NoSeRegistroCompraPrefijo = "No se pudo registrar la compra: ";
             public const string NoSeCargaronProveedoresPrefijo = "No se pudieron cargar los proveedores: ";
             public const string BotonNuevaCompra = "Nueva compra";
+            public const string SinCompras = "Aún no hay compras registradas.";
             public const string BotonActualizar = "Actualizar";
             public const string AvisoTopeProveedoresFormato = "Mostrando los primeros 500 de {0} proveedores; use el buscador para encontrar el resto.";
 
@@ -276,6 +287,8 @@ namespace Sistemas.Repuestos.Library
             public const string TituloExportar = "Exportar";
             public const string FormatoExportoOk = "Se exportaron {0} venta(s) a {1}";
             public const string NoSePudoExportarPrefijo = "No se pudo exportar: ";
+            public const string SinVentas = "Aún no hay ventas registradas.";
+            public const string SinResultadosBusqueda = "Ninguna venta coincide con esa factura.";
         }
 
         public static class Cuentas
@@ -292,6 +305,8 @@ namespace Sistemas.Repuestos.Library
             public const string CampoMetodoPago = "Método de pago";
             public const string BotonRegistrarPagoAccion = "Registrar pago";
             public const string NoSeRegistroPagoPrefijo = "No se pudo registrar el pago: ";
+            public const string SinCuentasPorCobrar = "No hay cuentas por cobrar pendientes.";
+            public const string SinCuentasPorPagar = "No hay cuentas por pagar pendientes.";
         }
 
         // Sesiones de caja: apertura, cierre e historial. Mismo estilo que
@@ -313,6 +328,7 @@ namespace Sistemas.Repuestos.Library
             public const string FormatoResultadoCierre = "{0}\n\nMonto calculado: L. {1:N2}\nDiferencia: L. {2:N2}";
 
             public const string EstadoCerrada = "No hay una sesión de caja abierta.";
+            public const string SinHistorial = "Aún no hay sesiones de caja registradas.";
             public const string EstadoAbiertaFormato = "Caja abierta por {0} desde {1:dd/MM/yyyy HH:mm} — Monto inicial: L. {2:N2}";
             public const string UsuarioGenericoFormato = "Usuario #{0}";
         }
