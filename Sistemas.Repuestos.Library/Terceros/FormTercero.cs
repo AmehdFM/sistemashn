@@ -42,7 +42,7 @@ namespace Sistemas.Repuestos.Library.Terceros
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
-            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl) };
+            var pnlContenido = new Panel { Dock = DockStyle.Fill, Padding = new Padding(UiTheme.Espacio.Xl), AutoScroll = true };
 
             _campos = new TerceroCamposControl { Dock = DockStyle.Top };
 

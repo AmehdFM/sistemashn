@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Cuentas;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
@@ -13,19 +14,12 @@ namespace Sistemas.Repuestos.Library.Terceros
     // Edición completa de un Tercero, con su panel de cuentas embebido
     // abajo: solo cuentas por pagar cuando se abre desde "Proveedores",
     // solo cuentas por cobrar cuando se abre desde "Clientes" — nunca
-    // ambas, aunque el tercero tenga los dos roles a la vez.
-    //
-    // Altura del panel superior (pnlDatos): TerceroCamposControl (20-310) +
-    // _chkActivo (318-338) + _btnGuardar (346-380) necesitan 380px de alto
-    // más margen inferior de 16px = 396px — con menos, el botón Guardar
-    // quedaba cortado por el borde del panel, el mismo bug ya corregido en
-    // la revisión visual anterior. El panel de cuentas va Dock=Fill debajo,
-    // así que crece con el form (que es redimensionable a propósito, a
-    // diferencia del alta rápida).
+    // ambas, aunque el tercero tenga los dos roles a la vez. El panel de
+    // datos es AutoSize (fluye con el contenido de TerceroCamposControl);
+    // el panel de cuentas va Dock=Fill debajo y crece con el form
+    // (redimensionable a propósito, a diferencia del alta rápida).
     public sealed class FormPerfilTercero : FormBase
     {
-        private const int AlturaPanelDatos = 396;
-
         private readonly int _terceroId;
         private readonly TerceroCamposControl _campos;
         private readonly CheckBox _chkActivo;
@@ -44,28 +38,30 @@ namespace Sistemas.Repuestos.Library.Terceros
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterParent;
 
-            var pnlDatos = new Panel { Dock = DockStyle.Top, Height = AlturaPanelDatos, BackColor = Color.White };
+            var pnlDatos = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Xl), AutoSize = true };
 
-            _campos = new TerceroCamposControl { Location = new Point(20, 20) };
+            _campos = new TerceroCamposControl { Dock = DockStyle.Top };
             _campos.Cargar(existente);
 
-            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Location = new Point(20, 318), Checked = existente.Activo };
-
-            _btnGuardar = new Button
+            _chkActivo = new CheckBox
             {
-                Text = Textos.Comun.BotonGuardar,
-                Location = new Point(20, 346),
-                Size = new Size(380, 34),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Text = Textos.Comun.CampoActivo,
+                AutoSize = true,
+                Dock = DockStyle.Top,
+                Checked = existente.Activo,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+
+            _btnGuardar = Botones.CrearPrimario(Textos.Comun.BotonGuardar);
+            _btnGuardar.Dock = DockStyle.Top;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Width = 200;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 4;
             _btnGuardar.Click += BtnGuardar_Click;
 
-            pnlDatos.Controls.Add(_campos);
-            pnlDatos.Controls.Add(_chkActivo);
             pnlDatos.Controls.Add(_btnGuardar);
+            pnlDatos.Controls.Add(_chkActivo);
+            pnlDatos.Controls.Add(_campos);
 
             Control panelCuentas = vistaCuentasPorPagar
                 ? new CuentasPorPagarPanel(_terceroId)

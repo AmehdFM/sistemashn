@@ -7,6 +7,7 @@ using Sistemas.Core.Configuracion.Models;
 using Sistemas.Core.Files;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI.Common;
+using Sistemas.Core.UI.Controles;
 
 namespace Sistemas.Core.UI.Dashboard
 {
@@ -42,80 +43,54 @@ namespace Sistemas.Core.UI.Dashboard
                 Text = Textos.Dashboard.AjustesTitulo,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
-                AutoSize = true,
-                Location = new Point(32, 24),
                 Dock = DockStyle.Top,
                 Height = 56,
-                Padding = new Padding(32, 20, 0, 0)
+                Padding = new Padding(UiTheme.Espacio.Xl, UiTheme.Espacio.Lg, 0, 0)
             };
 
             var tabs = new TabControl { Dock = DockStyle.Fill };
 
             // ============ Pestaña General ============
-            var tabGeneral = new TabPage(Textos.Dashboard.TabGeneral) { AutoScroll = true };
+            var tabGeneral = new TabPage(Textos.Dashboard.TabGeneral) { AutoScroll = true, Padding = new Padding(UiTheme.Espacio.Xl) };
 
-            int y = 24;
-            var lblNombre = new Label { Text = Textos.Dashboard.CampoNombreComercial, AutoSize = true, Location = new Point(24, y) };
-            _txtNombreComercial = new TextBox { Location = new Point(24, y + 20), Size = new Size(360, 26) };
+            var grilla = FormularioLayout.CrearGrilla();
+            _txtNombreComercial = new TextBox { Width = 360, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoNombreComercial, _txtNombreComercial);
+            _txtRTN = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl, MaxLength = 14 };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoRtnOpcional, _txtRTN);
+            _txtDireccion = new TextBox { Width = 360, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoDireccion, _txtDireccion);
+            _txtTelefono = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoTelefono, _txtTelefono);
+            _txtCorreo = new TextBox { Width = 360, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Dashboard.CampoCorreoContacto, _txtCorreo);
 
-            y += 56;
-            var lblRTN = new Label { Text = Textos.Dashboard.CampoRtnOpcional, AutoSize = true, Location = new Point(24, y) };
-            _txtRTN = new TextBox { Location = new Point(24, y + 20), Size = new Size(200, 26), MaxLength = 14 };
-
-            y += 56;
-            var lblDireccion = new Label { Text = Textos.Dashboard.CampoDireccion, AutoSize = true, Location = new Point(24, y) };
-            _txtDireccion = new TextBox { Location = new Point(24, y + 20), Size = new Size(360, 26) };
-
-            y += 56;
-            var lblTelefono = new Label { Text = Textos.Dashboard.CampoTelefono, AutoSize = true, Location = new Point(24, y) };
-            _txtTelefono = new TextBox { Location = new Point(24, y + 20), Size = new Size(200, 26) };
-
-            y += 56;
-            var lblCorreo = new Label { Text = Textos.Dashboard.CampoCorreoContacto, AutoSize = true, Location = new Point(24, y) };
-            _txtCorreo = new TextBox { Location = new Point(24, y + 20), Size = new Size(360, 26) };
-
-            y += 56;
-            var lblLogo = new Label { Text = Textos.Dashboard.CampoLogoNegocio, AutoSize = true, Location = new Point(24, y) };
-
+            var pnlLogo = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg) };
+            var lblLogo = new Label { Text = Textos.Dashboard.CampoLogoNegocio, Dock = DockStyle.Top, Height = 20, ForeColor = UiTheme.TextoTenue };
             _picLogo = new PictureBox
             {
-                Location = new Point(24, y + 20),
                 Size = new Size(56, 56),
                 BorderStyle = BorderStyle.FixedSingle,
                 SizeMode = PictureBoxSizeMode.Zoom,
-                BackColor = UiTheme.FondoContenido
+                BackColor = UiTheme.FondoContenido,
+                Margin = new Padding(140, 0, UiTheme.Espacio.Md, 0)
             };
-
-            var btnCambiarLogo = new Button
-            {
-                Text = Textos.Dashboard.BotonCambiarLogo,
-                Location = new Point(92, y + 24),
-                Size = new Size(140, 30)
-            };
+            var btnCambiarLogo = Botones.CrearSecundario(Textos.Dashboard.BotonCambiarLogo);
+            btnCambiarLogo.Margin = new Padding(0, (56 - btnCambiarLogo.Height) / 2, 0, 0);
             btnCambiarLogo.Click += BtnCambiarLogo_Click;
-
-            tabGeneral.Controls.AddRange(new Control[]
-            {
-                lblNombre, _txtNombreComercial,
-                lblRTN, _txtRTN,
-                lblDireccion, _txtDireccion,
-                lblTelefono, _txtTelefono,
-                lblCorreo, _txtCorreo,
-                lblLogo, _picLogo, btnCambiarLogo
-            });
+            pnlLogo.Controls.AddRange(new Control[] { _picLogo, btnCambiarLogo });
 
             // Editar el catálogo (crear/desactivar unidades) cambia cómo se
             // registran ventas/compras/inventario para todos — igual criterio
-            // que la pestaña Usuarios, solo para administradores.
+            // que la pestaña Usuarios, solo para administradores. Se agrega
+            // primero porque los controles Dock=Top se agregan del más
+            // abajo (visualmente) al más arriba: el último agregado queda
+            // más cerca del borde superior.
             if (SessionContext.Current?.EsAdministrador == true)
             {
-                y += 92; // la fila del logo es más alta (PictureBox de 56px) que las demás
-                var btnUnidadesMedida = new Button
-                {
-                    Text = Textos.Dashboard.BotonUnidadesMedida,
-                    Location = new Point(24, y),
-                    Size = new Size(180, 32)
-                };
+                var btnUnidadesMedida = Botones.CrearSecundario(Textos.Dashboard.BotonUnidadesMedida);
+                btnUnidadesMedida.Dock = DockStyle.Top;
+                btnUnidadesMedida.Margin = new Padding(140, UiTheme.Espacio.Sm, 0, 0);
                 btnUnidadesMedida.Click += (s, e) =>
                 {
                     using var form = new FormUnidadesMedida();
@@ -124,23 +99,24 @@ namespace Sistemas.Core.UI.Dashboard
                 tabGeneral.Controls.Add(btnUnidadesMedida);
             }
 
+            tabGeneral.Controls.Add(pnlLogo);
+            tabGeneral.Controls.Add(lblLogo);
+            tabGeneral.Controls.Add(grilla);
+
             // ============ Pestaña Facturación ============
-            var tabFacturacion = new TabPage(Textos.Dashboard.TabFacturacion) { AutoScroll = true };
+            var tabFacturacion = new TabPage(Textos.Dashboard.TabFacturacion) { AutoScroll = true, Padding = new Padding(UiTheme.Espacio.Xl) };
 
             _chkRequiereFacturacionLegal = new CheckBox
             {
                 Text = Textos.Dashboard.CampoRequiereFacturacionLegal,
                 AutoSize = true,
-                Location = new Point(24, 24)
+                Dock = DockStyle.Top,
+                Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg)
             };
 
-            _btnConfigurarCai = new Button
-            {
-                Text = Textos.Dashboard.BotonConfigurarCai,
-                Location = new Point(24, 60),
-                Size = new Size(180, 32),
-                Enabled = false
-            };
+            _btnConfigurarCai = Botones.CrearSecundario(Textos.Dashboard.BotonConfigurarCai);
+            _btnConfigurarCai.Dock = DockStyle.Top;
+            _btnConfigurarCai.Enabled = false;
             _btnConfigurarCai.Click += (s, e) =>
             {
                 using var form = new FormFacturacionCai();
@@ -148,7 +124,8 @@ namespace Sistemas.Core.UI.Dashboard
             };
             _chkRequiereFacturacionLegal.CheckedChanged += (s, e) => _btnConfigurarCai.Enabled = _chkRequiereFacturacionLegal.Checked;
 
-            tabFacturacion.Controls.AddRange(new Control[] { _chkRequiereFacturacionLegal, _btnConfigurarCai });
+            tabFacturacion.Controls.Add(_btnConfigurarCai);
+            tabFacturacion.Controls.Add(_chkRequiereFacturacionLegal);
 
             tabs.TabPages.Add(tabGeneral);
             tabs.TabPages.Add(tabFacturacion);
@@ -156,18 +133,10 @@ namespace Sistemas.Core.UI.Dashboard
             // ============ Pestaña Usuarios (solo administradores) ============
             if (SessionContext.Current?.EsAdministrador == true)
             {
-                var tabUsuarios = new TabPage(Textos.Dashboard.TabUsuarios) { AutoScroll = true };
+                var tabUsuarios = new TabPage(Textos.Dashboard.TabUsuarios) { AutoScroll = true, Padding = new Padding(UiTheme.Espacio.Xl) };
 
-                var btnNuevoUsuario = new Button
-                {
-                    Text = Textos.Dashboard.BotonNuevoUsuario,
-                    Location = new Point(24, 24),
-                    Size = new Size(160, 32),
-                    BackColor = UiTheme.Primario,
-                    ForeColor = Color.White,
-                    FlatStyle = FlatStyle.Flat
-                };
-                btnNuevoUsuario.FlatAppearance.BorderSize = 0;
+                var btnNuevoUsuario = Botones.CrearPrimario(Textos.Dashboard.BotonNuevoUsuario);
+                btnNuevoUsuario.Dock = DockStyle.Top;
                 btnNuevoUsuario.Click += (s, e) =>
                 {
                     using var registro = new FormRegistro();
@@ -179,29 +148,21 @@ namespace Sistemas.Core.UI.Dashboard
             }
 
             // ============ Pie compartido: estado + Guardar ============
-            var pnlPie = new Panel { Dock = DockStyle.Bottom, Height = 76, BackColor = UiTheme.FondoContenido };
+            var pnlPie = new Panel { Dock = DockStyle.Bottom, BackColor = UiTheme.FondoContenido, Padding = new Padding(UiTheme.Espacio.Xl, UiTheme.Espacio.Sm, UiTheme.Espacio.Xl, UiTheme.Espacio.Lg), AutoSize = true };
 
-            _lblEstado = new Label
-            {
-                AutoSize = false,
-                Size = new Size(600, 24),
-                Location = new Point(32, 8)
-            };
-
-            _btnGuardar = new Button
-            {
-                Text = Textos.Dashboard.BotonGuardarCambios,
-                Location = new Point(32, 34),
-                Size = new Size(160, 32),
-                BackColor = UiTheme.Primario,
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Enabled = false // se habilita cuando AjustesControl_Load termina de leer el estado actual
-            };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+            _btnGuardar = Botones.CrearPrimario(Textos.Dashboard.BotonGuardarCambios);
+            _btnGuardar.Dock = DockStyle.Top;
+            _btnGuardar.AutoSize = false;
+            _btnGuardar.Width = 180;
+            _btnGuardar.Height = UiTheme.Medidas.AlturaControl + 2;
+            _btnGuardar.Margin = new Padding(0, UiTheme.Espacio.Sm, 0, 0);
+            _btnGuardar.Enabled = false; // se habilita cuando AjustesControl_Load termina de leer el estado actual
             _btnGuardar.Click += BtnGuardar_Click;
 
-            pnlPie.Controls.AddRange(new Control[] { _lblEstado, _btnGuardar });
+            _lblEstado = new Label { Dock = DockStyle.Top, Height = 24 };
+
+            pnlPie.Controls.Add(_btnGuardar);
+            pnlPie.Controls.Add(_lblEstado);
 
             Controls.Add(tabs);
             Controls.Add(pnlPie);

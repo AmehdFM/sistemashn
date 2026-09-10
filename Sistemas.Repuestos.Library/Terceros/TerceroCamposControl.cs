@@ -1,7 +1,7 @@
-using System.Drawing;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 
 namespace Sistemas.Repuestos.Library.Terceros
@@ -9,13 +9,6 @@ namespace Sistemas.Repuestos.Library.Terceros
     // Campos comunes de un Tercero (proveedor/cliente/ambos), reutilizados
     // tanto en el alta rápida (FormTercero) como en la edición completa
     // (FormPerfilTercero) — mismo control, mismo lugar de validación.
-    //
-    // Altura: Nombre(0-46) + Empresa(56-102) + Correo(112-158) +
-    // Telefono(168-194) + RTN(168-194, columna derecha) + roles(224-244) +
-    // _lblError(250-282) = 282px de contenido — Height se deja en 290 para
-    // dejar un margen inferior y no repetir el bug de botones/labels
-    // cortados por Height insuficiente que se corrigió en la revisión
-    // visual anterior.
     public sealed class TerceroCamposControl : UserControl
     {
         private static readonly Regex CorreoFormatoBasico = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
@@ -31,33 +24,31 @@ namespace Sistemas.Repuestos.Library.Terceros
 
         public TerceroCamposControl()
         {
-            Size = new Size(380, 290);
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
-            var lblNombre = new Label { Text = Textos.Terceros.CampoNombre, AutoSize = true, Location = new Point(0, 0) };
-            _txtNombre = new TextBox { Location = new Point(0, 20), Size = new Size(360, 26) };
+            var grilla = FormularioLayout.CrearGrilla();
+            _txtNombre = new TextBox { Width = 300, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Terceros.CampoNombre, _txtNombre);
+            _txtEmpresa = new TextBox { Width = 300, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Terceros.CampoEmpresa, _txtEmpresa);
+            _txtCorreo = new TextBox { Width = 300, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Terceros.CampoCorreo, _txtCorreo);
+            _txtTelefono = new TextBox { Width = 180, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grilla, Textos.Terceros.CampoTelefono, _txtTelefono);
+            _txtRtn = new TextBox { Width = 180, Height = UiTheme.Medidas.AlturaControl, MaxLength = 14 };
+            FormularioLayout.AgregarCampo(grilla, Textos.Terceros.CampoRtnOpcional, _txtRtn);
 
-            var lblEmpresa = new Label { Text = Textos.Terceros.CampoEmpresa, AutoSize = true, Location = new Point(0, 56) };
-            _txtEmpresa = new TextBox { Location = new Point(0, 76), Size = new Size(360, 26) };
+            var pnlRoles = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(140, 0, 0, UiTheme.Espacio.Lg) };
+            _chkEsProveedor = new CheckBox { Text = Textos.Terceros.CampoEsProveedor, AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xl, 0) };
+            _chkEsCliente = new CheckBox { Text = Textos.Terceros.CampoEsCliente, AutoSize = true };
+            pnlRoles.Controls.AddRange(new Control[] { _chkEsProveedor, _chkEsCliente });
 
-            var lblCorreo = new Label { Text = Textos.Terceros.CampoCorreo, AutoSize = true, Location = new Point(0, 112) };
-            _txtCorreo = new TextBox { Location = new Point(0, 132), Size = new Size(360, 26) };
+            _lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 32 };
 
-            var lblTelefono = new Label { Text = Textos.Terceros.CampoTelefono, AutoSize = true, Location = new Point(0, 168) };
-            _txtTelefono = new TextBox { Location = new Point(0, 188), Size = new Size(170, 26) };
-
-            var lblRtn = new Label { Text = Textos.Terceros.CampoRtnOpcional, AutoSize = true, Location = new Point(190, 168) };
-            _txtRtn = new TextBox { Location = new Point(190, 188), Size = new Size(170, 26), MaxLength = 14 };
-
-            _chkEsProveedor = new CheckBox { Text = Textos.Terceros.CampoEsProveedor, AutoSize = true, Location = new Point(0, 224) };
-            _chkEsCliente = new CheckBox { Text = Textos.Terceros.CampoEsCliente, AutoSize = true, Location = new Point(190, 224) };
-
-            _lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(360, 32), Location = new Point(0, 250) };
-
-            Controls.AddRange(new Control[]
-            {
-                lblNombre, _txtNombre, lblEmpresa, _txtEmpresa, lblCorreo, _txtCorreo,
-                lblTelefono, _txtTelefono, lblRtn, _txtRtn, _chkEsProveedor, _chkEsCliente, _lblError
-            });
+            Controls.Add(_lblError);
+            Controls.Add(pnlRoles);
+            Controls.Add(grilla);
         }
 
         public void Cargar(TerceroDto tercero)
