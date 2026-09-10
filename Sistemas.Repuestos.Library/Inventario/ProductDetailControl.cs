@@ -7,6 +7,7 @@ using Sistemas.Core.Inventory;
 using Sistemas.Core.Inventory.Models;
 using Sistemas.Core.Security;
 using Sistemas.Core.UI;
+using Sistemas.Core.UI.Controles;
 using Sistemas.Repuestos.Library.Models;
 using Sistemas.Repuestos.Library.Services;
 
@@ -92,35 +93,44 @@ namespace Sistemas.Repuestos.Library.Inventario
             BackColor = Color.White;
 
             // ============ Encabezado ============
-            var pnlEncabezado = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = Color.White };
+            var pnlEncabezado = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Xxl, UiTheme.Espacio.Xs, 0, 0) };
 
-            _lnkVolver = new LinkLabel { Text = Textos.Inventario.EnlaceVolver, AutoSize = true, Location = new Point(32, 6) };
+            _lnkVolver = new LinkLabel { Text = Textos.Inventario.EnlaceVolver, Dock = DockStyle.Top, Height = 20 };
             _lnkVolver.Click += (s, e) => Volver?.Invoke(this, EventArgs.Empty);
 
+            var pnlNombreCodigo = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, UiTheme.Espacio.Sm, 0, 0) };
+
+            var pnlNombre = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
             _lblNombreVista = new Label
             {
                 Text = productoExistente?.Nombre ?? string.Empty,
                 Font = UiTheme.FuenteTitulo,
                 ForeColor = UiTheme.TextoOscuro,
                 AutoSize = true,
-                Location = new Point(32, 44),
                 Visible = productoExistente != null
             };
-
-            _lblCampoNombre = new Label { Text = Textos.Inventario.CampoNombre, AutoSize = true, Location = new Point(32, 30), Visible = productoExistente == null };
+            _lblCampoNombre = new Label { Text = Textos.Inventario.CampoNombre, Dock = DockStyle.Top, Height = 18, Visible = productoExistente == null };
             _txtNombre = new TextBox
             {
                 Text = productoExistente?.Nombre ?? string.Empty,
                 Font = UiTheme.FuenteTitulo,
-                Location = new Point(32, 48),
+                Dock = DockStyle.Top,
                 Size = new Size(400, 32),
                 Visible = productoExistente == null
             };
+            pnlNombre.Controls.Add(_txtNombre);
+            pnlNombre.Controls.Add(_lblCampoNombre);
+            pnlNombre.Controls.Add(_lblNombreVista);
 
-            _lblCodigoVista = new Label { Text = productoExistente?.Codigo ?? string.Empty, ForeColor = UiTheme.TextoTenue, AutoSize = true, Location = new Point(456, 54), Visible = productoExistente != null };
+            var pnlCodigo = new Panel { AutoSize = true };
+            _lblCodigoVista = new Label { Text = productoExistente?.Codigo ?? string.Empty, ForeColor = UiTheme.TextoTenue, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Md, 0, 0), Visible = productoExistente != null };
+            _lblCampoCodigo = new Label { Text = Textos.Inventario.CampoCodigo, Dock = DockStyle.Top, Height = 18, Visible = productoExistente == null };
+            _txtCodigo = new TextBox { Text = productoExistente?.Codigo ?? string.Empty, Dock = DockStyle.Top, Width = 180, Height = UiTheme.Medidas.AlturaControl, Visible = productoExistente == null };
+            pnlCodigo.Controls.Add(_txtCodigo);
+            pnlCodigo.Controls.Add(_lblCampoCodigo);
+            pnlCodigo.Controls.Add(_lblCodigoVista);
 
-            _lblCampoCodigo = new Label { Text = Textos.Inventario.CampoCodigo, AutoSize = true, Location = new Point(456, 30), Visible = productoExistente == null };
-            _txtCodigo = new TextBox { Text = productoExistente?.Codigo ?? string.Empty, Location = new Point(456, 48), Size = new Size(180, 26), Visible = productoExistente == null };
+            pnlNombreCodigo.Controls.AddRange(new Control[] { pnlNombre, pnlCodigo });
 
             var pnlBotones = new FlowLayoutPanel
             {
@@ -128,72 +138,85 @@ namespace Sistemas.Repuestos.Library.Inventario
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 WrapContents = false,
-                Padding = new Padding(0, 30, 16, 0)
+                Padding = new Padding(0, UiTheme.Espacio.Xxl + UiTheme.Espacio.Xs, UiTheme.Espacio.Lg, 0)
             };
 
-            _btnCancelar = new Button { Text = Textos.Comun.BotonCancelar, AutoSize = true, Padding = new Padding(14, 0, 14, 0), Height = 32, Margin = new Padding(8, 0, 0, 0) };
+            _btnCancelar = Botones.CrearSecundario(Textos.Comun.BotonCancelar);
             _btnCancelar.Click += (s, e) => Cancelar();
 
-            _btnGuardar = new Button
-            {
-                Text = Textos.Comun.BotonGuardar, AutoSize = true, Padding = new Padding(14, 0, 14, 0), Height = 32,
-                BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Margin = new Padding(8, 0, 0, 0)
-            };
-            _btnGuardar.FlatAppearance.BorderSize = 0;
+            _btnGuardar = Botones.CrearPrimario(Textos.Comun.BotonGuardar);
             _btnGuardar.Click += async (s, e) => await GuardarGeneralAsync();
 
-            _btnAgregarAPack = new Button { Text = Textos.Inventario.BotonAgregarAPack, AutoSize = true, Padding = new Padding(14, 0, 14, 0), Height = 32, Margin = new Padding(8, 0, 0, 0) };
+            _btnAgregarAPack = Botones.CrearSecundario(Textos.Inventario.BotonAgregarAPack);
             _btnAgregarAPack.Click += BtnAgregarAPack_Click;
 
-            _btnEditar = new Button
-            {
-                Text = Textos.Comun.BotonEditar, AutoSize = true, Padding = new Padding(14, 0, 14, 0), Height = 32,
-                BackColor = UiTheme.Primario, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Margin = new Padding(8, 0, 0, 0)
-            };
-            _btnEditar.FlatAppearance.BorderSize = 0;
+            _btnEditar = Botones.CrearPrimario(Textos.Comun.BotonEditar);
             _btnEditar.Click += (s, e) => EntrarModoEdicion();
 
             // Orden de agregado = orden visual izquierda→derecha dentro del panel.
             pnlBotones.Controls.AddRange(new Control[] { _btnEditar, _btnAgregarAPack, _btnGuardar, _btnCancelar });
 
-            pnlEncabezado.Controls.AddRange(new Control[] { _lnkVolver, _lblNombreVista, _lblCampoNombre, _txtNombre, _lblCodigoVista, _lblCampoCodigo, _txtCodigo });
             pnlEncabezado.Controls.Add(pnlBotones);
+            pnlEncabezado.Controls.Add(pnlNombreCodigo);
+            pnlEncabezado.Controls.Add(_lnkVolver);
 
             // ============ Sección General ============
-            // Filas espaciadas ~90px y campos más anchos a propósito: con
-            // toda la pantalla disponible (ya no es un diálogo de 640px), un
-            // formulario denso como el de antes se ve amontonado en una
-            // esquina — más aire entre filas y columnas es lo que hace que
-            // se sienta ordenado, no solo que no se solape.
-            var pnlGeneral = new Panel { Dock = DockStyle.Top, Height = 380, BackColor = Color.White, Padding = new Padding(0, 1, 0, 0) };
+            // Con toda la pantalla disponible (ya no es un diálogo de
+            // 640px), un formulario denso se ve amontonado en una esquina —
+            // más aire entre filas y columnas es lo que hace que se sienta
+            // ordenado, no solo que no se solape.
+            var pnlGeneral = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Xxl, UiTheme.Espacio.Md, 0, 0), AutoSize = true };
 
-            var lblDescripcion = new Label { Text = Textos.Inventario.CampoDescripcion, AutoSize = true, Location = new Point(32, 20) };
-            _txtDescripcion = new TextBox { Text = productoExistente?.Descripcion, Location = new Point(32, 40), Size = new Size(760, 60), Multiline = true };
+            var lblDescripcion = new Label { Text = Textos.Inventario.CampoDescripcion, Dock = DockStyle.Top, Height = 20 };
+            _txtDescripcion = new TextBox { Text = productoExistente?.Descripcion, Dock = DockStyle.Top, Width = 760, Height = 60, Multiline = true, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            var lblPrecio = new Label { Text = Textos.Inventario.CampoPrecioUnitario, AutoSize = true, Location = new Point(32, 128) };
-            _numPrecio = new NumericUpDown { Location = new Point(32, 148), Size = new Size(180, 28), DecimalPlaces = 2, Maximum = 999999, ThousandsSeparator = true, Value = productoExistente?.PrecioUnitario ?? 0 };
+            var filaPrecio = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
 
-            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, AutoSize = true, Location = new Point(250, 128) };
+            var grupoPrecio = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
+            var lblPrecio = new Label { Text = Textos.Inventario.CampoPrecioUnitario, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _numPrecio = new NumericUpDown { Dock = DockStyle.Top, Width = 180, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999, ThousandsSeparator = true, Value = productoExistente?.PrecioUnitario ?? 0 };
+            grupoPrecio.Controls.Add(_numPrecio);
+            grupoPrecio.Controls.Add(lblPrecio);
+
+            var grupoCategoria = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
+            var lblCategoria = new Label { Text = Textos.Inventario.CampoCategoria, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            var pnlCategoriaCombo = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
             _cboCategoria = new ComboBox
             {
-                Location = new Point(250, 148), Size = new Size(320, 28), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(CategoriaDto.Nombre), ValueMember = nameof(CategoriaDto.Id)
+                Width = 280, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
+                DisplayMember = nameof(CategoriaDto.Nombre), ValueMember = nameof(CategoriaDto.Id),
+                Margin = new Padding(0, 0, UiTheme.Espacio.Xs, 0)
             };
-            var btnNuevaCategoria = new Button { Text = "+", Location = new Point(586, 147), Size = new Size(32, 28) };
+            var btnNuevaCategoria = Botones.CrearSecundario("+");
+            btnNuevaCategoria.Width = 32;
             btnNuevaCategoria.Click += BtnNuevaCategoria_Click;
+            pnlCategoriaCombo.Controls.AddRange(new Control[] { _cboCategoria, btnNuevaCategoria });
+            grupoCategoria.Controls.Add(pnlCategoriaCombo);
+            grupoCategoria.Controls.Add(lblCategoria);
 
-            var lblStockActual = new Label { Text = Textos.Inventario.CampoStockActual, AutoSize = true, Location = new Point(660, 128) };
-            _lblStockActualValor = new Label { Text = "—", AutoSize = true, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Location = new Point(660, 150) };
+            var grupoStockActual = new Panel { AutoSize = true };
+            var lblStockActual = new Label { Text = Textos.Inventario.CampoStockActual, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _lblStockActualValor = new Label { Text = "—", Dock = DockStyle.Top, Height = 22, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold) };
+            grupoStockActual.Controls.Add(_lblStockActualValor);
+            grupoStockActual.Controls.Add(lblStockActual);
 
-            var lblTasaIsv = new Label { Text = Textos.Inventario.CampoTasaIsv, AutoSize = true, Location = new Point(32, 214) };
-            _cboTasaIsv = new ComboBox { Location = new Point(32, 234), Size = new Size(140, 28), DropDownStyle = ComboBoxStyle.DropDownList };
+            filaPrecio.Controls.AddRange(new Control[] { grupoPrecio, grupoCategoria, grupoStockActual });
+
+            var filaTasas = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Xl) };
+
+            var grupoTasaIsv = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
+            var lblTasaIsv = new Label { Text = Textos.Inventario.CampoTasaIsv, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _cboTasaIsv = new ComboBox { Dock = DockStyle.Top, Width = 140, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList };
             _cboTasaIsv.Items.AddRange(new object[] { "0", "15", "18" });
             _cboTasaIsv.SelectedItem = productoExistente != null ? ((int)productoExistente.TasaISV).ToString() : "15";
+            grupoTasaIsv.Controls.Add(_cboTasaIsv);
+            grupoTasaIsv.Controls.Add(lblTasaIsv);
 
-            var lblUnidadMedida = new Label { Text = Textos.Inventario.CampoUnidadMedida, AutoSize = true, Location = new Point(210, 214) };
+            var grupoUnidadMedida = new Panel { AutoSize = true, Margin = new Padding(0, 0, UiTheme.Espacio.Xxl, 0) };
+            var lblUnidadMedida = new Label { Text = Textos.Inventario.CampoUnidadMedida, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
             _cboUnidadMedida = new ComboBox
             {
-                Location = new Point(210, 234), Size = new Size(220, 28), DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Top, Width = 220, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
                 DisplayMember = nameof(UnidadMedidaDto.Nombre), ValueMember = nameof(UnidadMedidaDto.Id)
             };
             _cboUnidadMedida.SelectedIndexChanged += (s, e) =>
@@ -201,22 +224,27 @@ namespace Sistemas.Repuestos.Library.Inventario
                 if (_cboUnidadMedida.SelectedItem is UnidadMedidaDto unidad)
                     CantidadFormatter.AplicarModoCantidad(_numStockMinimo, unidad.PermiteFraccion);
             };
+            grupoUnidadMedida.Controls.Add(_cboUnidadMedida);
+            grupoUnidadMedida.Controls.Add(lblUnidadMedida);
 
-            var lblStockMinimo = new Label { Text = Textos.Inventario.CampoStockMinimo, AutoSize = true, Location = new Point(470, 214) };
-            _numStockMinimo = new NumericUpDown { Location = new Point(470, 234), Size = new Size(160, 28), Maximum = 100000, DecimalPlaces = 2, Increment = 0.01m, Value = productoExistente?.StockMinimo ?? 0 };
+            var grupoStockMinimo = new Panel { AutoSize = true };
+            var lblStockMinimo = new Label { Text = Textos.Inventario.CampoStockMinimo, Dock = DockStyle.Top, Height = 18, ForeColor = UiTheme.TextoTenue };
+            _numStockMinimo = new NumericUpDown { Dock = DockStyle.Top, Width = 160, Height = UiTheme.Medidas.AlturaControl, Maximum = 100000, DecimalPlaces = 2, Increment = 0.01m, Value = productoExistente?.StockMinimo ?? 0 };
+            grupoStockMinimo.Controls.Add(_numStockMinimo);
+            grupoStockMinimo.Controls.Add(lblStockMinimo);
 
-            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Location = new Point(32, 296), Checked = productoExistente?.Activo ?? true, Visible = productoExistente != null };
+            filaTasas.Controls.AddRange(new Control[] { grupoTasaIsv, grupoUnidadMedida, grupoStockMinimo });
 
-            _lblErrorGeneral = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(700, 32), Location = new Point(32, 332) };
+            _chkActivo = new CheckBox { Text = Textos.Comun.CampoActivo, AutoSize = true, Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Lg), Checked = productoExistente?.Activo ?? true, Visible = productoExistente != null };
 
-            pnlGeneral.Controls.AddRange(new Control[]
-            {
-                lblDescripcion, _txtDescripcion,
-                lblPrecio, _numPrecio, lblCategoria, _cboCategoria, btnNuevaCategoria,
-                lblStockActual, _lblStockActualValor,
-                lblTasaIsv, _cboTasaIsv, lblStockMinimo, _numStockMinimo, lblUnidadMedida, _cboUnidadMedida,
-                _chkActivo, _lblErrorGeneral
-            });
+            _lblErrorGeneral = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 32, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Md) };
+
+            pnlGeneral.Controls.Add(_lblErrorGeneral);
+            pnlGeneral.Controls.Add(_chkActivo);
+            pnlGeneral.Controls.Add(filaTasas);
+            pnlGeneral.Controls.Add(filaPrecio);
+            pnlGeneral.Controls.Add(_txtDescripcion);
+            pnlGeneral.Controls.Add(lblDescripcion);
 
             // ============ Secciones apiladas (solo con producto ya existente) ============
             _pnlRepuesto = ConstruirSeccionRepuesto(out _txtNumeroParte, out _txtMarcaFabricante, out _chkEsOriginal, out _lblErrorRepuesto);
@@ -452,31 +480,30 @@ namespace Sistemas.Repuestos.Library.Inventario
 
         private Panel ConstruirSeccionRepuesto(out TextBox txtNumeroParte, out TextBox txtMarcaFabricante, out CheckBox chkEsOriginal, out Label lblError)
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 180, BackColor = Color.White, Margin = new Padding(0, 8, 0, 0) };
+            var panel = new Panel { Dock = DockStyle.Top, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Sm, 0, 0), AutoSize = true };
 
-            var lblTitulo = new Label { Text = Textos.Inventario.SeccionRepuesto, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(20, 8) };
+            var lblTitulo = new Label { Text = Textos.Inventario.SeccionRepuesto, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            var lblNumeroParte = new Label { Text = Textos.Inventario.CampoNumeroParte, AutoSize = true, Location = new Point(20, 36) };
-            txtNumeroParte = new TextBox { Location = new Point(20, 56), Size = new Size(240, 26) };
+            var grillaCampos = FormularioLayout.CrearGrilla(120);
+            txtNumeroParte = new TextBox { Width = 240, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grillaCampos, Textos.Inventario.CampoNumeroParte, txtNumeroParte);
+            txtMarcaFabricante = new TextBox { Width = 240, Height = UiTheme.Medidas.AlturaControl };
+            FormularioLayout.AgregarCampo(grillaCampos, Textos.Inventario.CampoMarcaFabricante, txtMarcaFabricante);
 
-            var lblMarcaFabricante = new Label { Text = Textos.Inventario.CampoMarcaFabricante, AutoSize = true, Location = new Point(280, 36) };
-            txtMarcaFabricante = new TextBox { Location = new Point(280, 56), Size = new Size(240, 26) };
+            chkEsOriginal = new CheckBox { Text = Textos.Inventario.CampoEsOriginal, AutoSize = true, Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm), Checked = true };
 
-            chkEsOriginal = new CheckBox { Text = Textos.Inventario.CampoEsOriginal, AutoSize = true, Location = new Point(20, 94), Checked = true };
+            lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 30, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(500, 32), Location = new Point(20, 124) };
-
-            var btnGuardar = new Button { Text = Textos.Comun.BotonGuardar, Location = new Point(20, 158) };
             var txtNumeroParteRef = txtNumeroParte; var txtMarcaRef = txtMarcaFabricante; var chkOriginalRef = chkEsOriginal; var lblErrorRef = lblError;
-            // El botón se reposiciona una vez conocido el ancho real de sus hermanos; se ancla arriba a la derecha visualmente vía Location fijo razonable.
-            btnGuardar.Size = new Size(140, 32);
-            btnGuardar.BackColor = UiTheme.Primario;
-            btnGuardar.ForeColor = Color.White;
-            btnGuardar.FlatStyle = FlatStyle.Flat;
-            btnGuardar.FlatAppearance.BorderSize = 0;
+            var btnGuardar = Botones.CrearPrimario(Textos.Comun.BotonGuardar);
+            btnGuardar.Dock = DockStyle.Top;
             btnGuardar.Click += async (s, e) => await GuardarRepuestoAsync(txtNumeroParteRef, txtMarcaRef, chkOriginalRef, lblErrorRef);
 
-            panel.Controls.AddRange(new Control[] { lblTitulo, lblNumeroParte, txtNumeroParte, lblMarcaFabricante, txtMarcaFabricante, chkEsOriginal, lblError, btnGuardar });
+            panel.Controls.Add(btnGuardar);
+            panel.Controls.Add(lblError);
+            panel.Controls.Add(chkEsOriginal);
+            panel.Controls.Add(grillaCampos);
+            panel.Controls.Add(lblTitulo);
             return panel;
         }
 
@@ -506,37 +533,40 @@ namespace Sistemas.Repuestos.Library.Inventario
 
         private Panel ConstruirSeccionVehiculos(out DataGridView grid, out TextBox txtMarca, out TextBox txtModelo, out NumericUpDown numAnioDesde, out NumericUpDown numAnioHasta, out Label lblError)
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 260, BackColor = Color.White, Margin = new Padding(0, 8, 0, 0) };
+            var panel = new Panel { Dock = DockStyle.Top, Height = 320, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Sm, UiTheme.Espacio.Md, UiTheme.Espacio.Md) };
 
-            var lblTitulo = new Label { Text = Textos.Inventario.SeccionVehiculos, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(20, 8) };
+            var lblTitulo = new Label { Text = Textos.Inventario.SeccionVehiculos, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            var lblMarcaVeh = new Label { Text = Textos.Inventario.CampoMarca, AutoSize = true, Location = new Point(20, 36) };
-            txtMarca = new TextBox { Location = new Point(20, 56), Size = new Size(140, 26) };
-            var lblModeloVeh = new Label { Text = Textos.Inventario.CampoModelo, AutoSize = true, Location = new Point(170, 36) };
-            txtModelo = new TextBox { Location = new Point(170, 56), Size = new Size(140, 26) };
-            var lblAnioDesde = new Label { Text = Textos.Inventario.CampoAnioDesde, AutoSize = true, Location = new Point(320, 36) };
-            numAnioDesde = new NumericUpDown { Location = new Point(320, 56), Size = new Size(80, 26), Minimum = 1950, Maximum = 2100, Value = 2000 };
-            var lblAnioHasta = new Label { Text = Textos.Inventario.CampoAnioHasta, AutoSize = true, Location = new Point(410, 36) };
-            numAnioHasta = new NumericUpDown { Location = new Point(410, 56), Size = new Size(80, 26), Minimum = 1950, Maximum = 2100, Value = 2000 };
+            var filaCampos = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblMarcaVeh = new Label { Text = Textos.Inventario.CampoMarca, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            txtMarca = new TextBox { Width = 140, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblModeloVeh = new Label { Text = Textos.Inventario.CampoModelo, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            txtModelo = new TextBox { Width = 140, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblAnioDesde = new Label { Text = Textos.Inventario.CampoAnioDesde, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            numAnioDesde = new NumericUpDown { Width = 80, Height = UiTheme.Medidas.AlturaControl, Minimum = 1950, Maximum = 2100, Value = 2000, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblAnioHasta = new Label { Text = Textos.Inventario.CampoAnioHasta, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            numAnioHasta = new NumericUpDown { Width = 80, Height = UiTheme.Medidas.AlturaControl, Minimum = 1950, Maximum = 2100, Value = 2000, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
 
-            var gridLocal = new DataGridView();
+            var gridLocal = new DataGridView { Dock = DockStyle.Fill };
             GridStyler.Aplicar(gridLocal);
-            gridLocal.Location = new Point(20, 118);
-            gridLocal.Size = new Size(600, 100);
-            gridLocal.Dock = DockStyle.None;
             gridLocal.Columns.Add("Marca", "Marca");
             gridLocal.Columns.Add("Modelo", "Modelo");
             gridLocal.Columns.Add("AnioDesde", "Año desde");
             gridLocal.Columns.Add("AnioHasta", "Año hasta");
             grid = gridLocal;
 
-            lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(500, 26), Location = new Point(500, 56) };
+            var txtMarcaRef = txtMarca; var txtModeloRef = txtModelo; var numDesdeRef = numAnioDesde; var numHastaRef = numAnioHasta;
+            var btnAgregar = Botones.CrearSecundario(Textos.Comun.BotonAgregar);
+            filaCampos.Controls.AddRange(new Control[] { lblMarcaVeh, txtMarca, lblModeloVeh, txtModelo, lblAnioDesde, numAnioDesde, lblAnioHasta, numAnioHasta, btnAgregar });
 
-            var txtMarcaRef = txtMarca; var txtModeloRef = txtModelo; var numDesdeRef = numAnioDesde; var numHastaRef = numAnioHasta; var lblErrorRef = lblError; var gridRef = grid;
-            var btnAgregar = new Button { Text = Textos.Comun.BotonAgregar, Location = new Point(500, 55), Size = new Size(90, 28) };
+            lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblErrorRef = lblError; var gridRef = grid;
             btnAgregar.Click += async (s, e) => await AgregarVehiculoAsync(txtMarcaRef, txtModeloRef, numDesdeRef, numHastaRef, lblErrorRef, gridRef);
 
-            panel.Controls.AddRange(new Control[] { lblTitulo, lblMarcaVeh, txtMarca, lblModeloVeh, txtModelo, lblAnioDesde, numAnioDesde, lblAnioHasta, numAnioHasta, btnAgregar, lblError, grid });
+            panel.Controls.Add(gridLocal);
+            panel.Controls.Add(lblError);
+            panel.Controls.Add(filaCampos);
+            panel.Controls.Add(lblTitulo);
             return panel;
         }
 
@@ -582,32 +612,34 @@ namespace Sistemas.Repuestos.Library.Inventario
 
         private Panel ConstruirSeccionEquivalencias(out DataGridView grid, out TextBox txtNumeroOem, out TextBox txtFabricante, out Label lblError)
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 220, BackColor = Color.White, Margin = new Padding(0, 8, 0, 0) };
+            var panel = new Panel { Dock = DockStyle.Top, Height = 260, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Sm, UiTheme.Espacio.Md, UiTheme.Espacio.Md) };
 
-            var lblTitulo = new Label { Text = Textos.Inventario.SeccionEquivalencias, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(20, 8) };
+            var lblTitulo = new Label { Text = Textos.Inventario.SeccionEquivalencias, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            var lblNumeroOem = new Label { Text = Textos.Inventario.CampoNumeroOem, AutoSize = true, Location = new Point(20, 36) };
-            txtNumeroOem = new TextBox { Location = new Point(20, 56), Size = new Size(200, 26) };
-            var lblFabricanteOem = new Label { Text = Textos.Inventario.CampoFabricante, AutoSize = true, Location = new Point(230, 36) };
-            txtFabricante = new TextBox { Location = new Point(230, 56), Size = new Size(200, 26) };
+            var filaCampos = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblNumeroOem = new Label { Text = Textos.Inventario.CampoNumeroOem, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            txtNumeroOem = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
+            var lblFabricanteOem = new Label { Text = Textos.Inventario.CampoFabricante, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            txtFabricante = new TextBox { Width = 200, Height = UiTheme.Medidas.AlturaControl, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
 
-            lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(400, 26), Location = new Point(500, 56) };
-
-            var txtNumeroRef = txtNumeroOem; var txtFabRef = txtFabricante; var lblErrorRef = lblError;
-            var gridLocal = new DataGridView();
+            var gridLocal = new DataGridView { Dock = DockStyle.Fill };
             GridStyler.Aplicar(gridLocal);
-            gridLocal.Location = new Point(20, 118);
-            gridLocal.Size = new Size(600, 80);
-            gridLocal.Dock = DockStyle.None;
             gridLocal.Columns.Add("NumeroOEM", "Número OEM");
             gridLocal.Columns.Add("Fabricante", "Fabricante");
             grid = gridLocal;
-            var gridRef = grid;
 
-            var btnAgregar = new Button { Text = Textos.Comun.BotonAgregar, Location = new Point(440, 55), Size = new Size(90, 28) };
+            var txtNumeroRef = txtNumeroOem; var txtFabRef = txtFabricante;
+            var btnAgregar = Botones.CrearSecundario(Textos.Comun.BotonAgregar);
+            filaCampos.Controls.AddRange(new Control[] { lblNumeroOem, txtNumeroOem, lblFabricanteOem, txtFabricante, btnAgregar });
+
+            lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblErrorRef = lblError; var gridRef = grid;
             btnAgregar.Click += async (s, e) => await AgregarEquivalenteAsync(txtNumeroRef, txtFabRef, lblErrorRef, gridRef);
 
-            panel.Controls.AddRange(new Control[] { lblTitulo, lblNumeroOem, txtNumeroOem, lblFabricanteOem, txtFabricante, btnAgregar, lblError, grid });
+            panel.Controls.Add(gridLocal);
+            panel.Controls.Add(lblError);
+            panel.Controls.Add(filaCampos);
+            panel.Controls.Add(lblTitulo);
             return panel;
         }
 
@@ -652,37 +684,42 @@ namespace Sistemas.Repuestos.Library.Inventario
 
         private Panel ConstruirSeccionPrecios(out DataGridView grid, out ComboBox cboProveedor, out NumericUpDown numPrecio, out Label lblError)
         {
-            var panel = new Panel { Dock = DockStyle.Top, Height = 220, BackColor = Color.White, Margin = new Padding(0, 8, 0, 0) };
+            var panel = new Panel { Dock = DockStyle.Top, Height = 260, BackColor = Color.White, Padding = new Padding(UiTheme.Espacio.Md, UiTheme.Espacio.Sm, UiTheme.Espacio.Md, UiTheme.Espacio.Md) };
 
-            var lblTitulo = new Label { Text = Textos.Inventario.SeccionPrecios, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), AutoSize = true, Location = new Point(20, 8) };
+            var lblTitulo = new Label { Text = Textos.Inventario.SeccionPrecios, Font = new Font(UiTheme.FuenteBase, FontStyle.Bold), Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
 
-            var lblProveedor = new Label { Text = Textos.Comun.CampoProveedor, AutoSize = true, Location = new Point(20, 36) };
+            var filaCampos = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblProveedor = new Label { Text = Textos.Comun.CampoProveedor, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
             cboProveedor = new ComboBox
             {
-                Location = new Point(20, 56), Size = new Size(260, 26), DropDownStyle = ComboBoxStyle.DropDownList,
-                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id)
+                Width = 260, Height = UiTheme.Medidas.AlturaControl, DropDownStyle = ComboBoxStyle.DropDownList,
+                DisplayMember = nameof(ProveedorDto.Nombre), ValueMember = nameof(ProveedorDto.Id),
+                Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0)
             };
-            var lblPrecioProveedor = new Label { Text = Textos.Inventario.CampoPrecioCompra, AutoSize = true, Location = new Point(290, 36) };
-            numPrecio = new NumericUpDown { Location = new Point(290, 56), Size = new Size(140, 26), DecimalPlaces = 2, Maximum = 999999 };
+            var lblPrecioProveedor = new Label { Text = Textos.Inventario.CampoPrecioCompra, AutoSize = true, Margin = new Padding(0, UiTheme.Espacio.Sm, UiTheme.Espacio.Xs, 0) };
+            numPrecio = new NumericUpDown { Width = 140, Height = UiTheme.Medidas.AlturaControl, DecimalPlaces = 2, Maximum = 999999, Margin = new Padding(0, 0, UiTheme.Espacio.Md, 0) };
 
-            lblError = new Label { ForeColor = UiTheme.Error, AutoSize = false, Size = new Size(400, 26), Location = new Point(540, 56) };
-
-            var cboProveedorRef = cboProveedor; var numPrecioRef = numPrecio; var lblErrorRef = lblError;
-            var gridLocal = new DataGridView();
+            var gridLocal = new DataGridView { Dock = DockStyle.Fill };
             GridStyler.Aplicar(gridLocal);
-            gridLocal.Location = new Point(20, 118);
-            gridLocal.Size = new Size(600, 80);
-            gridLocal.Dock = DockStyle.None;
             gridLocal.Columns.Add("Nombre", "Proveedor");
             gridLocal.Columns.Add("Telefono", "Teléfono");
-            gridLocal.Columns.Add("PrecioCompra", "Precio de compra");
+            var colPrecioCompra = new DataGridViewTextBoxColumn { Name = "PrecioCompra", HeaderText = "Precio de compra" };
+            GridStyler.ComoColumnaNumerica(colPrecioCompra);
+            gridLocal.Columns.Add(colPrecioCompra);
             grid = gridLocal;
-            var gridRef = grid;
 
-            var btnGuardar = new Button { Text = Textos.Comun.BotonGuardar, Location = new Point(440, 55), Size = new Size(90, 28) };
+            var cboProveedorRef = cboProveedor; var numPrecioRef = numPrecio;
+            var btnGuardar = Botones.CrearSecundario(Textos.Comun.BotonGuardar);
+            filaCampos.Controls.AddRange(new Control[] { lblProveedor, cboProveedor, lblPrecioProveedor, numPrecio, btnGuardar });
+
+            lblError = new Label { ForeColor = UiTheme.Error, Dock = DockStyle.Top, Height = 24, Margin = new Padding(0, 0, 0, UiTheme.Espacio.Sm) };
+            var lblErrorRef = lblError; var gridRef = grid;
             btnGuardar.Click += async (s, e) => await GuardarPrecioAsync(cboProveedorRef, numPrecioRef, lblErrorRef, gridRef);
 
-            panel.Controls.AddRange(new Control[] { lblTitulo, lblProveedor, cboProveedor, lblPrecioProveedor, numPrecio, btnGuardar, lblError, grid });
+            panel.Controls.Add(gridLocal);
+            panel.Controls.Add(lblError);
+            panel.Controls.Add(filaCampos);
+            panel.Controls.Add(lblTitulo);
             return panel;
         }
 
