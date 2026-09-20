@@ -87,6 +87,7 @@ puede cumplir, decilo explícitamente en la entrega en vez de dejarlo pasar.
 **Si tocaste una pantalla**
 - [ ] Cumple la [`GUIA-UI-UX-SISTEMAS-EMPRESARIALES.md`](../GUIA-UI-UX-SISTEMAS-EMPRESARIALES.md):
       rejilla de 4/8 px, jerarquía tipográfica, roles de color
+- [ ] `powershell -ExecutionPolicy Bypass -File scripts/validar-ui.ps1` no informa estilos ni tooltips visibles fuera de las excepciones documentadas
 - [ ] Se parece a una de las cinco pantallas canónicas (§7 de esa guía)
 - [ ] Toda la captura se puede hacer sin tocar el mouse
 - [ ] Los estados vacío, cargando y de error están resueltos, no solo el feliz

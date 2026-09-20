@@ -1,7 +1,7 @@
 # 05 — Estado real y roadmap
 
-> **Última revisión del estado:** 2026-09-09, contra el commit
-> `2517169 Unidades de medida, cantidades decimales y rediseno de Inventario a maestro-detalle`.
+> **Última revisión del estado:** 2026-09-20, contra el árbol de trabajo
+> vigente, incluido el programa de mejora UI/UX aún sin commit.
 >
 > Este documento dice qué existe **de verdad**. Si una IA lee "hecho" donde hay
 > un stub, va a construir sobre aire. Actualizalo al cerrar cada fase.
@@ -72,6 +72,18 @@ históricos) y ADR-0019 (anulación a crédito con pagos) antes de vender.
 3. Resolver ADR-0016, ADR-0018, ADR-0019, ADR-0021
 4. Recorrido manual completo de la checklist de `07-estrategia-de-pruebas.md`
 5. Procedimiento de instalación escrito y ejecutado en una máquina limpia
+
+### Estado del programa UI/UX
+
+- La migración estática de shell, listas, diálogos, arranque, ajustes,
+  inventario, POS, compras e importaciones está registrada como **Migrada**
+  en `docs/ui-ux/04-matriz-migracion-pantallas.md`.
+- Ninguna pantalla se declara **Conforme** todavía: faltan recorridos manuales
+  con datos reales, teclado, estados de error, 1366×768 y 1920×1080 a
+  100/125/150 % de DPI.
+- `scripts/validar-ui.ps1`, `git diff --check` y la compilación de
+  `Sistemas.Repuestos` son las verificaciones estáticas obligatorias mientras
+  no exista evidencia visual.
 
 ### Fase B — Primer cliente
 1. Instalación asistida en el local del cliente
