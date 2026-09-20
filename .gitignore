@@ -3,6 +3,7 @@
 venv/
 env/
 ENV/
+evn/
 
 # Variables de entorno y secretos
 .env
