@@ -12,7 +12,7 @@
 
 ## Restricciones globales
 
-- Una PC con Windows 10 o superior, un monitor y una instancia; empleados distintos usan la máquina por turnos.
+- Una PC Windows, un monitor y una instancia; empleados distintos usan la máquina por turnos.
 - Equipo objetivo de 4 GB de RAM, CPU básica y HDD; ~1,000 productos y varias decenas de ventas por día, con ensayo cercano a cien.
 - Dinero en `Decimal` y representación exacta persistida; escrituras de negocio atómicas y numeración de factura no reutilizable.
 - Una sesión SQLAlchemy por tarea/hilo, escrituras cortas, claves foráneas activas y respaldo consistente de SQLite.
@@ -23,7 +23,7 @@
 
 | Etapa | Entrega verificable | Depende de | Plan |
 |---|---|---|---|
-| 0 | Prototipo en Windows 10 o superior: Flet empaquetado, SQLite/Alembic, respaldo, recuperación por paquete y medidas en la PC del propietario | Ninguna | [Base y Core](2026-09-25-base-core.md) |
+| 0 | Prototipo en Windows: Flet empaquetado, SQLite/Alembic, respaldo, migración reversible por paquete y medidas en equipo objetivo | Ninguna | [Plan ejecutable de etapa 0](2026-09-26-etapa-0-viabilidad-windows.md) |
 | 1 | Arranque, configuración, identidad, licencia offline, permisos en UI/servicio y auditoría | 0 | [Base y Core](2026-09-25-base-core.md) |
 | 2 | Catálogo, importación Excel, inventario, costo promedio, kits y compatibilidad de repuestos | 1 | [Catálogo e inventario](2026-09-25-catalogo-inventario.md) |
 | 3 | Compras, proveedores, cuentas por pagar y abonos parciales | 2 | [Compras y crédito](2026-09-25-compras-credito.md) |
@@ -31,7 +31,7 @@
 | 5 | Anulaciones, devoluciones parciales, proveedor, PDF/impresión y reportes básicos | 4 | [Devoluciones y documentos](2026-09-25-devoluciones-documentos.md) |
 | 6 | Instalador, respaldo/restauración, actualizador firmado normal/obligatorio y aceptación integral | 1–5 | [Operación y entrega](2026-09-25-operacion-entrega.md) |
 
-La etapa 0 es una decisión de viabilidad. Registrar medidas y condiciones en la PC del propietario; él acepta o rechaza el rendimiento observado y luego puede contrastarlo en otras máquinas. Si Python 3.14, Flet o el empaquetado no cumplen, revisar el diseño antes de escalar. El prototipo no autoriza reducir funciones sin acuerdo.
+La etapa 0 es una decisión de viabilidad. Si Python 3.14, Flet o el empaquetado no cumplen el equipo objetivo, registrar medidas y revisar el diseño antes de escalar. El prototipo no autoriza reducir funciones sin acuerdo.
 
 ## Orden dentro de cada etapa
 
