@@ -27,8 +27,9 @@ def test_main_uses_external_data_directory_with_unicode_path(monkeypatch) -> Non
     monkeypatch.setenv("SISTEMASHN_DATA_DIR", data_dir)
 
     class PageProbe:
-        title = ""
-        controls: list[ft.Control] = []
+        def __init__(self) -> None:
+            self.title = ""
+            self.controls: list[ft.Control] = []
 
         def add(self, *controls: ft.Control) -> None:
             self.controls.extend(controls)
