@@ -23,3 +23,11 @@ Pydantic, openpyxl, argon2-cffi y cryptography se incorporan en sus etapas
 funcionales; no forman parte de esta sonda. PDF, impresión y empaquetado final
 siguen pendientes de verificación. Registrar aquí versiones reales del lock,
 comando y hash/tamaño de artefacto cuando se construya en Windows.
+
+Para SQLite, cada conexión habilita `foreign_keys=ON`, espera como máximo
+500 ms ante otro escritor, usa WAL y `synchronous=FULL`. Elegimos `FULL` para
+priorizar confirmaciones durables; su costo en HDD se medirá en Windows antes
+de fijarlo para el producto. Python 3.14 usa `sqlite3` con
+`autocommit=False`; cada sesión SQLAlchemy pertenece a una operación y se
+cierra tras commit o rollback. Alembic usa el mismo motor para sus migraciones
+y el cambio 0002 recrea la tabla en el downgrade conservando los registros.
