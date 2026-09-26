@@ -19,4 +19,4 @@ Esta rama inicia la implementación nueva desde cero. El sistema C#/SQL Server a
 
 ## Estado
 
-Documentación inicial para revisión. No hay código de producto en esta rama todavía.
+La etapa 0 tiene una sonda técnica Flet en la rama de trabajo `codex/etapa0`. Su existencia no constituye un instalador ni valida Windows; las pruebas del equipo objetivo siguen pendientes.

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sistemashn"
+version = "0.1.0"
+description = "Sonda de viabilidad de SistemasHN"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+  "flet>=1.0,<2",
+  "SQLAlchemy>=2.0,<3",
+  "alembic>=1.15,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sistemashn"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
