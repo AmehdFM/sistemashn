@@ -5,8 +5,9 @@ Esta rama inicia la implementación nueva desde cero. El sistema C#/SQL Server a
 ## Orden de lectura
 
 1. [Diseño del producto](superpowers/specs/2026-09-25-sistemashn-python-design.md): alcance, decisiones acordadas e invariantes.
-2. [Plan general](superpowers/plans/2026-09-25-plan-general.md): secuencia de entregas, dependencias y criterios de salida.
-3. Planes específicos: [base y Core](superpowers/plans/2026-09-25-base-core.md), [catálogo e inventario](superpowers/plans/2026-09-25-catalogo-inventario.md), [compras, crédito y proveedores](superpowers/plans/2026-09-25-compras-credito.md), [cotizaciones, POS y caja](superpowers/plans/2026-09-25-cotizaciones-pos-caja.md), [devoluciones y documentos](superpowers/plans/2026-09-25-devoluciones-documentos.md), [operación, entrega y actualizaciones](superpowers/plans/2026-09-25-operacion-entrega.md).
+2. [Investigación de autoimpresión fiscal en Honduras](investigacion-facturacion-honduras.md): modalidad, autorización por negocio, requisitos del sistema y verificaciones pendientes.
+3. [Plan general](superpowers/plans/2026-09-25-plan-general.md): secuencia de entregas, dependencias y criterios de salida.
+4. Planes específicos: [base y Core](superpowers/plans/2026-09-25-base-core.md), [catálogo e inventario](superpowers/plans/2026-09-25-catalogo-inventario.md), [compras, crédito y proveedores](superpowers/plans/2026-09-25-compras-credito.md), [cotizaciones, POS y caja](superpowers/plans/2026-09-25-cotizaciones-pos-caja.md), [devoluciones y documentos](superpowers/plans/2026-09-25-devoluciones-documentos.md), [operación, entrega y actualizaciones](superpowers/plans/2026-09-25-operacion-entrega.md).
 
 ## Convenciones de ejecución
 
