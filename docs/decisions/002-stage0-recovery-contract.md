@@ -1,0 +1,7 @@
+# ADR 002: recuperación local de la sonda
+
+La copia se hace con `sqlite3.Connection.backup()` hacia un archivo nuevo. Un manifiesto adjunto guarda SHA-256 y revisión Alembic. La verificación vuelve a calcular el hash, compara la revisión y ejecuta `PRAGMA integrity_check`. Una restauración sólo crea otra base de ensayo; rehúsa un destino existente. El operador conserva juntos `.sqlite3` y `.manifest.json`.
+
+El paquete de actualización de ensayo contiene exactamente `manifest.json` y `app.bin`, con hash y versiones origen/destino. Un proceso auxiliar lo ejecuta con la aplicación cerrada. Prepara en los volúmenes correspondientes una copia de la base y archivos de reversión; migra sólo la copia de `0001` a `0002`; comprueba integridad y arranque de la sonda antes de reemplazar. Un fallo controlado durante publicación restaura binario, versión y base previos. Se conserva el registro creado antes de la migración.
+
+Esta sonda usa un binario ficticio `app.bin`: la prueba de arranque comprueba archivo, tabla y base de datos, pero **no inicia una aplicación Flet real**. Tampoco prueba bloqueo NTFS, firma del ZIP, entrega remota o migraciones de producción. No ejecutar paquetes de terceros como si fuesen seguros. Los tres reemplazos no forman una transacción durable: un corte de energía entre ellos puede dejar versiones mezcladas y requiere un diario de recuperación antes del actualizador comercial. La reversión de una migración arbitraria no se presume; se usa la copia previa. La validación Windows queda pendiente.
