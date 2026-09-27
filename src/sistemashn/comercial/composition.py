@@ -1,15 +1,19 @@
 """Registro de los servicios de Comercial en el contexto de la aplicación."""
 
+from sistemashn.comercial.caja.service import CashService
 from sistemashn.comercial.catalogo.excel import ExcelImportService
 from sistemashn.comercial.catalogo.kits import KitService
 from sistemashn.comercial.catalogo.search import ProductSearchProvider
 from sistemashn.comercial.catalogo.service import CatalogService
 from sistemashn.comercial.compras.service import PurchaseService
 from sistemashn.comercial.contrapartes.service import PartyService
+from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.ui.extensions import PRODUCT_FORM_EXTENSIONS_KEY
+from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.ui.app_context import AppContext
 
 
@@ -20,11 +24,13 @@ def register_services(
     excel_extensions: list | None = None,
 ) -> None:
     """Servicios en `ctx.services`: catalog, ledger, inventory, kits, excel, parties, accounts,
-    purchases."""
+    purchases, quotes, cash, sales, fiscal."""
     factory, authorizer, clock = ctx.session_factory, ctx.authorizer, ctx.clock
     ledger = InventoryLedger(clock)
     catalog = CatalogService(factory, authorizer, clock, search_providers=search_providers)
     accounts = AccountService(factory, authorizer, clock)
+    cash = CashService(factory, authorizer, clock)
+    quotes = QuoteService(factory, authorizer, clock, ledger)
     ctx.services["catalog"] = catalog
     ctx.services["ledger"] = ledger
     ctx.services["inventory"] = InventoryService(factory, authorizer, clock, ledger)
@@ -35,4 +41,8 @@ def register_services(
     ctx.services["parties"] = PartyService(factory, authorizer, clock)
     ctx.services["accounts"] = accounts
     ctx.services["purchases"] = PurchaseService(factory, authorizer, clock, ledger, accounts)
+    ctx.services["cash"] = cash
+    ctx.services["quotes"] = quotes
+    ctx.services["sales"] = SaleService(factory, authorizer, clock, ledger, accounts, cash, quotes)
+    ctx.services["fiscal"] = FiscalService(factory, authorizer, clock)
     ctx.services.setdefault(PRODUCT_FORM_EXTENSIONS_KEY, [])
