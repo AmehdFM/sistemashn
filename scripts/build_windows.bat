@@ -40,7 +40,10 @@ echo  1. Repuestos
 echo  0. Cancelar
 echo ===============================================
 set /p opcion=Elija una opcion:
-if "%opcion%"=="1" set VERTICAL=repuestos & goto :vertical_elegida
+if "%opcion%"=="1" (
+    set VERTICAL=repuestos
+    goto :vertical_elegida
+)
 if "%opcion%"=="0" (
     pause
     exit /b 0
