@@ -29,11 +29,13 @@ if not exist "%PY%" (
     echo   evn\Scripts\python.exe -m pip install -r requirements-dev.txt
     echo   evn\Scripts\python.exe -m pip install -e . --no-deps
     echo.
+    pause
     exit /b 1
 )
 
 if not exist "src\updater_main.py" (
     echo No se encontro "src\updater_main.py" ^(entrypoint del updater, T6.3^).
+    pause
     exit /b 1
 )
 
@@ -58,12 +60,14 @@ REM al programa principal sin arrastrar mas archivos de los necesarios.
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA en PyInstaller ^(codigo !ERRORLEVEL!^)
+    pause
     exit /b !ERRORLEVEL!
 )
 
 if not exist "%DIST_DIR%\updater.exe" (
     echo.
     echo No se encontro "%DIST_DIR%\updater.exe" tras el build.
+    pause
     exit /b 1
 )
 
@@ -73,5 +77,6 @@ echo.
 echo RESULTADO: OK
 echo build\updater\ solo contiene lo compilado: %DIST_DIR%\updater.exe
 
+pause
 endlocal
 exit /b 0

@@ -41,7 +41,10 @@ echo  0. Cancelar
 echo ===============================================
 set /p opcion=Elija una opcion:
 if "%opcion%"=="1" set VERTICAL=repuestos & goto :vertical_elegida
-if "%opcion%"=="0" exit /b 0
+if "%opcion%"=="0" (
+    pause
+    exit /b 0
+)
 echo Opcion invalida.
 pause
 goto menu
@@ -52,6 +55,7 @@ if /i "%VERTICAL%"=="repuestos" (
 ) else (
     echo Vertical desconocida: "%VERTICAL%".
     echo Verticales soportadas hoy: repuestos
+    pause
     exit /b 1
 )
 
@@ -66,11 +70,13 @@ if not exist "%PY%" (
     echo   evn\Scripts\python.exe -m pip install -r requirements-dev.txt
     echo   evn\Scripts\python.exe -m pip install -e . --no-deps
     echo.
+    pause
     exit /b 1
 )
 
 if not exist "%FLET%" (
     echo No se encontro "evn\Scripts\flet.exe". Verifique que flet este instalado en "evn".
+    pause
     exit /b 1
 )
 
@@ -78,6 +84,7 @@ REM La version es global del sistema: una sola fuente de verdad, no se toca aqui
 for /f "usebackq delims=" %%v in (`"%PY%" -c "from sistemashn import __version__; print(__version__)"`) do set VERSION=%%v
 if "%VERSION%"=="" (
     echo No se pudo leer la version desde sistemashn.__version__.
+    pause
     exit /b 1
 )
 
@@ -117,6 +124,7 @@ robocopy src "%TRABAJO%\proyecto\src" /e /xd __pycache__ /xf *.pyc >nul
 if !ERRORLEVEL! geq 8 (
     echo.
     echo RESULTADO: FALLA al copiar el proyecto a la carpeta de trabajo ^(codigo !ERRORLEVEL!^)
+    pause
     exit /b 1
 )
 
@@ -125,6 +133,7 @@ echo Compilando con "flet build windows" (puede tardar varios minutos)...
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA en "flet build windows" ^(codigo !ERRORLEVEL!^)
+    pause
     exit /b !ERRORLEVEL!
 )
 
@@ -140,6 +149,7 @@ if not defined EXE_DIR (
     echo No se encontro "sistemashn.exe" dentro de "%FLET_OUT%" tras el build.
     echo Revise la salida de "flet build windows" arriba.
     echo La carpeta de trabajo temporal NO se borro, para poder revisarla: %TRABAJO%
+    pause
     exit /b 1
 )
 
@@ -151,6 +161,7 @@ xcopy "!EXE_DIR!*" "%RELEASE_DIR%\" /e /i /y >nul
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA al copiar el resultado a "%RELEASE_DIR%" ^(codigo !ERRORLEVEL!^)
+    pause
     exit /b !ERRORLEVEL!
 )
 
@@ -161,6 +172,7 @@ powershell -NoProfile -Command "Compress-Archive -Path '%RELEASE_DIR%\*' -Destin
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA al comprimir el resultado ^(codigo !ERRORLEVEL!^)
+    pause
     exit /b !ERRORLEVEL!
 )
 
@@ -174,5 +186,6 @@ echo build\ solo contiene lo compilado:
 echo   - Distribuible: %DESTINO%
 echo   - Fuente estable para el instalador (installer\sistemashn.iss): %RELEASE_DIR%
 
+pause
 endlocal
 exit /b 0
