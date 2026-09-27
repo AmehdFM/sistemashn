@@ -145,6 +145,61 @@ Ninguno aparece en el código (grep: cero usos de `on_keyboard_event`, `.focus()
 17. Sensación de lentitud en HDD: cada navegación hace ~22 consultas de permisos más las de `tiene_permiso` de la pantalla, y reconstruye la barra lateral completa.
 18. La ventana mínima se define en dos sitios con valores distintos (640 y 700). No hay pruebas de escalado de Windows al 125 %/150 %, que la spec §6 exige.
 
+## 3bis. Referencias de otros sistemas (SAP, Odoo y similares)
+
+Leyenda: **[doc]** = documentación oficial leída; **[extracto]** = solo el resumen de un buscador, sin abrir la página. Solo se citan patrones que informan una decisión del plan. Este entorno bloquea los sitios oficiales de odoo.com, help.sap.com, squareup.com, help.loyverse.com y community.sap.com; Odoo sí se pudo leer completo desde su repositorio público de documentación en GitHub.
+
+### Odoo 17 — Punto de venta
+- Apertura de caja como paso previo: "click New Session, and at the Opening Cash Control screen, click Open Session". El cierre se hace con "Close Session", que abre "Closing Control" para contar el efectivo. [doc, point_of_sale.rst] → P1b: ofrecer abrir la caja desde el POS.
+- Escanear suma cantidad: "scan a product as many times as needed, or click Qty and enter the number". [doc, shop/barcode.rst] → P0.2 y edición de cantidad por línea en P1b.
+- "Click Search more if the desired product is not loaded automatically." [doc] → P1b: diálogo de búsqueda por nombre.
+- Crear cliente desde el POS con "Customer → Create". [doc] → PartyPicker con "+ Nuevo" (P1c) y pregunta E1.
+- Cobro separado: "clicking Payment. Select the payment method, enter the received amount, and click Validate". [doc] → P1b: un único botón primario de cobro.
+- Desde el POS, "Quotations/Orders" muestra las cotizaciones de Ventas, con "Settle the order" o "Apply a down payment". [doc, shop/sales_order.rst] → P1c: convertir la cotización cargándola en el POS; pregunta H6 (anticipo).
+- Cambio de cajero tocando su nombre, con PIN opcional. "Basic Rights": venta, reembolsos y descuentos. "Advanced Rights": cash-in/cash-out y "close the current POS session". [doc, employee_login.rst] → preguntas A5, J4 y A7.
+- Devolución eligiendo la orden original, o con cantidad negativa. [doc] → pregunta G3 y T5.6.
+- "Start Category" y "Restrict Categories". [doc, configuration.rst] → idea opcional (pregunta K1); fuera del plan base.
+- No verificado: que el POS de Odoo sea una "app aparte". No se afirma.
+
+### Odoo 17 — Pantallas administrativas
+- Búsqueda que se convierte en filtro, filtros predefinidos, "Group By" y "Favorites". [doc, essentials/search.rst] → P2: filtros rápidos predefinidos (Hoy, Semana, Vencidas); sin búsquedas guardadas en v1.
+- Atajos Alt+C, Alt+S, Alt+J, Alt+N/P y Alt+Q; mantener Alt muestra los atajos en pantalla. [doc, essentials/keyboard_shortcuts.rst] → P1b: mostrar el atajo junto a cada botón; Alt+letra para pantallas administrativas, a validar en la prueba técnica.
+
+### SAP Business One
+- Menú principal jerárquico por módulos (Ctrl+0), "My Menu" personalizado y cockpit por rol. [extracto de help.sap.com] → P1a: pantalla de inicio y orden del menú por rol; pregunta C7.
+- "Choose From List" al pulsar Tab en un campo de código; "SAP Business One Suggest" desde la primera letra; búsqueda con comodín *texto*. [extracto] → P1c: Enter sin coincidencia exacta abre la lista de resultados.
+- "Copy To/Copy From": la cotización se copia a pedido con cliente, artículos y precios, y quedan ligados. [extracto] → P1c: la conversión reutiliza la pantalla de captura ya poblada.
+- Atajos: Ctrl+I insertar fila, Ctrl+M duplicar, Ctrl+Tab últimos precios, Ctrl+P imprimir. [extracto] → P1c: atajo de historial de costos en compras; P2: Ctrl+P para imprimir.
+- La guía oficial de interfaz (UserInterface_SG.pdf) existe pero no se pudo leer; no se afirma nada de su contenido.
+
+### Loyverse
+- Reescanear el mismo código suma 1; búsqueda por nombre o SKU en la pantalla de venta. [extracto] → P0.2 y P1b.
+- "Add client" con "Add new customer" dentro de la venta. [extracto] → PartyPicker y pregunta E1.
+- "Cash received" → "Charge" → pantalla con Total y "Change due" → "New sale". [extracto] → P1b: pantalla de resultado con el vuelto en grande y "Nueva venta (Enter)".
+- Tickets abiertos (ventas guardadas sin cobrar). [extracto] → pregunta D8; fuera del plan base.
+- Lista de recibos en el POS con búsqueda, reimpresión y reembolso desde el recibo; los reembolsados en rojo. [extracto] → P2: acciones en el detalle del historial; Devoluciones parte del documento original.
+
+### Square
+Solo resúmenes de búsqueda (cuadrícula de favoritos, teclado de montos, "Quick Amounts"). No se usa para ninguna decisión del plan. La cuadrícula queda condicionada a la pregunta K1.
+
+### Qué no se tomó de estas referencias
+- Interfaces táctiles de tarjetas o cuadrículas (preguntas B4 y K1).
+- Búsquedas guardadas y agrupación libre de Odoo.
+- Cockpit estilo Fiori de SAP; se sustituye por una pantalla de inicio simple (pregunta C7).
+
+### Fuentes
+- Odoo [doc], en `https://raw.githubusercontent.com/odoo/documentation/17.0/content/applications/`:
+  - `sales/point_of_sale.rst`
+  - `sales/point_of_sale/shop/barcode.rst`
+  - `sales/point_of_sale/shop/sales_order.rst`
+  - `sales/point_of_sale/employee_login.rst`
+  - `sales/point_of_sale/configuration.rst`
+  - `essentials/search.rst`
+  - `essentials/keyboard_shortcuts.rst`
+- SAP [extracto]: páginas de `help.sap.com`, `sap-business-one-tips.com`, `community.sap.com`, `sap-b1-blog.com` y `mtcsys.us` sobre Choose From List, Suggest, Copy To/From y atajos de teclado — solo resúmenes de buscador, no las páginas completas.
+- Loyverse [extracto]: artículos de `help.loyverse.com`/`support.loyverse.com` sobre venta por código de barras, alta de cliente en el POS, tickets abiertos y lista de recibos — solo resúmenes de buscador.
+- Square (no usado para ninguna decisión): resumen de buscador sobre `squareup.com` "Set Up Item Grid".
+
 ## 4. Plan de mejora propuesto
 
 Solo incluye decisiones técnicas o de consistencia que se pueden tomar sin el dueño. Lo que depende de él está marcado como **[pregunta X]**.
@@ -225,11 +280,21 @@ Regla de contenedor: todo flujo con **más de una sección de captura va en pant
 
 **Pruebas**: las pruebas de UI existentes (`tests/comercial/ui/`) cubren builders y comportamiento. Al unificar componentes hay que migrarlas. P0.2 y P0.5 cambian el comportamiento esperado por algunas pruebas.
 
-> **Pendiente de esta versión del documento**: falta la sección de referencias de otros sistemas
-> (SAP Business One, Odoo, POS de mostrador tipo Square/Loyverse) pedida explícitamente por el
-> dueño, que se agregará en una siguiente pasada del mismo agente de investigación citando qué
-> sistema inspiró cada recomendación concreta (no se afirma nada sobre esos sistemas sin
-> verificarlo primero).
+### Referencias que informaron cada punto (ver sección 3bis)
+- **P0.2** (producto repetido suma cantidad): Odoo barcode [doc]; Loyverse [extracto].
+- **P1a** (pantalla de inicio y orden del menú por rol): SAP B1 cockpit por rol y "My Menu" [extracto].
+- **P1b**:
+  - Abrir caja desde el POS: Odoo "Opening Cash Control" [doc].
+  - Búsqueda por nombre cuando el código no coincide: Odoo "Search more" [doc] y SAP "Choose From List/Suggest" [extracto].
+  - Pantalla de resultado tras cobrar: Loyverse "Change due / New sale" [extracto].
+  - Atajos visibles junto a cada botón: Odoo [doc].
+- **P1c**:
+  - Cotización cargada ya poblada en el POS al convertir: Odoo "Quotations/Orders" [doc] y SAP "Copy To" [extracto].
+  - `PartyPicker` con alta rápida de cliente: Odoo "Customer → Create" [doc] y Loyverse [extracto].
+  - Atajo de historial de costos en compras: SAP Ctrl+Tab [extracto].
+- **P2**:
+  - Filtros rápidos predefinidos en historiales: Odoo [doc].
+  - Reimprimir y anular desde el detalle del documento: Loyverse "Receipts list" [extracto].
 
 ## 5. Preguntas abiertas para el dueño del negocio
 
@@ -240,6 +305,7 @@ Regla de contenedor: todo flujo con **más de una sección de captura va en pant
 - A4. ¿Los empleados rotan con frecuencia? ¿Cuánto tiempo puede dedicar a enseñarle el sistema a alguien nuevo?
 - A5. ¿Cada empleado inicia sesión con su propio usuario al empezar su turno, o prefieren una sesión compartida? ¿Cambiar de usuario cuando otro va a cobrar le parece aceptable?
 - A6. ¿Usted (el dueño) también cobra en el mostrador, o solo revisa reportes y administra?
+- A7. ¿Quiere cambiar de cajero sin cerrar la sesión completa (con un PIN corto, como en Odoo POS), o prefiere usuario y contraseña cada vez?
 
 ### B. Equipo físico en el mostrador
 - B1. ¿Tamaño y resolución del monitor del mostrador (por ejemplo 19" 1366×768, 22" 1920×1080)? ¿Tiene Windows con escalado al 125 % o más?
@@ -298,6 +364,7 @@ Regla de contenedor: todo flujo con **más de una sección de captura va en pant
 - G4. ¿Con qué frecuencia se devuelven piezas defectuosas al proveedor y cómo lo registra hoy?
 - G5. ¿Quién puede anular una venta del mismo día por error de captura? ¿Con clave del gerente?
 - G6. ¿Qué tan seguido se equivocan los cajeros y necesitan anular?
+- G7. Para una devolución, ¿el empleado debe partir siempre de la venta original (buscar el recibo y elegir las piezas), o a veces se hacen devoluciones sin comprobante?
 
 ### H. Cotizaciones y apartados
 - H1. ¿Quién hace cotizaciones y en qué contexto: cliente en el mostrador, por teléfono o por WhatsApp?
@@ -306,6 +373,7 @@ Regla de contenedor: todo flujo con **más de una sección de captura va en pant
 - H4. Cuando el cliente regresa a comprar lo cotizado, ¿cómo se encuentra la cotización: por número, por nombre del cliente o por teléfono?
 - H5. Si el precio subió desde la cotización, ¿se respeta el precio cotizado o se cobra el nuevo? ¿Quién decide?
 - H6. ¿El cliente suele pagar un anticipo al apartar?
+- H7. Cuando un cliente viene a pagar una cotización, ¿el cajero la abre desde el mismo Punto de venta o desde la pantalla de Cotizaciones?
 
 ### I. Compras y bodega
 - I1. ¿Quién registra las compras: usted, el bodeguero o un encargado? ¿En la PC del mostrador o en otra?
@@ -337,7 +405,7 @@ Regla de contenedor: todo flujo con **más de una sección de captura va en pant
 - L6. ¿Puede dedicar una tarde a probar un prototipo del POS nuevo con un empleado real antes de que se aplique a todas las pantallas?
 - L7. ¿Debe aparecer el logo del negocio en el POS o solo en los documentos impresos?
 
-Total: 78 preguntas.
+Total: 81 preguntas.
 
 ### Critical Files for Implementation
 - `src/sistemashn/core/ui/app_shell.py`
