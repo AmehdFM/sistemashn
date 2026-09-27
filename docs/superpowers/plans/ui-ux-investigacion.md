@@ -2,6 +2,45 @@
 
 Fecha: 2026-09-27 · Rama: `desarrollo` · Alcance: estructura de pantallas, navegación, flujos, jerarquía de información, consistencia y velocidad en el mostrador. **Fuera de alcance: la paleta Grafito y Vino, que se mantiene tal cual (`core/ui/theme.py`), y el stack (sigue siendo Flet 1.0).**
 
+## 0. Decisiones del dueño (respondidas 2026-09-27)
+
+**Aclaración de contexto que cambia el marco de todo el documento**: SistemasHN es un producto para vender a negocios de repuestos variados, no un sistema a medida para un solo negocio. Por eso, donde antes se preguntaba "¿cómo trabaja usted?", la respuesta correcta casi siempre es "debe ser configurable por negocio" en vez de un único comportamiento fijo. Las preguntas de la sección 5 que asumían un negocio único (tamaño exacto de monitor, volumen de ventas diario, etc.) quedan repreguntadas como "¿cuál debe ser el estándar/default del producto?" y muchas respuestas piden que sea un ajuste configurable, no una decisión de diseño fija.
+
+| # | Pregunta | Decisión |
+|---|---|---|
+| — | Lector de código de barras | Siempre 100% opcional; nunca se asume que existe. |
+| — | Tamaño mínimo de pantalla a soportar | 1366×768 (monitor chico típico) sin scroll excesivo ni verse apretado. |
+| D10 | Atajos de teclado | Ofrecerlos pero opcionales: todo debe poder hacerse solo con mouse/clics también. |
+| D12 | Caja obligatoria para vender en efectivo | Configurable por negocio (ajuste "exigir caja abierta"). |
+| C1/C7 | Pantalla de inicio por perfil | Configurable por perfil en Ajustes (no fija). |
+| C2 | Modo mostrador simplificado (sin barra lateral) para el cajero | Sí, implementarlo. |
+| C8 (nueva) | Salir del modo mostrador al menú completo | Configurable por negocio: libre según permiso, o requiere clave de gerente. |
+| A7 | Cambio rápido de cajero con PIN | No es un caso frecuente en el negocio de referencia del dueño; no priorizar para v1, pero no descartarlo del todo si es barato de dar más adelante. |
+| D2 | Prioridad de búsqueda de producto (nombre / número de parte / vehículo) | Las tres son igual de importantes; no hay que priorizar una forma de búsqueda sobre las demás. |
+| D9 | Venta a medias al navegar a otra pantalla | Conservarla en memoria siempre, sin preguntar. |
+| D5 | Escanear/ingresar el mismo producto dos veces | Sumar a la misma línea (cantidad 2), no crear línea nueva. |
+| E1 | Alta de cliente nuevo desde el POS | Configurable por permiso (el dueño decide qué perfiles pueden crear contrapartes). |
+| J4 | Quién puede cerrar caja | Configurable por negocio (no fijo a "solo gerente"). |
+| D3 | Confirmación antes de aplicar la venta | Sí: mostrar resumen y pedir confirmación aparte antes de aplicar (no ir directo al cobrar). |
+| D7 | Qué destacar tras cobrar | El vuelto, en grande, por encima de número de venta o resumen. |
+| D13 | Bloquear venta sin stock suficiente | Configurable por negocio (bloquear o solo avisar). |
+| G1 | Resolución típica de una devolución de cliente | Varía mucho según el caso; no hay una dominante — las tres (cambio/reembolso/saldo a favor) deben estar igual de accesibles, ninguna como "camino principal". |
+| E2 | Quién autoriza una venta a crédito | Configurable por negocio (permiso independiente). |
+| H4/H7 | Dónde retomar una cotización para cobrarla | Debe funcionar desde el POS y desde la pantalla de Cotizaciones, no solo una. |
+| H5 | Precio cotizado vs. precio actual al convertir | Mantener el comportamiento ya implementado: avisar del cambio y dejar decidir al cajero (no automatizarlo en ningún sentido). |
+| J5 | Importancia de exportar a Excel para contador | Muy importante, se usa seguido — no bajarle prioridad en el plan. |
+| L1 | Densidad de información | Depende de la pantalla: simple en POS/mostrador, más denso en pantallas administrativas — no aplicar un único criterio a todo el sistema. |
+| G3/G7 | Devolución sin comprobante original | Debe permitirse (no exigir siempre localizar la venta original), con motivo registrado. |
+| B4 | Soporte de pantalla táctil | No es un requisito real; asumir siempre mouse y teclado, no complicar el diseño por táctil. |
+
+### Efecto de estas decisiones sobre el plan de la sección 4
+- **Nueva pieza de alcance no contemplada originalmente**: varios de estos puntos ("exigir caja abierta", "quién puede cerrar caja", "quién autoriza crédito", "quién puede crear clientes", "pantalla de inicio por perfil", "modo mostrador libre o con clave de gerente") requieren **ajustes de configuración por negocio**, no solo cambios de UI fija. Esto agrega una tarea nueva de infraestructura (una pantalla/sección de "Ajustes de operación" con estos toggles, y que los servicios los lean) que no estaba en el plan P0/P1/P2 original y debe incorporarse antes o junto con P1a.
+- **P1b (modo mostrador)** queda confirmado como parte del plan, con el detalle de que la salida del modo mostrador también es configurable (P1a).
+- **Búsqueda de producto (P1b)**: no priorizar nombre por encima de número de parte o vehículo; la búsqueda combinada (ya prevista con `CatalogSearchService`) debe tratar los tres orígenes con el mismo peso.
+- **D3 confirmado**: la pantalla de resultado de venta (P1b) debe incluir un paso de confirmación con resumen antes de aplicar el cobro, no un cobro directo de un solo clic — esto ajusta la propuesta original de "ir lo más rápido posible" que el plan había sugerido por defecto.
+- **Devoluciones sin comprobante**: `comercial/devoluciones/` (ya implementado en Fase 5) hoy exige `sale_line_id`/`purchase_line_id` reales. Falta una vía alterna para devolución "libre" sin referencia a una venta, que es trabajo de backend, no solo de UI — anotar como ítem adicional de Fase 5/6.
+- **Exportar a Excel** confirma que `comercial/reportes/export_excel` (ya implementado) es una pieza importante a pulir en P2, no un extra postergable.
+
 ## 1. Resumen ejecutivo
 
 El sistema tiene ~20 pantallas funcionales, construidas pantalla por pantalla con widgets comunes mínimos (`core/ui/widgets.py`). La base es correcta: permisos en menú y servicio, estados vacíos y mensajes de error. Pero la UI está pensada como formulario administrativo, no como mostrador. Hay cinco problemas de fondo:
