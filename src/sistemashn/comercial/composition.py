@@ -9,9 +9,11 @@ from sistemashn.comercial.compras.service import PurchaseService
 from sistemashn.comercial.contrapartes.service import PartyService
 from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.devoluciones.service import ReturnService
 from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
+from sistemashn.comercial.reportes.service import ReportService
 from sistemashn.comercial.ui.extensions import PRODUCT_FORM_EXTENSIONS_KEY
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.ui.app_context import AppContext
@@ -48,4 +50,8 @@ def register_services(
         factory, authorizer, clock, ledger, accounts, cash, quotes, fiscal=fiscal
     )
     ctx.services["fiscal"] = fiscal
+    ctx.services["returns"] = ReturnService(factory, authorizer, clock, ledger, accounts)
+    ctx.services["reports"] = ReportService(
+        factory, authorizer, clock, inventory=ctx.services["inventory"]
+    )
     ctx.services.setdefault(PRODUCT_FORM_EXTENSIONS_KEY, [])

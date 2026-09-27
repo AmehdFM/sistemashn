@@ -73,4 +73,4 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T5.2/T5.3 Devoluciones de cliente y proveedor | Hecha | `comercial/devoluciones/`, saldo a favor vía `com_account(kind='credit_note')`, 20 pruebas |
 | T5.4 Documentos PDF | Hecha | `core/documents/renderer.py` (promovido de la sonda de Etapa 0), `comercial/documentos/`, 24 pruebas |
 | T5.5 Excel y reportes | Hecha | `comercial/reportes/`, utilidad con costo histórico, exporta a Excel, 14 pruebas |
-| T5.6 Pantallas | Pendiente | falta registrar `/devoluciones` y `/reportes` (declaradas en `comercial/module.py`, sin builder) |
+| T5.6 Pantallas | Hecha | `devoluciones_view.py`, `reportes_view.py`, registradas en `comercial/ui/screens.py` |

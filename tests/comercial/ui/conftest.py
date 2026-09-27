@@ -12,10 +12,12 @@ from sistemashn.comercial.compras.service import PurchaseService
 from sistemashn.comercial.contrapartes.service import PartyService
 from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.devoluciones.service import ReturnService
 from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.module import COMERCIAL_MODULE
+from sistemashn.comercial.reportes.service import ReportService
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
@@ -100,6 +102,12 @@ def ctx_factory(
             quotes_service,
         )
         fiscal_service = FiscalService(session_factory, authorizer, clock)
+        returns_service = ReturnService(
+            session_factory, authorizer, clock, ledger, accounts_service
+        )
+        reports_service = ReportService(
+            session_factory, authorizer, clock, inventory=inventory_service
+        )
         services = {
             "catalog": catalog_service,
             "inventory": inventory_service,
@@ -113,6 +121,8 @@ def ctx_factory(
             "quotes": quotes_service,
             "sales": sales_service,
             "fiscal": fiscal_service,
+            "returns": returns_service,
+            "reports": reports_service,
         }
         return AppContext(
             session_factory=session_factory,
