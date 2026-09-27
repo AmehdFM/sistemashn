@@ -84,7 +84,7 @@ if not exist "%FLET%" (
 )
 
 REM La version es global del sistema: una sola fuente de verdad, no se toca aqui.
-for /f "usebackq delims=" %%v in (`"%PY%" -c "from sistemashn import __version__; print(__version__)"`) do set VERSION=%%v
+for /f "usebackq delims=" %%v in (`"%PY%" "%~dp0_read_version.py"`) do set VERSION=%%v
 if "%VERSION%"=="" (
     echo No se pudo leer la version desde sistemashn.__version__.
     pause
