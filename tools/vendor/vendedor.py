@@ -6,6 +6,7 @@ al revés. Ver `tools/vendor/README.md`.
 """
 
 import argparse
+import json
 import sys
 import uuid
 from datetime import UTC, datetime
@@ -26,6 +27,7 @@ from sistemashn.core.licensing.license import (
     LicenseError,
     parse_request_code,
 )
+from sistemashn.core.updater.package import manifest_signing_bytes
 
 RECOVERY_PREFIX = "SHNREC1"
 
@@ -90,6 +92,20 @@ def cmd_sign_recovery(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sign_update(args: argparse.Namespace) -> int:
+    clave_privada = _load_private_key(Path(args.key))
+    manifest_path = Path(args.manifest)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    manifest["key_id"] = args.key_id
+    firma = clave_privada.sign(manifest_signing_bytes(manifest))
+    manifest["signature"] = codec.b64url_encode(firma)
+
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"manifest firmado: {manifest_path}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="vendedor", description="Herramienta del vendedor SistemasHN"
@@ -119,6 +135,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_sign_recovery.add_argument("--key", required=True, help="ruta al .priv del vendedor")
     p_sign_recovery.add_argument("--key-id", required=True, help="id de la clave usada")
     p_sign_recovery.set_defaults(func=cmd_sign_recovery)
+
+    p_sign_update = sub.add_parser(
+        "sign-update", help="firma el manifest.json de un paquete de actualización"
+    )
+    p_sign_update.add_argument("--manifest", required=True, help="ruta al manifest.json a firmar")
+    p_sign_update.add_argument("--key", required=True, help="ruta al .priv del vendedor")
+    p_sign_update.add_argument("--key-id", required=True, help="id de la clave usada")
+    p_sign_update.set_defaults(func=cmd_sign_update)
 
     return parser
 

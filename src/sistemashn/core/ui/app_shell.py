@@ -71,8 +71,15 @@ class DesktopApp:
         # Tamaño mínimo para que la barra lateral y los formularios quepan sin recortarse.
         page.window.min_width = 1024
         page.window.min_height = 700
+        page.on_close = self._on_close
         theme.apply_page_theme(page)
         self._render()
+
+    def _on_close(self) -> None:
+        """Borra el archivo de bloqueo (T6.3) al cerrar limpio, para que un `updater`
+        pendiente no tenga que esperar a que expire el chequeo de PID vivo."""
+        if self.ctx.data_dir is not None:
+            (self.ctx.data_dir / ".app.lock").unlink(missing_ok=True)
 
     def _guard(self, accion) -> None:
         """Ejecuta `accion` capturando errores de servicio antes de volver a renderizar."""

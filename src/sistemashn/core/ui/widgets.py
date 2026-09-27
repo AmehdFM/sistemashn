@@ -266,6 +266,37 @@ def file_picker(
     )
 
 
+def directory_picker(
+    on_selected: Callable[[Path], None],
+    *,
+    button_label: str = "Elegir carpeta...",
+    dialog_title: str = "Seleccionar carpeta",
+    icon: ft.IconData | None = ft.Icons.FOLDER_OPEN,
+) -> ft.Control:
+    """Botón que abre el selector nativo de carpetas del sistema operativo.
+
+    Igual que `file_picker`, pero para elegir un directorio destino (respaldos, restauración
+    en ensayo), usando `FilePicker.get_directory_path`.
+    """
+    nombre_elegido = ft.Text("", color=theme.TEXT_MUTED)
+
+    async def _elegir(_: ft.Event[ft.Control]) -> None:
+        picker = ft.FilePicker()
+        ruta_elegida = await picker.get_directory_path(dialog_title=dialog_title)
+        if not ruta_elegida:
+            return
+        ruta = Path(ruta_elegida)
+        nombre_elegido.value = str(ruta)
+        with contextlib.suppress(RuntimeError):
+            nombre_elegido.update()
+        on_selected(ruta)
+
+    return ft.Row(
+        controls=[secondary_button(button_label, _elegir, icon=icon), nombre_elegido],
+        spacing=theme.SPACING["sm"],
+    )
+
+
 def image_picker(
     on_selected: Callable[[Path], None],
     *,

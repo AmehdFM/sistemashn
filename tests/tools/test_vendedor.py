@@ -123,6 +123,55 @@ def test_sign_recovery_produce_token_valido(tmp_path) -> None:
     }
 
 
+def test_sign_update_firma_manifest(tmp_path) -> None:
+    import json
+
+    from sistemashn.core.updater.package import verify_signature
+
+    keys_dir = tmp_path / "keys"
+    keygen = _run("keygen", "--out", str(keys_dir), "--key-id", "upd-1")
+    clave_publica_raw = b64url_decode(keygen.stdout.strip())
+
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "format": 1,
+                "version": "0.2.0",
+                "min_from_version": "0.1.0",
+                "schema_revision": "0002",
+                "files": {"app.txt": "0" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    sign_update = _run(
+        "sign-update",
+        "--manifest",
+        str(manifest_path),
+        "--key",
+        str(keys_dir / "upd-1.priv"),
+        "--key-id",
+        "upd-1",
+    )
+    assert sign_update.returncode == 0, sign_update.stderr
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["key_id"] == "upd-1"
+    assert isinstance(manifest["signature"], str)
+
+    import zipfile
+
+    zip_path = tmp_path / "update.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("manifest.json", json.dumps(manifest))
+        zf.writestr("payload/app.txt", b"0" * 1)
+
+    # No lanza: la firma es válida con la clave pública generada.
+    verify_signature(zip_path, {"upd-1": clave_publica_raw})
+
+
 def test_keygen_rehusa_sobrescribir(tmp_path) -> None:
     keys_dir = tmp_path / "keys"
     primero = _run("keygen", "--out", str(keys_dir), "--key-id", "dev-1")

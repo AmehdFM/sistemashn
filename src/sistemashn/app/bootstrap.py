@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -23,6 +24,7 @@ from sistemashn.core.licensing.keys import VENDOR_PUBLIC_KEYS
 from sistemashn.core.licensing.service import LicenseService
 from sistemashn.core.modules.contracts import ModuleRegistry
 from sistemashn.core.modules.core_module import CORE_MODULE
+from sistemashn.core.operations.service import BackupService
 from sistemashn.core.settings.service import SettingsService
 from sistemashn.core.setup.service import SetupService
 from sistemashn.core.ui.app_context import AppContext
@@ -106,6 +108,7 @@ def build_context(
     ctx.services["settings"] = settings_service
     ctx.services["setup"] = setup_service
     ctx.services["license"] = license_service
+    ctx.services["backups"] = BackupService(factory, authorizer, reloj, db_path)
     comercial_composition.register_services(
         ctx,
         search_providers=repuestos_composition.search_providers(),
@@ -118,5 +121,7 @@ def build_context(
         ctx.business_name = negocio.name
         if negocio.logo_path:
             ctx.logo_path = carpeta / negocio.logo_path
+
+    (carpeta / ".app.lock").write_text(str(os.getpid()), encoding="utf-8")
 
     return ctx

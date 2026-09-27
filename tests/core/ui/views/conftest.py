@@ -1,6 +1,7 @@
 """Fixtures compartidas de las pruebas de vistas del Core: registro, servicios y actores."""
 
 from collections.abc import Callable
+from pathlib import Path
 
 import pytest
 
@@ -14,6 +15,7 @@ from sistemashn.core.identity.service import IdentityService
 from sistemashn.core.licensing.service import LicenseService
 from sistemashn.core.modules.contracts import ModuleRegistry
 from sistemashn.core.modules.core_module import CORE_MODULE
+from sistemashn.core.operations.service import BackupService
 from sistemashn.core.settings.service import SettingsService
 from sistemashn.core.ui.app_context import AppContext
 
@@ -75,7 +77,7 @@ def limited_actor(limited_user_id) -> Actor:
 
 @pytest.fixture
 def ctx_factory(
-    session_factory, registry, authorizer, clock, tmp_path
+    session_factory, registry, authorizer, clock, tmp_path, db_engine
 ) -> Callable[[Actor | None], AppContext]:
     def _build(actor: Actor | None) -> AppContext:
         services = {
@@ -85,6 +87,9 @@ def ctx_factory(
             "settings": SettingsService(session_factory, authorizer, clock, tmp_path),
             "license": LicenseService(session_factory, {}, clock=clock),
             "recovery": RecoveryService(session_factory, clock, {}, lambda: "instalacion-test"),
+            "backups": BackupService(
+                session_factory, authorizer, clock, Path(db_engine.url.database)
+            ),
         }
         return AppContext(
             session_factory=session_factory,
