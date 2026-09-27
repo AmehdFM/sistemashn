@@ -84,7 +84,14 @@ if not exist "%FLET%" (
 )
 
 REM La version es global del sistema: una sola fuente de verdad, no se toca aqui.
-for /f "usebackq delims=" %%v in (`"%PY%" "%~dp0_read_version.py"`) do set VERSION=%%v
+REM Se evita "for /f ... in (`comando`)" a proposito: si la ruta del proyecto tiene
+REM parentesis (frecuente en Windows, p. ej. "Juan (PC)"), esos parentesis chocan con
+REM los que usa "for /f" para delimitar el comando y rompen todo el parseo. Un archivo
+REM temporal de por medio evita el problema sin importar que caracteres tenga la ruta.
+set VERSION_TMP=%TEMP%\sistemashn-version.txt
+"%PY%" "%~dp0_read_version.py" > "%VERSION_TMP%" 2>nul
+set /p VERSION=<"%VERSION_TMP%"
+del "%VERSION_TMP%" 2>nul
 if "%VERSION%"=="" (
     echo No se pudo leer la version desde sistemashn.__version__.
     pause
