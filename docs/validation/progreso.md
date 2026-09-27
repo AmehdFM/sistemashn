@@ -50,6 +50,6 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | Tarea | Estado | Evidencia |
 |---|---|---|
 | T3.1 Contrapartes, idempotencia, numeración, métodos de pago | Hecha | |
-| T3.2 Compras | Pendiente | |
-| T3.3 Cuentas por pagar/cobrar | En curso | |
-| T3.4 Pantallas | Pendiente | |
+| T3.2 Compras | Hecha | `comercial/compras/`, migración `0002_compras.py`, 14 pruebas (contado, crédito, pagos mixtos, fallo en última línea no deja rastro, idempotencia, historial de precios) |
+| T3.3 Cuentas por pagar/cobrar | Hecha (revisada: `AccountService` estaba implementado y probado pero no se registraba en `composition.py`; ya corregido) | `tests/comercial/credito/` |
+| T3.4 Pantallas | Hecha | `contrapartes_view.py`, `compras_view.py` (historial + nueva compra), `cxp_view.py`, registradas en `comercial/ui/screens.py` |

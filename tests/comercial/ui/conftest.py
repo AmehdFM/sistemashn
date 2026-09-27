@@ -7,6 +7,10 @@ import pytest
 from sistemashn.comercial.catalogo.excel import ExcelImportService
 from sistemashn.comercial.catalogo.kits import KitService
 from sistemashn.comercial.catalogo.service import CatalogService
+from sistemashn.comercial.compras.service import PurchaseService
+from sistemashn.comercial.contrapartes.service import PartyService
+from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.module import COMERCIAL_MODULE
 from sistemashn.core.authorization.actor import Actor
@@ -74,11 +78,21 @@ def ctx_factory(
         excel_service = ExcelImportService(
             session_factory, authorizer, clock=clock, catalog_service=catalog_service
         )
+        ledger = InventoryLedger(clock=clock)
+        parties_service = PartyService(session_factory, authorizer, clock=clock)
+        accounts_service = AccountService(session_factory, authorizer, clock=clock)
+        purchases_service = PurchaseService(
+            session_factory, authorizer, clock, ledger, accounts_service
+        )
         services = {
             "catalog": catalog_service,
             "inventory": inventory_service,
             "kits": kit_service,
             "excel": excel_service,
+            "ledger": ledger,
+            "parties": parties_service,
+            "accounts": accounts_service,
+            "purchases": purchases_service,
         }
         return AppContext(
             session_factory=session_factory,
