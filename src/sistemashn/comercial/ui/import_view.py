@@ -30,7 +30,14 @@ def _exportacion_path(ctx: AppContext) -> Path:
 def build_import_view(ctx: AppContext) -> ft.Control:
     excel: ExcelImportService = ctx.service("excel")
 
-    campo_ruta = widgets.form_field("Ruta del archivo .xlsx a importar")
+    ruta_elegida: dict[str, Path | None] = {"ruta": None}
+    selector_archivo = widgets.file_picker(
+        lambda ruta: ruta_elegida.__setitem__("ruta", ruta),
+        button_label="Elegir archivo .xlsx...",
+        dialog_title="Seleccionar catálogo a importar",
+        file_type=ft.FilePickerFileType.CUSTOM,
+        allowed_extensions=["xlsx"],
+    )
     campo_politica = ft.Dropdown(
         label="Política de importación",
         value="solo_validas",
@@ -70,14 +77,14 @@ def build_import_view(ctx: AppContext) -> ft.Control:
     def _vista_previa(_: ft.Event[ft.Control]) -> None:
         error.value = ""
         estado["preview"] = None
-        ruta = (campo_ruta.value or "").strip()
-        if not ruta:
-            error.value = "indique la ruta del archivo a importar"
+        ruta = ruta_elegida["ruta"]
+        if ruta is None:
+            error.value = "elija el archivo a importar"
             resultado_area.controls = []
             _actualizar()
             return
         try:
-            preview = excel.preview(ctx.actor, ruta)
+            preview = excel.preview(ctx.actor, str(ruta))
         except SistemasHNError as exc:
             error.value = str(exc)
             resultado_area.controls = []
@@ -162,7 +169,7 @@ def build_import_view(ctx: AppContext) -> ft.Control:
             ft.Divider(),
             ft.Row(
                 controls=[
-                    campo_ruta,
+                    selector_archivo,
                     campo_politica,
                     widgets.primary_button("Vista previa", _vista_previa),
                 ],

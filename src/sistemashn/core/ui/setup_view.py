@@ -114,7 +114,11 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
         telefono = widgets.form_field("Teléfono")
         correo = widgets.form_field("Correo")
         precios_isv = ft.Checkbox(label="Los precios incluyen ISV", value=True)
-        logo_ruta = widgets.form_field("Ruta de archivo del logo (opcional, PNG/JPG)")
+        logo_elegido: dict[str, Path | None] = {"ruta": None}
+        selector_logo = widgets.image_picker(
+            lambda ruta: logo_elegido.__setitem__("ruta", ruta),
+            button_label="Elegir logo (opcional)...",
+        )
 
         def _enviar(_: ft.Event[ft.Control]) -> None:
             try:
@@ -130,9 +134,8 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
             except ValueError as exc:
                 _set_error(str(exc))
                 return
-            logo = Path(logo_ruta.value) if logo_ruta.value else None
             try:
-                setup_service.submit_business(datos, logo)
+                setup_service.submit_business(datos, logo_elegido["ruta"])
             except SistemasHNError as exc:
                 _set_error(str(exc))
                 return
@@ -148,7 +151,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 telefono,
                 correo,
                 precios_isv,
-                logo_ruta,
+                selector_logo,
                 widgets.primary_button("Continuar", _enviar),
             ],
             spacing=theme.SPACING["sm"],

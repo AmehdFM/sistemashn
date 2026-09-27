@@ -68,6 +68,9 @@ class DesktopApp:
         """Aplica el tema y renderiza la vista inicial en `page`."""
         self.page = page
         page.title = f"SistemasHN {self.ctx.business_name}"
+        # Tamaño mínimo para que la barra lateral y los formularios quepan sin recortarse.
+        page.window.min_width = 1024
+        page.window.min_height = 700
         theme.apply_page_theme(page)
         self._render()
 

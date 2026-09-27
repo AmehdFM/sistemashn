@@ -29,8 +29,6 @@ def build_business_view(ctx: AppContext) -> ft.Control:
         label="Los precios incluyen ISV",
         value=negocio.prices_include_isv if negocio else True,
     )
-    campo_logo = widgets.form_field("Ruta del archivo del logo (PNG/JPG)")
-
     mensaje = ft.Text("")
     codigos_texto = ft.Text("", selectable=True)
 
@@ -53,15 +51,17 @@ def build_business_view(ctx: AppContext) -> ft.Control:
             mensaje.color = theme.ERROR
         mensaje.update()
 
-    def _cambiar_logo(_: ft.Event[ft.Control]) -> None:
+    def _cambiar_logo(ruta: Path) -> None:
         try:
-            settings_service.set_logo(ctx.actor, Path(campo_logo.value or ""))
+            settings_service.set_logo(ctx.actor, ruta)
             mensaje.value = "Logo actualizado."
             mensaje.color = theme.SUCCESS
         except (SistemasHNError, OSError) as exc:
             mensaje.value = f"No se pudo actualizar el logo: {exc}"
             mensaje.color = theme.ERROR
         mensaje.update()
+
+    selector_logo = widgets.image_picker(_cambiar_logo, button_label="Elegir logo...")
 
     def _regenerar_codigos(_: ft.Event[ft.Control]) -> None:
         try:
@@ -86,8 +86,7 @@ def build_business_view(ctx: AppContext) -> ft.Control:
             mensaje,
             ft.Divider(),
             ft.Text("Logo", weight=ft.FontWeight.BOLD),
-            campo_logo,
-            widgets.secondary_button("Cambiar logo", _cambiar_logo),
+            selector_logo,
         ],
         spacing=theme.SPACING["sm"],
     )

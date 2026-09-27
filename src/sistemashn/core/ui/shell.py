@@ -131,9 +131,18 @@ def build_shell(
     on_navigate: Callable[[str], None],
     on_logout: Callable[[], None],
 ) -> ft.Control:
-    """Construye la fila raíz: barra lateral + contenido de la ruta actual."""
+    """Construye la fila raíz: barra lateral + contenido de la ruta actual.
+
+    El contenido va envuelto en una `Column` con scroll propio: la barra lateral
+    permanece fija y cualquier pantalla más alta que la ventana queda accesible
+    desplazándose, en vez de recortarse fuera de la vista.
+    """
     contenido = ft.Container(
-        content=router.build(current_route),
+        content=ft.Column(
+            controls=[router.build(current_route)],
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        ),
         bgcolor=theme.CONTENT_BG,
         padding=ft.Padding.all(theme.SPACING["lg"]),
         expand=True,

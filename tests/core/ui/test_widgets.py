@@ -67,6 +67,16 @@ def test_confirm_dialog_construye_sin_lanzar():
     assert len(dialog.actions) == 2
 
 
+def test_file_picker_construye_sin_lanzar():
+    control = widgets.file_picker(lambda ruta: None)
+    assert isinstance(control, ft.Row)
+
+
+def test_image_picker_construye_sin_lanzar():
+    control = widgets.image_picker(lambda ruta: None)
+    assert isinstance(control, ft.Row)
+
+
 def test_paginated_table_construye_sin_lanzar():
     page = Page(items=[1, 2], total=25, page=2, page_size=10)
     tabla = widgets.paginated_table(

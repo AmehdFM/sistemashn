@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Callable
 from decimal import Decimal
+from pathlib import Path
 
 import flet as ft
 
@@ -223,3 +225,58 @@ def secondary_button(
 ) -> ft.Control:
     """Botón de acción secundaria."""
     return ft.OutlinedButton(content=text, icon=icon, on_click=on_click)
+
+
+def file_picker(
+    on_selected: Callable[[Path], None],
+    *,
+    button_label: str = "Elegir archivo...",
+    dialog_title: str = "Seleccionar archivo",
+    file_type: ft.FilePickerFileType = ft.FilePickerFileType.ANY,
+    allowed_extensions: list[str] | None = None,
+    icon: ft.IconData | None = ft.Icons.ATTACH_FILE,
+) -> ft.Control:
+    """Botón que abre el selector nativo de archivos del sistema operativo.
+
+    Evita que el usuario tenga que escribir o pegar una ruta a mano (frecuente causa
+    de errores: comillas de "Copiar como ruta" de Windows, espacios, rutas relativas).
+    Al elegir un archivo llama a `on_selected` con la ruta absoluta reportada por el
+    sistema operativo y muestra el nombre elegido junto al botón.
+    """
+    nombre_elegido = ft.Text("", color=theme.TEXT_MUTED)
+
+    async def _elegir(_: ft.Event[ft.Control]) -> None:
+        picker = ft.FilePicker()
+        archivos = await picker.pick_files(
+            dialog_title=dialog_title,
+            file_type=file_type,
+            allowed_extensions=allowed_extensions,
+        )
+        if not archivos or not archivos[0].path:
+            return
+        ruta = Path(archivos[0].path)
+        nombre_elegido.value = ruta.name
+        with contextlib.suppress(RuntimeError):
+            nombre_elegido.update()
+        on_selected(ruta)
+
+    return ft.Row(
+        controls=[secondary_button(button_label, _elegir, icon=icon), nombre_elegido],
+        spacing=theme.SPACING["sm"],
+    )
+
+
+def image_picker(
+    on_selected: Callable[[Path], None],
+    *,
+    button_label: str = "Elegir imagen...",
+    dialog_title: str = "Seleccionar imagen",
+) -> ft.Control:
+    """Como `file_picker`, pero filtrado a archivos de imagen."""
+    return file_picker(
+        on_selected,
+        button_label=button_label,
+        dialog_title=dialog_title,
+        file_type=ft.FilePickerFileType.IMAGE,
+        icon=ft.Icons.IMAGE,
+    )
