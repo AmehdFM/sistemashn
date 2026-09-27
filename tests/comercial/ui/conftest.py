@@ -18,12 +18,14 @@ from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.module import COMERCIAL_MODULE
 from sistemashn.comercial.reportes.service import ReportService
+from sistemashn.comercial.ui.parked_sales_store import ParkedSalesStore
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
 from sistemashn.core.identity.models import User
 from sistemashn.core.modules.contracts import ModuleRegistry
 from sistemashn.core.modules.core_module import CORE_MODULE
+from sistemashn.core.settings.service import SettingsService
 from sistemashn.core.ui.app_context import AppContext
 
 
@@ -108,6 +110,7 @@ def ctx_factory(
         reports_service = ReportService(
             session_factory, authorizer, clock, inventory=inventory_service
         )
+        settings_service = SettingsService(session_factory, authorizer, clock, tmp_path)
         services = {
             "catalog": catalog_service,
             "inventory": inventory_service,
@@ -123,6 +126,8 @@ def ctx_factory(
             "fiscal": fiscal_service,
             "returns": returns_service,
             "reports": reports_service,
+            "settings": settings_service,
+            "parked_sales": ParkedSalesStore(),
         }
         return AppContext(
             session_factory=session_factory,

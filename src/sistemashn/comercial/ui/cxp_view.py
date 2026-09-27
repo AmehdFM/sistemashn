@@ -109,7 +109,14 @@ def build_cxp_view(ctx: AppContext) -> ft.Control:
                 error.update()
                 return
             try:
-                accounts.pay(ctx.actor, cuenta.id, pago, request_id)
+                sesion_caja = ctx.service("cash").current(ctx.actor)
+                accounts.pay(
+                    ctx.actor,
+                    cuenta.id,
+                    pago,
+                    request_id,
+                    cash_session_id=sesion_caja.id if sesion_caja is not None else None,
+                )
             except SistemasHNError as exc:
                 error.value = str(exc)
                 error.update()

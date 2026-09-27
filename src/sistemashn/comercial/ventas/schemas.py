@@ -99,6 +99,7 @@ class SaleLineView:
     line_total: Decimal
     unit_cost_snapshot: Decimal | None
     kit_component_of: int | None
+    backorder_qty: Decimal = Decimal("0")
 
 
 @dataclass(frozen=True)

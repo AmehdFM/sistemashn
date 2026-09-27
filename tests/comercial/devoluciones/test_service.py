@@ -16,7 +16,7 @@ from sistemashn.comercial.devoluciones.schemas import (
 from sistemashn.comercial.inventario.models import Stock
 from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
 from sistemashn.core.db.uow import run_in_transaction
-from sistemashn.core.errors import PermissionDenied
+from sistemashn.core.errors import PermissionDenied, ValidationError
 
 
 def _customer_input(sale_line_id, qty, *, condition, resolution, payment=None, request_id="dev-1"):
@@ -391,3 +391,139 @@ def test_reintento_supplier_con_mismo_request_id_no_duplica(
     primera = return_service.supplier_return(admin_actor, entrada)
     segunda = return_service.supplier_return(admin_actor, entrada)
     assert primera.id == segunda.id
+
+
+# -- T7.3: devolución "sin comprobante" ---------------------------------
+
+
+def test_customer_return_sin_comprobante_requiere_product_id_y_precio(sale_line_id):
+    with pytest.raises(ValueError):
+        CustomerReturnInput(
+            sale_line_id=None,
+            qty=Decimal("1"),
+            condition=ReturnCondition.VENDIBLE,
+            resolution=CustomerReturnResolution.CAMBIO,
+            request_id="dev-sc-invalido",
+        )
+
+
+def test_customer_return_sin_comprobante_crea_registro_con_monto_indicado(
+    return_service, session_factory, admin_actor, producto_devolucion_id
+):
+    entrada = CustomerReturnInput(
+        sale_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("80.00"),
+        qty=Decimal("2"),
+        condition=ReturnCondition.VENDIBLE,
+        resolution=CustomerReturnResolution.CAMBIO,
+        request_id="dev-sin-comprobante-1",
+    )
+    vista = return_service.customer_return(admin_actor, entrada)
+
+    assert vista.sale_line_id is None
+    assert vista.product_id == producto_devolucion_id
+    assert vista.amount == Decimal("160.00")
+
+    stock = _stock(session_factory, producto_devolucion_id)
+    assert stock.on_hand == Decimal("2.000")
+
+
+def test_customer_return_sin_comprobante_no_acumula_contra_ninguna_linea(
+    return_service, admin_actor, producto_devolucion_id
+):
+    entrada_1 = CustomerReturnInput(
+        sale_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("80.00"),
+        qty=Decimal("50"),
+        condition=ReturnCondition.VENDIBLE,
+        resolution=CustomerReturnResolution.CAMBIO,
+        request_id="dev-sin-comprobante-a",
+    )
+    entrada_2 = CustomerReturnInput(
+        sale_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("80.00"),
+        qty=Decimal("50"),
+        condition=ReturnCondition.VENDIBLE,
+        resolution=CustomerReturnResolution.CAMBIO,
+        request_id="dev-sin-comprobante-b",
+    )
+    # Sin línea de referencia no hay tope que exceder: ambas se registran sin error.
+    return_service.customer_return(admin_actor, entrada_1)
+    return_service.customer_return(admin_actor, entrada_2)
+
+
+def test_customer_return_sin_comprobante_saldo_a_favor_falla(
+    return_service, admin_actor, producto_devolucion_id
+):
+    entrada = CustomerReturnInput(
+        sale_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("80.00"),
+        qty=Decimal("1"),
+        condition=ReturnCondition.VENDIBLE,
+        resolution=CustomerReturnResolution.SALDO_A_FAVOR,
+        request_id="dev-sin-comprobante-saldo",
+    )
+    with pytest.raises(ValidationError):
+        return_service.customer_return(admin_actor, entrada)
+
+
+def test_supplier_return_sin_comprobante_requiere_product_id_y_precio(purchase_line_id):
+    with pytest.raises(ValueError):
+        SupplierReturnInput(
+            purchase_line_id=None,
+            qty=Decimal("1"),
+            resolution=SupplierReturnResolution.REEMBOLSO,
+            request_id="dev-prov-sc-invalido",
+        )
+
+
+def test_supplier_return_sin_comprobante_crea_registro_con_monto_indicado(
+    return_service, session_factory, admin_actor, producto_devolucion_id, compra_confirmada
+):
+    # La pieza defectuosa debe estar en `unsellable` antes de devolverla al proveedor.
+    from sistemashn.comercial.inventario.ledger import InventoryLedger
+
+    with session_factory() as session:
+        InventoryLedger(clock=lambda: return_service.clock()).move_to_unsellable(
+            session,
+            admin_actor,
+            producto_devolucion_id,
+            Decimal("2"),
+            Decimal("50.00"),
+            ref_type="ajuste_prueba",
+            ref_id="1",
+        )
+        session.commit()
+
+    entrada = SupplierReturnInput(
+        purchase_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("45.00"),
+        qty=Decimal("2"),
+        resolution=SupplierReturnResolution.REEMBOLSO,
+        request_id="dev-prov-sin-comprobante-1",
+    )
+    vista = return_service.supplier_return(admin_actor, entrada)
+
+    assert vista.purchase_line_id is None
+    assert vista.product_id == producto_devolucion_id
+    assert vista.amount == Decimal("90.00")
+
+
+def test_supplier_return_sin_comprobante_credito_futuro_falla(
+    return_service, admin_actor, producto_devolucion_id
+):
+    entrada = SupplierReturnInput(
+        purchase_line_id=None,
+        product_id=producto_devolucion_id,
+        unit_price_override=Decimal("45.00"),
+        qty=Decimal("1"),
+        resolution=SupplierReturnResolution.CREDITO_FUTURO,
+        request_id="dev-prov-sin-comprobante-credito",
+    )
+    with pytest.raises(ValidationError):
+        return_service.supplier_return(admin_actor, entrada)

@@ -46,6 +46,7 @@ from sistemashn.comercial.devoluciones.schemas import (
 from sistemashn.comercial.idempotency import find_previous, remember
 from sistemashn.comercial.inventario.kinds import MovementKind
 from sistemashn.comercial.inventario.ledger import InventoryLedger
+from sistemashn.comercial.inventario.models import Stock
 from sistemashn.comercial.ventas.models import Sale, SaleLine
 from sistemashn.core.audit.service import audit
 from sistemashn.core.authorization.actor import Actor
@@ -97,36 +98,56 @@ class ReturnService:
                     raise NotFound(f"devolución {previo} no existe")
                 return self._to_customer_view(devolucion)
 
-            sale_line = session.get(SaleLine, data.sale_line_id)
-            if sale_line is None:
-                raise ValidationError(f"la línea de venta {data.sale_line_id} no existe")
-            sale = session.get(Sale, sale_line.sale_id)
-            if sale is None or sale.status == "anulada":
-                raise ValidationError("no se puede devolver una línea de una venta anulada")
+            sin_comprobante = data.sale_line_id is None
+            sale: Sale | None = None
+            if not sin_comprobante:
+                sale_line = session.get(SaleLine, data.sale_line_id)
+                if sale_line is None:
+                    raise ValidationError(f"la línea de venta {data.sale_line_id} no existe")
+                sale = session.get(Sale, sale_line.sale_id)
+                if sale is None or sale.status == "anulada":
+                    raise ValidationError("no se puede devolver una línea de una venta anulada")
 
-            ya_devuelto = money(
-                sum(
-                    (
-                        session.scalars(
-                            select(CustomerReturn.qty).where(
-                                CustomerReturn.sale_line_id == data.sale_line_id
-                            )
-                        ).all()
-                    ),
-                    Decimal("0"),
+                ya_devuelto = money(
+                    sum(
+                        (
+                            session.scalars(
+                                select(CustomerReturn.qty).where(
+                                    CustomerReturn.sale_line_id == data.sale_line_id
+                                )
+                            ).all()
+                        ),
+                        Decimal("0"),
+                    )
                 )
-            )
-            if ya_devuelto + data.qty > sale_line.qty:
-                raise ReturnExceedsOriginal(
-                    f"la línea {data.sale_line_id} solo tiene {sale_line.qty - ya_devuelto} "
-                    "disponible para devolver"
-                )
+                if ya_devuelto + data.qty > sale_line.qty:
+                    raise ReturnExceedsOriginal(
+                        f"la línea {data.sale_line_id} solo tiene {sale_line.qty - ya_devuelto} "
+                        "disponible para devolver"
+                    )
 
-            monto = money(data.qty * sale_line.unit_price)
+                monto = money(data.qty * sale_line.unit_price)
+                product_id = sale_line.product_id
+                costo_unitario = sale_line.unit_cost_snapshot
+            else:
+                # Devolución sin comprobante: no hay línea de venta contra la cual acumular ni
+                # validar (plan T7.3); el precio a acreditar lo trae explícitamente el usuario.
+                if data.resolution == CustomerReturnResolution.SALDO_A_FAVOR:
+                    raise ValidationError(
+                        "un saldo a favor sin comprobante requiere el cliente de una venta: "
+                        "use 'sale_line_id'"
+                    )
+                monto = money(data.qty * data.unit_price_override)
+                product_id = data.product_id
+                stock = session.get(Stock, product_id)
+                costo_unitario = stock.avg_cost if stock is not None else Decimal("0.0000")
+
             ahora = self.clock()
 
             devolucion = CustomerReturn(
                 sale_line_id=data.sale_line_id,
+                product_id=data.product_id,
+                unit_price_override=data.unit_price_override,
                 qty=data.qty,
                 condition=data.condition.value,
                 resolution=data.resolution.value,
@@ -143,9 +164,9 @@ class ReturnService:
                 self.ledger.receive(
                     session,
                     actor,
-                    sale_line.product_id,
+                    product_id,
                     data.qty,
-                    sale_line.unit_cost_snapshot,
+                    costo_unitario,
                     kind=MovementKind.CUSTOMER_RETURN_SELLABLE,
                     ref_type="customer_return",
                     ref_id=str(devolucion.id),
@@ -155,15 +176,16 @@ class ReturnService:
                 self.ledger.move_to_unsellable(
                     session,
                     actor,
-                    sale_line.product_id,
+                    product_id,
                     data.qty,
-                    sale_line.unit_cost_snapshot,
+                    costo_unitario,
                     ref_type="customer_return",
                     ref_id=str(devolucion.id),
                     reason=data.reason,
                 )
 
             if data.resolution == CustomerReturnResolution.SALDO_A_FAVOR:
+                assert sale is not None  # garantizado por la validación de arriba
                 if sale.customer_id is None:
                     raise ValidationError("un saldo a favor requiere que la venta tenga un cliente")
                 self.accounts.create_account(
@@ -188,12 +210,14 @@ class ReturnService:
                 summary=f"Devolución de cliente #{devolucion.id} por {monto}",
                 detail={
                     "sale_line_id": data.sale_line_id,
+                    "product_id": data.product_id,
                     "qty": data.qty,
                     "condition": data.condition.value,
                     "resolution": data.resolution.value,
                     "amount": monto,
                     "payment_method": data.payment.method.value if data.payment else None,
                     "reason": data.reason,
+                    "sin_comprobante": sin_comprobante,
                 },
                 clock=self.clock,
             )
@@ -248,36 +272,55 @@ class ReturnService:
                     raise NotFound(f"devolución {previo} no existe")
                 return self._to_supplier_view(devolucion)
 
-            purchase_line = session.get(PurchaseLine, data.purchase_line_id)
-            if purchase_line is None:
-                raise ValidationError(f"la línea de compra {data.purchase_line_id} no existe")
-            purchase = session.get(Purchase, purchase_line.purchase_id)
-            if purchase is None or purchase.status == "anulada":
-                raise ValidationError("no se puede devolver una línea de una compra anulada")
+            sin_comprobante = data.purchase_line_id is None
+            purchase: Purchase | None = None
+            if not sin_comprobante:
+                purchase_line = session.get(PurchaseLine, data.purchase_line_id)
+                if purchase_line is None:
+                    raise ValidationError(f"la línea de compra {data.purchase_line_id} no existe")
+                purchase = session.get(Purchase, purchase_line.purchase_id)
+                if purchase is None or purchase.status == "anulada":
+                    raise ValidationError("no se puede devolver una línea de una compra anulada")
 
-            ya_devuelto = money(
-                sum(
-                    (
-                        session.scalars(
-                            select(SupplierReturn.qty).where(
-                                SupplierReturn.purchase_line_id == data.purchase_line_id
-                            )
-                        ).all()
-                    ),
-                    Decimal("0"),
+                ya_devuelto = money(
+                    sum(
+                        (
+                            session.scalars(
+                                select(SupplierReturn.qty).where(
+                                    SupplierReturn.purchase_line_id == data.purchase_line_id
+                                )
+                            ).all()
+                        ),
+                        Decimal("0"),
+                    )
                 )
-            )
-            if ya_devuelto + data.qty > purchase_line.qty:
-                raise ReturnExceedsOriginal(
-                    f"la línea {data.purchase_line_id} solo tiene "
-                    f"{purchase_line.qty - ya_devuelto} disponible para devolver"
-                )
+                if ya_devuelto + data.qty > purchase_line.qty:
+                    raise ReturnExceedsOriginal(
+                        f"la línea {data.purchase_line_id} solo tiene "
+                        f"{purchase_line.qty - ya_devuelto} disponible para devolver"
+                    )
 
-            monto = money(data.qty * purchase_line.unit_cost)
+                monto = money(data.qty * purchase_line.unit_cost)
+                product_id = purchase_line.product_id
+                costo_unitario = purchase_line.unit_cost
+            else:
+                # Devolución sin comprobante (plan T7.3): sin línea de compra contra la cual
+                # acumular ni validar; `credito_futuro` no aplica sin una CxP de la que descontar.
+                if data.resolution == SupplierReturnResolution.CREDITO_FUTURO:
+                    raise ValidationError(
+                        "un crédito futuro sin comprobante requiere la compra original: "
+                        "use 'purchase_line_id'"
+                    )
+                monto = money(data.qty * data.unit_price_override)
+                product_id = data.product_id
+                costo_unitario = data.unit_price_override
+
             ahora = self.clock()
 
             devolucion = SupplierReturn(
                 purchase_line_id=data.purchase_line_id,
+                product_id=data.product_id,
+                unit_price_override=data.unit_price_override,
                 qty=data.qty,
                 resolution=data.resolution.value,
                 amount=monto,
@@ -294,7 +337,7 @@ class ReturnService:
             self.ledger.unsellable_out(
                 session,
                 actor,
-                purchase_line.product_id,
+                product_id,
                 data.qty,
                 kind=MovementKind.SUPPLIER_RETURN_OUT,
                 ref_type="supplier_return",
@@ -306,15 +349,16 @@ class ReturnService:
                 self.ledger.receive(
                     session,
                     actor,
-                    purchase_line.product_id,
+                    product_id,
                     data.qty,
-                    purchase_line.unit_cost,
+                    costo_unitario,
                     kind=MovementKind.PURCHASE_IN,
                     ref_type="supplier_return",
                     ref_id=str(devolucion.id),
                     reason=data.reason,
                 )
             elif data.resolution == SupplierReturnResolution.CREDITO_FUTURO:
+                assert purchase is not None  # garantizado por la validación de arriba
                 self._aplicar_credito_futuro(session, actor, purchase, devolucion, monto)
 
             remember(session, data.request_id, _OPERACION_PROVEEDOR, str(devolucion.id), self.clock)
@@ -328,10 +372,12 @@ class ReturnService:
                 summary=f"Devolución a proveedor #{devolucion.id} por {monto}",
                 detail={
                     "purchase_line_id": data.purchase_line_id,
+                    "product_id": data.product_id,
                     "qty": data.qty,
                     "resolution": data.resolution.value,
                     "amount": monto,
                     "reason": data.reason,
+                    "sin_comprobante": sin_comprobante,
                 },
                 clock=self.clock,
             )
@@ -470,6 +516,8 @@ class ReturnService:
         return CustomerReturnView(
             id=devolucion.id,
             sale_line_id=devolucion.sale_line_id,
+            product_id=devolucion.product_id,
+            unit_price_override=devolucion.unit_price_override,
             qty=devolucion.qty,
             condition=devolucion.condition,
             resolution=devolucion.resolution,
@@ -484,6 +532,8 @@ class ReturnService:
         return SupplierReturnView(
             id=devolucion.id,
             purchase_line_id=devolucion.purchase_line_id,
+            product_id=devolucion.product_id,
+            unit_price_override=devolucion.unit_price_override,
             qty=devolucion.qty,
             resolution=devolucion.resolution,
             amount=devolucion.amount,

@@ -341,3 +341,95 @@ def test_party_balance_suma_cuentas_del_proveedor(
 def test_uso_directo_del_modelo_account_disponible_para_migracion():
     # La migración de la fase reutiliza el modelo y los disparadores literalmente.
     assert Account.__tablename__ == "com_account"
+
+
+# -- T7.3: caja requerida para abonos en efectivo ---------------------------------
+
+
+def test_abono_en_efectivo_requiere_caja_si_esta_configurado(
+    account_service, session_factory, admin_actor, proveedor_id, now
+):
+    from sistemashn.core.settings.models import Business
+
+    with session_factory() as session:
+        session.add(
+            Business(
+                id=1,
+                name="Repuestos de prueba",
+                legal_name="Repuestos de prueba S. de R.L.",
+                rtn=None,
+                address="Tegucigalpa",
+                phone="0000-0000",
+                email="pruebas@example.com",
+                logo_path=None,
+                prices_include_isv=True,
+                fiscal_enabled=False,
+                cash_session_required=True,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    cuenta_id = _crear_cuenta(account_service, session_factory, admin_actor, party_id=proveedor_id)
+    with pytest.raises(ValidationError):
+        account_service.pay(admin_actor, cuenta_id, _pago("100.00"), "req-1")
+
+
+def test_abono_en_efectivo_con_caja_abierta_pasa_cuando_es_requerida(
+    account_service, session_factory, admin_actor, proveedor_id, now
+):
+    from sistemashn.core.settings.models import Business
+
+    with session_factory() as session:
+        session.add(
+            Business(
+                id=1,
+                name="Repuestos de prueba",
+                legal_name="Repuestos de prueba S. de R.L.",
+                rtn=None,
+                address="Tegucigalpa",
+                phone="0000-0000",
+                email="pruebas@example.com",
+                logo_path=None,
+                prices_include_isv=True,
+                fiscal_enabled=False,
+                cash_session_required=True,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    cuenta_id = _crear_cuenta(account_service, session_factory, admin_actor, party_id=proveedor_id)
+    vista = account_service.pay(admin_actor, cuenta_id, _pago("100.00"), "req-1", cash_session_id=1)
+    assert vista.balance == Decimal("900.00")
+
+
+def test_abono_con_tarjeta_no_requiere_caja_aunque_este_configurada(
+    account_service, session_factory, admin_actor, proveedor_id, now
+):
+    from sistemashn.core.settings.models import Business
+
+    with session_factory() as session:
+        session.add(
+            Business(
+                id=1,
+                name="Repuestos de prueba",
+                legal_name="Repuestos de prueba S. de R.L.",
+                rtn=None,
+                address="Tegucigalpa",
+                phone="0000-0000",
+                email="pruebas@example.com",
+                logo_path=None,
+                prices_include_isv=True,
+                fiscal_enabled=False,
+                cash_session_required=True,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+    cuenta_id = _crear_cuenta(account_service, session_factory, admin_actor, party_id=proveedor_id)
+    vista = account_service.pay(
+        admin_actor, cuenta_id, _pago("100.00", method=PaymentMethod.TARJETA), "req-1"
+    )
+    assert vista.balance == Decimal("900.00")

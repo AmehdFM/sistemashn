@@ -6,8 +6,9 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 
 from sistemashn.comercial.catalogo.schemas import CategoryInput, UnitInput
+from sistemashn.comercial.catalogo.service import CatalogService
 from sistemashn.comercial.inventario.models import Stock
-from sistemashn.core.errors import PermissionDenied, ValidationError
+from sistemashn.core.errors import NotFound, PermissionDenied, ValidationError
 
 from ..conftest import make_product_input
 
@@ -136,6 +137,78 @@ def test_buscar_por_codigo(catalog_service, admin_actor, unidad_id) -> None:
     product_id = catalog_service.create_product(admin_actor, make_product_input(unidad_id))
     resultado = catalog_service.search(admin_actor, "abc-123")
     assert resultado.items[0].id == product_id
+
+
+def _servicio_con_data_dir(session_factory, authorizer, clock, data_dir) -> CatalogService:
+    return CatalogService(session_factory, authorizer, clock=clock, data_dir=data_dir)
+
+
+def test_set_image_guarda_archivo_y_actualiza_image_path(
+    session_factory, authorizer, clock, admin_actor, unidad_id, tmp_path
+) -> None:
+    servicio = _servicio_con_data_dir(session_factory, authorizer, clock, tmp_path)
+    product_id = servicio.create_product(admin_actor, make_product_input(unidad_id))
+
+    origen = tmp_path / "foto.png"
+    origen.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+
+    servicio.set_image(admin_actor, product_id, origen)
+
+    vista = servicio.get_product(admin_actor, product_id)
+    assert vista.image_path == "productos/1.png"
+    assert (tmp_path / "productos" / "1.png").exists()
+
+
+def test_set_image_reemplaza_la_anterior(
+    session_factory, authorizer, clock, admin_actor, unidad_id, tmp_path
+) -> None:
+    servicio = _servicio_con_data_dir(session_factory, authorizer, clock, tmp_path)
+    product_id = servicio.create_product(admin_actor, make_product_input(unidad_id))
+
+    png = tmp_path / "a.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+    servicio.set_image(admin_actor, product_id, png)
+
+    jpg = tmp_path / "b.jpg"
+    jpg.write_bytes(b"\xff\xd8\xff" + b"0" * 20)
+    servicio.set_image(admin_actor, product_id, jpg)
+
+    vista = servicio.get_product(admin_actor, product_id)
+    assert vista.image_path == f"productos/{product_id}.jpg"
+    assert not (tmp_path / "productos" / f"{product_id}.png").exists()
+    assert (tmp_path / "productos" / f"{product_id}.jpg").exists()
+
+
+def test_set_image_producto_inexistente(
+    session_factory, authorizer, clock, admin_actor, tmp_path
+) -> None:
+    servicio = _servicio_con_data_dir(session_factory, authorizer, clock, tmp_path)
+    origen = tmp_path / "foto.png"
+    origen.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+    with pytest.raises(NotFound):
+        servicio.set_image(admin_actor, 999, origen)
+
+
+def test_set_image_sin_permiso_falla(
+    session_factory, authorizer, clock, admin_actor, vendedor_actor, unidad_id, tmp_path
+) -> None:
+    servicio = _servicio_con_data_dir(session_factory, authorizer, clock, tmp_path)
+    product_id = servicio.create_product(admin_actor, make_product_input(unidad_id))
+    origen = tmp_path / "foto.png"
+    origen.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 20)
+    with pytest.raises(PermissionDenied):
+        servicio.set_image(vendedor_actor, product_id, origen)
+
+
+def test_set_image_archivo_invalido_falla(
+    session_factory, authorizer, clock, admin_actor, unidad_id, tmp_path
+) -> None:
+    servicio = _servicio_con_data_dir(session_factory, authorizer, clock, tmp_path)
+    product_id = servicio.create_product(admin_actor, make_product_input(unidad_id))
+    falso = tmp_path / "falso.png"
+    falso.write_bytes(b"no es una imagen")
+    with pytest.raises(ValidationError):
+        servicio.set_image(admin_actor, product_id, falso)
 
 
 def test_buscar_prioriza_coincidencia_exacta_de_codigo(

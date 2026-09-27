@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import threading
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 import flet as ft
 
@@ -45,6 +46,12 @@ def parse_price(text: str, field_name: str = "el precio") -> Decimal:
 def parse_quantity(text: str, field_name: str = "la cantidad") -> Decimal:
     """Convierte un texto de formulario a `Decimal` de cantidad; lanza `ValueError`."""
     return parse_price(text, field_name)
+
+
+def _miniatura(ctx: AppContext, image_path: str | None) -> ft.Control:
+    if not image_path or ctx.data_dir is None:
+        return ft.Container(width=32, height=32)
+    return ft.Image(src=str(ctx.data_dir / image_path), width=32, height=32, fit=ft.BoxFit.COVER)
 
 
 def build_catalog_view(ctx: AppContext) -> ft.Control:
@@ -172,7 +179,16 @@ def build_catalog_view(ctx: AppContext) -> ft.Control:
         if not pagina.items:
             return [encabezado, filtros, widgets.empty_state("No hay productos que coincidan.")]
 
-        columnas = ["Código", "Nombre", "Categoría", "Precio", "Disponible", "Estado", "Acciones"]
+        columnas = [
+            "",
+            "Código",
+            "Nombre",
+            "Categoría",
+            "Precio",
+            "Disponible",
+            "Estado",
+            "Acciones",
+        ]
         filas: list[list[ft.Control]] = []
         categorias = {
             c.id: c.name for c in catalog.list_categories(ctx.actor, include_inactive=True)
@@ -180,6 +196,7 @@ def build_catalog_view(ctx: AppContext) -> ft.Control:
         for producto in pagina.items:
             filas.append(
                 [
+                    _miniatura(ctx, producto.image_path),
                     ft.Text(producto.code),
                     ft.Text(producto.name),
                     ft.Text(
@@ -332,6 +349,8 @@ def _dialogo_producto(
 
     if producto is not None:
         contenido.append(ft.Divider())
+        contenido.append(_imagen_section(ctx, producto, puede_gestionar, _recargar_dialogo))
+        contenido.append(ft.Divider())
         contenido.append(stock_and_movements_section(ctx, producto.id, 1, lambda _p: None))
         boton_ajuste = adjust_button(ctx, producto.id, _recargar_dialogo)
         if boton_ajuste is not None:
@@ -354,6 +373,33 @@ def _dialogo_producto(
     pagina = safe_page(control)
     if pagina is not None:
         pagina.show_dialog(dialog)
+
+
+def _imagen_section(
+    ctx: AppContext, producto: ProductView, puede_gestionar: bool, on_saved
+) -> ft.Control:
+    catalog: CatalogService = ctx.service("catalog")
+    mensaje = ft.Text("", color=theme.ERROR)
+    vista_previa = _miniatura(ctx, producto.image_path)
+
+    controles: list[ft.Control] = [
+        ft.Text("Foto del producto", weight=ft.FontWeight.BOLD),
+        vista_previa,
+    ]
+    if puede_gestionar:
+
+        def _cambiar_imagen(ruta: Path) -> None:
+            try:
+                catalog.set_image(ctx.actor, producto.id, ruta)
+                on_saved()
+            except SistemasHNError as exc:
+                mensaje.value = f"No se pudo actualizar la imagen: {exc}"
+                mensaje.color = theme.ERROR
+                mensaje.update()
+
+        controles.append(widgets.image_picker(_cambiar_imagen, button_label="Elegir foto..."))
+    controles.append(mensaje)
+    return ft.Column(controls=controles, spacing=theme.SPACING["sm"])
 
 
 def _kit_section(ctx: AppContext, kit_id: int, puede_gestionar: bool) -> ft.Control:

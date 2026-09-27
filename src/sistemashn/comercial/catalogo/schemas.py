@@ -140,3 +140,4 @@ class ProductView:
     reserved: Decimal
     available: Decimal
     avg_cost: Decimal | None
+    image_path: str | None

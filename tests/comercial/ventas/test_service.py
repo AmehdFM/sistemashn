@@ -20,7 +20,7 @@ from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput
 from sistemashn.core.errors import PermissionDenied, ValidationError
 
 from ..fiscal.conftest import set_business_fiscal
-from .conftest import recibir_stock
+from .conftest import recibir_stock, set_operation_settings
 
 
 def _input(
@@ -438,3 +438,153 @@ def test_anular_venta_con_caja_ya_cerrada_falla(
 
     # No debió tocar el inventario: se valida la caja antes de revertir cualquier cosa.
     assert _stock(session_factory, producto_id).on_hand == Decimal("9.000")
+
+
+# -- T7.3: comportamientos condicionados a `core_business` ---------------------------------
+
+
+def test_caja_requerida_sin_sesion_falla(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id, now
+):
+    set_operation_settings(session_factory, now, cash_session_required=True)
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+
+    with pytest.raises(ValidationError):
+        sale_service.confirm(admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos))
+
+
+def test_caja_requerida_con_sesion_pasa(
+    sale_service, cash_service, session_factory, inventory_ledger, admin_actor, producto_id, now
+):
+    set_operation_settings(session_factory, now, cash_session_required=True)
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    sesion = cash_service.open(admin_actor, Decimal("100.00"))
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+
+    vista = sale_service.confirm(
+        admin_actor,
+        _input([_linea(producto_id, qty="1")], payments=pagos, cash_session_id=sesion.id),
+    )
+    assert vista.total == Decimal("172.50")
+
+
+def test_caja_no_requerida_sin_business_no_bloquea(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id
+):
+    # Sin fila `core_business`, el comportamiento probado en Fases 1-6 se preserva: no exige caja.
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos)
+    )
+    assert vista.total == Decimal("172.50")
+
+
+def test_bloqueo_por_stock_se_mantiene_por_defecto(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id, now
+):
+    set_operation_settings(session_factory, now, block_sale_without_stock=True)
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "2")
+
+    with pytest.raises(InsufficientStock):
+        sale_service.confirm(admin_actor, _input([_linea(producto_id, qty="5")]))
+
+
+def test_sin_bloqueo_de_stock_registra_backorder_y_no_deja_negativo(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id, now
+):
+    set_operation_settings(session_factory, now, block_sale_without_stock=False)
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "2")
+
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("862.50"))]
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="5")], payments=pagos)
+    )
+
+    linea = vista.lines[0]
+    assert linea.qty == Decimal("5.000")
+    assert linea.backorder_qty == Decimal("3.000")
+
+    stock = _stock(session_factory, producto_id)
+    assert stock.on_hand == Decimal("0.000")
+
+
+def test_venta_a_credito_sin_permiso_com_ventas_credito_falla(
+    sale_service, session_factory, inventory_ledger, vendedor_actor, cliente_id, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, vendedor_actor, producto_id, "10")
+    with pytest.raises(PermissionDenied):
+        sale_service.confirm(
+            vendedor_actor,
+            _input(
+                [_linea(producto_id, qty="1")],
+                customer_id=cliente_id,
+                credit_due_date=date(2026, 10, 15),
+            ),
+        )
+
+
+def test_venta_a_credito_con_permiso_gerente_pasa(
+    sale_service,
+    session_factory,
+    inventory_ledger,
+    admin_actor,
+    gerente_actor,
+    cliente_id,
+    producto_id,
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    vista = sale_service.confirm(
+        gerente_actor,
+        _input(
+            [_linea(producto_id, qty="1")],
+            customer_id=cliente_id,
+            credit_due_date=date(2026, 10, 15),
+        ),
+    )
+    assert vista.credit_amount == Decimal("172.50")
+
+
+def test_descuento_sin_permiso_com_ventas_descuento_falla(
+    sale_service, session_factory, inventory_ledger, vendedor_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, vendedor_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("100.00"))]
+    with pytest.raises(PermissionDenied):
+        sale_service.confirm(
+            vendedor_actor,
+            _input([_linea(producto_id, qty="1", unit_price=Decimal("100.00"))], payments=pagos),
+        )
+
+
+def test_descuento_fuera_de_tope_falla(
+    sale_service, session_factory, inventory_ledger, gerente_actor, producto_id, now
+):
+    # precio de catálogo 150.00; tope 10%; se intenta un 20% de descuento.
+    set_operation_settings(session_factory, now, max_discount_percent=Decimal("0.10"))
+    recibir_stock(session_factory, inventory_ledger, gerente_actor, producto_id, "10")
+    with pytest.raises(ValidationError):
+        sale_service.confirm(
+            gerente_actor,
+            _input(
+                [_linea(producto_id, qty="1", unit_price=Decimal("120.00"))],
+                payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("120.00"))],
+            ),
+        )
+
+
+def test_descuento_dentro_de_tope_pasa(
+    sale_service, session_factory, inventory_ledger, gerente_actor, producto_id, now
+):
+    set_operation_settings(session_factory, now, max_discount_percent=Decimal("0.10"))
+    recibir_stock(session_factory, inventory_ledger, gerente_actor, producto_id, "10")
+    vista = sale_service.confirm(
+        gerente_actor,
+        _input(
+            [_linea(producto_id, qty="1", unit_price=Decimal("140.00"))],
+            payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("161.00"))],
+        ),
+    )
+    assert vista.total == Decimal("161.00")

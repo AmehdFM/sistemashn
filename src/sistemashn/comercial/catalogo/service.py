@@ -1,8 +1,10 @@
 """Servicio de catálogo: unidades, categorías y productos (plan T2.1)."""
 
+import shutil
 from collections.abc import Callable
 from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -26,9 +28,38 @@ from sistemashn.core.db.uow import run_in_transaction
 from sistemashn.core.errors import NotFound, ValidationError
 from sistemashn.core.pagination import Page, normalize_page
 
+# `core` no puede importar de `comercial`, pero lo inverso sí está permitido: reusamos la
+# validación de firma de bytes ya escrita para el logo del negocio en vez de duplicarla.
+from sistemashn.core.settings.service import sniff_image_extension
+
+MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024
+
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def save_product_image(data_dir: Path, product_id: int, source: Path) -> str:
+    """Valida y copia `source` a `data_dir/productos/<product_id>.<ext>`.
+
+    Reemplaza cualquier imagen anterior del mismo producto. Retorna la ruta relativa a
+    `data_dir` (p. ej. `"productos/7.png"`), consistente con `Business.logo_path`.
+    """
+    contenido = source.read_bytes()
+    if len(contenido) > MAX_PRODUCT_IMAGE_BYTES:
+        raise ValidationError(
+            f"la imagen no puede superar {MAX_PRODUCT_IMAGE_BYTES // (1024 * 1024)} MB"
+        )
+    extension = sniff_image_extension(contenido)
+
+    carpeta = data_dir / "productos"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    for existente in carpeta.glob(f"{product_id}.*"):
+        existente.unlink()
+
+    destino = carpeta / f"{product_id}.{extension}"
+    shutil.copyfile(source, destino)
+    return f"productos/{destino.name}"
 
 
 def _unit_to_view(unit: Unit) -> UnitView:
@@ -54,11 +85,13 @@ class CatalogService:
         authorizer: Authorizer,
         clock: Callable[[], datetime] = _utcnow,
         search_providers: list[ProductSearchProvider] | None = None,
+        data_dir: Path | None = None,
     ) -> None:
         self.factory = factory
         self.authorizer = authorizer
         self.clock = clock
         self.search_providers = search_providers or []
+        self.data_dir = data_dir
 
     # -- Unidades ---------------------------------------------------------
 
@@ -275,6 +308,34 @@ class CatalogService:
 
         run_in_transaction(self.factory, _op)
 
+    def set_image(self, actor: Actor, product_id: int, source: Path) -> None:
+        if self.data_dir is None:
+            raise ValidationError("no hay directorio de datos configurado para imágenes")
+
+        def _op(session: Session) -> None:
+            self.authorizer.require(session, actor, "com.catalogo.gestionar")
+            product = session.get(Product, product_id)
+            if product is None:
+                raise NotFound(f"producto {product_id} no existe")
+
+            nombre_archivo = save_product_image(self.data_dir, product_id, source)
+            product.image_path = nombre_archivo
+            product.updated_at = self.clock()
+            session.flush()
+
+            audit(
+                session,
+                actor,
+                "com.catalogo.imagen_actualizada",
+                entity_type="com_product",
+                entity_id=str(product.id),
+                summary=f"Imagen del producto '{product.code}' actualizada",
+                detail={"image_path": nombre_archivo},
+                clock=self.clock,
+            )
+
+        run_in_transaction(self.factory, _op)
+
     def get_product(self, actor: Actor, product_id: int) -> ProductView:
         def _op(session: Session) -> ProductView:
             self.authorizer.require(session, actor, "com.catalogo.ver")
@@ -414,4 +475,5 @@ class CatalogService:
             reserved=reserved,
             available=on_hand - reserved,
             avg_cost=avg_cost,
+            image_path=product.image_path,
         )

@@ -1,8 +1,10 @@
 """Fixtures locales de las pruebas de ventas (plan T4.2)."""
 
+from datetime import datetime
 from decimal import Decimal
 
 import pytest
+from sqlalchemy.orm import Session, sessionmaker
 
 from sistemashn.comercial.caja.service import CashService
 from sistemashn.comercial.catalogo.kits import KitService
@@ -11,9 +13,68 @@ from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
 from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.ventas.service import SaleService
+from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.db.uow import run_in_transaction
+from sistemashn.core.identity.models import User
+from sistemashn.core.settings.models import Business
 
 from ..conftest import make_product_input
+
+
+def set_operation_settings(
+    session_factory: sessionmaker[Session],
+    now: datetime,
+    *,
+    cash_session_required: bool = False,
+    block_sale_without_stock: bool = True,
+    max_discount_percent: Decimal = Decimal("0"),
+) -> None:
+    """Crea o actualiza `core_business` (`id=1`) con los ajustes de operación indicados (T7.3)."""
+    with session_factory() as session:
+        business = session.get(Business, 1)
+        if business is None:
+            business = Business(
+                id=1,
+                name="Repuestos de prueba",
+                legal_name="Repuestos de prueba S. de R.L.",
+                rtn=None,
+                address="Tegucigalpa",
+                phone="0000-0000",
+                email="pruebas@example.com",
+                logo_path=None,
+                prices_include_isv=True,
+                fiscal_enabled=False,
+                updated_at=now,
+            )
+            session.add(business)
+        business.cash_session_required = cash_session_required
+        business.block_sale_without_stock = block_sale_without_stock
+        business.max_discount_percent = max_discount_percent
+        business.updated_at = now
+        session.commit()
+
+
+@pytest.fixture
+def gerente_actor(session_factory, now) -> Actor:
+    with session_factory() as session:
+        user = User(
+            username="gerente1",
+            full_name="Usuario gerente1",
+            password_hash="hash",
+            is_admin=False,
+            is_active=True,
+            profile_code="gerente",
+            permissions_version=1,
+            failed_attempts=0,
+            locked_until=None,
+            must_change_password=False,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(user)
+        session.commit()
+        user_id = user.id
+    return Actor(user_id=user_id, username="gerente1", is_admin=False, session_id="s-gerente")
 
 
 @pytest.fixture

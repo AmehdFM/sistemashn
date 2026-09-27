@@ -19,7 +19,7 @@ from sistemashn.comercial.credito.schemas import (
     AccountView,
 )
 from sistemashn.comercial.idempotency import find_previous, remember
-from sistemashn.comercial.pagos.methods import PaymentInput
+from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
 from sistemashn.core.audit.service import audit
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
@@ -28,6 +28,8 @@ from sistemashn.core.db.uow import run_in_transaction
 from sistemashn.core.errors import NotFound, ValidationError
 from sistemashn.core.money import money
 from sistemashn.core.pagination import Page, normalize_page
+from sistemashn.core.settings.models import Business
+from sistemashn.core.settings.service import BUSINESS_ID
 
 _OPERATION = "cuenta.pago"
 
@@ -215,6 +217,7 @@ class AccountService:
         account_id: int,
         payment: PaymentInput,
         request_id: str,
+        cash_session_id: int | None = None,
     ) -> AccountView:
         def _op(session: Session) -> AccountView:
             cuenta = session.get(Account, account_id)
@@ -222,6 +225,20 @@ class AccountService:
                 raise NotFound(f"cuenta {account_id} no existe")
             account_kind = AccountKind(cuenta.kind)
             self.authorizer.require(session, actor, _PAY_PERMISSION[account_kind])
+
+            business = session.get(Business, BUSINESS_ID)
+            cash_session_required = (
+                business.cash_session_required if business is not None else False
+            )
+            if (
+                cash_session_required
+                and payment.method == PaymentMethod.EFECTIVO
+                and cash_session_id is None
+            ):
+                raise ValidationError(
+                    "el abono en efectivo requiere una sesión de caja abierta "
+                    "(ajuste 'caja requerida')"
+                )
 
             previo = find_previous(session, request_id, _OPERATION)
             if previo is not None:

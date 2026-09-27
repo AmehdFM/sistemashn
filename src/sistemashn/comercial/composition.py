@@ -15,6 +15,7 @@ from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.reportes.service import ReportService
 from sistemashn.comercial.ui.extensions import PRODUCT_FORM_EXTENSIONS_KEY
+from sistemashn.comercial.ui.parked_sales_store import ParkedSalesStore
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.ui.app_context import AppContext
 
@@ -26,10 +27,12 @@ def register_services(
     excel_extensions: list | None = None,
 ) -> None:
     """Servicios en `ctx.services`: catalog, ledger, inventory, kits, excel, parties, accounts,
-    purchases, quotes, cash, sales, fiscal."""
+    purchases, quotes, cash, sales, fiscal, parked_sales."""
     factory, authorizer, clock = ctx.session_factory, ctx.authorizer, ctx.clock
     ledger = InventoryLedger(clock)
-    catalog = CatalogService(factory, authorizer, clock, search_providers=search_providers)
+    catalog = CatalogService(
+        factory, authorizer, clock, search_providers=search_providers, data_dir=ctx.data_dir
+    )
     accounts = AccountService(factory, authorizer, clock)
     cash = CashService(factory, authorizer, clock)
     quotes = QuoteService(factory, authorizer, clock, ledger)
@@ -55,3 +58,5 @@ def register_services(
         factory, authorizer, clock, inventory=ctx.services["inventory"]
     )
     ctx.services.setdefault(PRODUCT_FORM_EXTENSIONS_KEY, [])
+    # En memoria, por sesión de proceso: ver `ParkedSalesStore` (T7.5).
+    ctx.services["parked_sales"] = ParkedSalesStore()

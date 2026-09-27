@@ -16,10 +16,14 @@ from sistemashn.comercial.contrapartes.schemas import PartyView
 from sistemashn.comercial.contrapartes.service import PartyService
 from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
-from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput
+from sistemashn.comercial.ui.components import safe_page
+from sistemashn.comercial.ui.parked_sales_store import ParkedSalesStore
+from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput, SaleView
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.errors import SistemasHNError
 from sistemashn.core.money import money
+from sistemashn.core.settings.schemas import DEFAULT_PRINT_RECEIPT_POLICY
+from sistemashn.core.settings.service import SettingsService
 from sistemashn.core.ui import theme, widgets
 from sistemashn.core.ui.app_context import AppContext
 
@@ -54,18 +58,24 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     sales: SaleService = ctx.service("sales")
     cash: CashService = ctx.service("cash")
     fiscal: FiscalService = ctx.service("fiscal")
+    parked: ParkedSalesStore = ctx.service("parked_sales")
+    settings_service: SettingsService = ctx.service("settings")
 
-    estado: dict = {
-        "request_id": uuid4().hex,
-        "cliente": None,
-        "lineas": [],
-        "pagos": [],
-        "cash_session_id": None,
-    }
+    def _nuevo_estado() -> dict:
+        return {
+            "request_id": uuid4().hex,
+            "cliente": None,
+            "lineas": [],
+            "pagos": [],
+            "cash_session_id": None,
+        }
+
+    estado: dict = _nuevo_estado()
 
     root = ft.Column(spacing=theme.SPACING["md"], expand=True, scroll=ft.ScrollMode.AUTO)
 
     aviso_caja = ft.Text("", color=theme.ERROR)
+    boton_ventas_espera = widgets.secondary_button("Ventas en espera (0)", lambda e: None)
 
     campo_cliente_busqueda = widgets.form_field("Buscar cliente por nombre o RTN (opcional)")
     resultados_cliente = ft.Column(spacing=theme.SPACING["xs"])
@@ -304,10 +314,8 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
         campo_referencia_pago.update()
 
     def _limpiar_formulario() -> None:
-        estado["request_id"] = uuid4().hex
-        estado["cliente"] = None
-        estado["lineas"] = []
-        estado["pagos"] = []
+        estado.clear()
+        estado.update(_nuevo_estado())
         cliente_elegido.value = ""
         campo_cliente_busqueda.value = ""
         campo_vencimiento.value = ""
@@ -315,12 +323,106 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
         _render_lineas()
         _render_pagos()
 
-    def _confirmar(_: ft.Event[ft.Control]) -> None:
-        resultado_confirmacion.value = ""
+    def _tiene_venta_en_curso() -> bool:
+        return bool(estado["lineas"]) or bool(estado["pagos"])
+
+    def _actualizar_boton_espera() -> None:
+        cantidad = len(parked.list_for_user(ctx.actor.user_id)) if ctx.actor is not None else 0
+        boton_ventas_espera.content = f"Ventas en espera ({cantidad})"
+
+    def _aparcar_venta(_: ft.Event[ft.Control]) -> None:
+        if not _tiene_venta_en_curso():
+            error.value = "no hay ninguna línea que aparcar"
+            error.update()
+            return
+        if ctx.actor is not None:
+            parked.park(ctx.actor.user_id, estado)
+        _limpiar_formulario()
+        _actualizar_boton_espera()
+        boton_ventas_espera.update()
+        root.controls = _build_controls()
+        root.update()
+
+    def _retomar_borrador(park_id: str) -> None:
+        borrador = parked.retrieve(park_id)
+        if borrador is None:
+            return
+        parked.discard(park_id)
+        estado.clear()
+        estado.update(borrador)
+        cliente_elegido.value = (
+            f"Cliente: {estado['cliente'].name}" if estado["cliente"] is not None else ""
+        )
+        campo_vencimiento.value = ""
+        _actualizar_sesion_caja()
+        _actualizar_boton_espera()
+        root.controls = _build_controls()
+        root.update()
+
+    def _abrir_ventas_en_espera(control: ft.Event[ft.Control]) -> None:
+        if ctx.actor is None:
+            return
+        borradores = parked.list_for_user(ctx.actor.user_id)
+
+        def _hacer_retomar(park_id: str) -> None:
+            def _al_confirmar() -> None:
+                _retomar_borrador(park_id)
+
+            if _tiene_venta_en_curso():
+                pagina = safe_page(control.control)
+                if pagina is not None:
+                    pagina.show_dialog(
+                        widgets.confirm_dialog(
+                            "Reemplazar venta en curso",
+                            "Hay una venta sin aparcar en curso. ¿Retomar el borrador de todos "
+                            "modos y descartar lo que no ha guardado?",
+                            _al_confirmar,
+                        )
+                    )
+            else:
+                _al_confirmar()
+            dialog.open = False
+            dialog.update()
+
+        filas: list[ft.Control] = []
+        for park_id, borrador in borradores:
+            cantidad_lineas = len(borrador.get("lineas", []))
+            filas.append(
+                ft.Row(
+                    controls=[
+                        ft.Text(f"{cantidad_lineas} línea(s)"),
+                        widgets.secondary_button(
+                            "Retomar", lambda e, pid=park_id: _hacer_retomar(pid)
+                        ),
+                    ],
+                    spacing=theme.SPACING["sm"],
+                )
+            )
+        if not filas:
+            filas.append(ft.Text("No hay ventas en espera."))
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Ventas en espera"),
+            content=ft.Column(controls=filas, tight=True, spacing=theme.SPACING["xs"]),
+            actions=[widgets.secondary_button("Cerrar", lambda e: _cerrar_dialogo())],
+        )
+
+        def _cerrar_dialogo() -> None:
+            dialog.open = False
+            dialog.update()
+
+        pagina = safe_page(control.control)
+        if pagina is not None:
+            pagina.show_dialog(dialog)
+
+    boton_ventas_espera.on_click = _abrir_ventas_en_espera
+
+    def _construir_sale_input() -> SaleInput | None:
         if not estado["lineas"]:
             error.value = "agregue al menos una línea"
             error.update()
-            return
+            return None
 
         _subtotal, _impuesto, total, pagado, _vuelto = _calcular_totales()
         fecha_vencimiento: date | None = None
@@ -328,21 +430,21 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
             if estado["cliente"] is None:
                 error.value = "una venta a crédito requiere seleccionar un cliente"
                 error.update()
-                return
+                return None
             texto_fecha = (campo_vencimiento.value or "").strip()
             if not texto_fecha:
                 error.value = "una venta a crédito requiere fecha de vencimiento"
                 error.update()
-                return
+                return None
             try:
                 fecha_vencimiento = date.fromisoformat(texto_fecha)
             except ValueError:
                 error.value = "fecha de vencimiento inválida, use AAAA-MM-DD"
                 error.update()
-                return
+                return None
 
         try:
-            data = SaleInput(
+            return SaleInput(
                 customer_id=estado["cliente"].id if estado["cliente"] is not None else None,
                 lines=[
                     SaleLineInput(product_id=ln.product_id, qty=ln.qty, unit_price=ln.unit_price)
@@ -359,32 +461,129 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
         except Exception as exc:  # validación de Pydantic
             error.value = str(exc)
             error.update()
-            return
+            return None
 
+    def _politica_impresion() -> str:
         try:
-            venta = sales.confirm(ctx.actor, data)
-        except SistemasHNError as exc:
-            error.value = str(exc)
-            error.update()
-            return
+            negocio = settings_service.get_business()
+        except SistemasHNError:
+            negocio = None
+        return negocio.print_receipt_policy if negocio is not None else DEFAULT_PRINT_RECEIPT_POLICY
 
-        error.value = ""
-        mensaje = f"Venta {venta.number} confirmada por {widgets.format_lempiras(venta.total)}."
-        if venta.change_amount > 0:
-            mensaje += f" Vuelto: {widgets.format_lempiras(venta.change_amount)}."
+    def _imprimir_recibo(_: ft.Event[ft.Control]) -> None:
+        # No hay integración de impresora real todavía (fuera de alcance de T7.5): este botón
+        # es un placeholder que no hace nada, salvo dejar constancia de la intención del cajero.
+        pass
+
+    def _mostrar_resultado(venta: SaleView) -> None:
+        politica = _politica_impresion()
+        controles: list[ft.Control] = [
+            widgets.page_header("Venta confirmada"),
+            ft.Text(f"Venta {venta.number}"),
+            ft.Text(
+                widgets.format_lempiras(venta.change_amount),
+                size=32,
+                weight=ft.FontWeight.BOLD,
+                color=theme.SUCCESS,
+            ),
+            ft.Text("Vuelto", color=theme.TEXT_MUTED),
+        ]
         if venta.credit_amount > 0:
-            mensaje += f" Crédito: {widgets.format_lempiras(venta.credit_amount)}."
-        resultado_confirmacion.value = mensaje
+            controles.append(
+                ft.Text(f"Queda a crédito: {widgets.format_lempiras(venta.credit_amount)}")
+            )
+        # Con política 'auto' no se pregunta: se entiende que ya se imprimió sin pedir
+        # confirmación al cajero, así que no se muestra el botón en ese caso. Con 'never'
+        # tampoco se muestra.
+        if politica == "ask":
+            controles.append(widgets.secondary_button("Imprimir", _imprimir_recibo))
+        controles.append(widgets.primary_button("Nueva venta", _nueva_venta))
+        root.controls = controles
+        root.update()
+
+    def _nueva_venta(_: ft.Event[ft.Control]) -> None:
         _limpiar_formulario()
         root.controls = _build_controls()
         root.update()
 
+    def _confirmar(evento: ft.Event[ft.Control]) -> None:
+        resultado_confirmacion.value = ""
+        data = _construir_sale_input()
+        if data is None:
+            return
+
+        _subtotal, _impuesto, total, pagado, vuelto = _calcular_totales()
+
+        def _confirmar_de_verdad() -> None:
+            try:
+                venta = sales.confirm(ctx.actor, data)
+            except SistemasHNError as exc:
+                error.value = str(exc)
+                error.update()
+                return
+            error.value = ""
+            _mostrar_resultado(venta)
+
+        filas_resumen: list[ft.Control] = [
+            ft.Text(
+                f"{ln.code} - {ln.name} · cant {ln.qty} · {widgets.format_lempiras(ln.unit_price)}"
+            )
+            for ln in estado["lineas"]
+        ]
+        filas_resumen.append(ft.Divider())
+        filas_resumen.append(ft.Text(f"Total: {widgets.format_lempiras(total)}"))
+        for pago in estado["pagos"]:
+            filas_resumen.append(
+                ft.Text(f"Pago {pago.method.value}: {widgets.format_lempiras(pago.amount)}")
+            )
+        if vuelto > 0:
+            filas_resumen.append(ft.Text(f"Vuelto: {widgets.format_lempiras(vuelto)}"))
+        elif pagado < total:
+            filas_resumen.append(
+                ft.Text(f"Crédito: {widgets.format_lempiras(money(total - pagado))}")
+            )
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirmar venta"),
+            content=ft.Column(controls=filas_resumen, tight=True, spacing=theme.SPACING["xs"]),
+        )
+
+        def _volver_a_editar(_: ft.Event[ft.Control]) -> None:
+            dialog.open = False
+            dialog.update()
+
+        def _confirmar_dialogo(_: ft.Event[ft.Control]) -> None:
+            dialog.open = False
+            dialog.update()
+            _confirmar_de_verdad()
+
+        dialog.actions = [
+            widgets.secondary_button("Volver a editar", _volver_a_editar),
+            widgets.primary_button("Confirmar", _confirmar_dialogo),
+        ]
+        pagina = safe_page(evento.control)
+        if pagina is not None:
+            pagina.show_dialog(dialog)
+        else:
+            # Sin página adjunta (p. ej. en pruebas de construcción): no hay dónde mostrar el
+            # diálogo, así que se confirma directo para no bloquear el flujo.
+            _confirmar_de_verdad()
+
     def _build_controls() -> list[ft.Control]:
         _render_lineas()
         _render_pagos()
+        _actualizar_boton_espera()
         controles: list[ft.Control] = [
             widgets.page_header("Punto de venta"),
             aviso_caja,
+            ft.Row(
+                controls=[
+                    widgets.secondary_button("Aparcar venta", _aparcar_venta),
+                    boton_ventas_espera,
+                ],
+                spacing=theme.SPACING["sm"],
+            ),
             ft.Text("Cliente", weight=ft.FontWeight.BOLD),
             ft.Row(
                 controls=[

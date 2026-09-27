@@ -42,9 +42,11 @@ from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
 from sistemashn.core.db.uow import run_in_transaction
 from sistemashn.core.errors import NotFound, ValidationError
-from sistemashn.core.money import money
+from sistemashn.core.money import money, qty, rate
 from sistemashn.core.money import unit_cost as quantize_unit_cost
 from sistemashn.core.pagination import Page, normalize_page
+from sistemashn.core.settings.models import Business
+from sistemashn.core.settings.service import BUSINESS_ID
 
 _OPERATION = "venta.confirmar"
 
@@ -91,6 +93,24 @@ class SaleService:
                     raise NotFound(f"venta {previo} no existe")
                 return self._to_view(session, sale)
 
+            # Ajustes de operación (T7.3): sin fila `core_business`, se preserva el
+            # comportamiento estricto probado en Fases 1-6 (bloquear sin stock, no exigir caja).
+            business = session.get(Business, BUSINESS_ID)
+            cash_session_required = (
+                business.cash_session_required if business is not None else False
+            )
+            block_sale_without_stock = (
+                business.block_sale_without_stock if business is not None else True
+            )
+            max_discount_percent = (
+                business.max_discount_percent if business is not None else Decimal("0")
+            )
+
+            if cash_session_required and data.cash_session_id is None:
+                raise ValidationError(
+                    "la venta requiere una sesión de caja abierta (ajuste 'caja requerida')"
+                )
+
             quote: Quote | None = None
             usa_apartado = False
             if data.quote_id is not None:
@@ -121,6 +141,19 @@ class SaleService:
                     raise InvalidSaleLine(f"el producto '{product.code}' está inactivo")
 
                 precio = linea.unit_price if linea.unit_price is not None else product.sale_price
+                if linea.unit_price is not None and linea.unit_price < product.sale_price:
+                    self.authorizer.require(session, actor, "com.ventas.descuento")
+                    if product.sale_price > 0:
+                        descuento_pct = rate(
+                            (product.sale_price - linea.unit_price) / product.sale_price
+                        )
+                    else:
+                        descuento_pct = Decimal("0")
+                    if descuento_pct > max_discount_percent:
+                        raise ValidationError(
+                            f"la línea {indice} excede el descuento máximo permitido "
+                            f"({max_discount_percent * 100}%)"
+                        )
                 tasa = linea.tax_rate if linea.tax_rate is not None else product.tax_rate
                 subtotal = money(linea.qty * precio)
                 impuesto = money(subtotal * tasa)
@@ -151,9 +184,12 @@ class SaleService:
                 )
 
             # Se verifica disponibilidad agregada de cada componente ANTES de mover inventario:
-            # si algún producto no alcanza, no debe quedar rastro de ninguna línea.
+            # si algún producto no alcanza, no debe quedar rastro de ninguna línea (salvo que
+            # `block_sale_without_stock=False`, donde el faltante se acepta como backorder).
             for product_id, cantidad in demanda.items():
-                self._verificar_disponibilidad(session, product_id, cantidad, usa_apartado)
+                self._verificar_disponibilidad(
+                    session, product_id, cantidad, usa_apartado, block_sale_without_stock
+                )
 
             subtotal_venta = money(sum((li["subtotal"] for li in lineas_calculadas), Decimal("0")))
             tax_total = money(sum((li["tax"] for li in lineas_calculadas), Decimal("0")))
@@ -165,6 +201,8 @@ class SaleService:
                 raise ValidationError("una venta a crédito requiere un cliente")
             if credito > 0 and data.credit_due_date is None:
                 raise ValidationError("una venta a crédito requiere fecha de vencimiento")
+            if credito > 0:
+                self.authorizer.require(session, actor, "com.ventas.credito")
 
             numero = format_number("V", next_number(session, "venta"))
             ahora = self.clock()
@@ -190,9 +228,23 @@ class SaleService:
             session.add(sale)
             session.flush()
 
+            permitir_backorder = not block_sale_without_stock
             for li in lineas_calculadas:
                 product = li["product"]
                 kit_lines = li["kit_lines"]
+                if kit_lines is not None:
+                    costo_encabezado = self._costo_kit(kit_lines, li["qty"])
+                    backorder_encabezado = Decimal("0")
+                else:
+                    costo_encabezado, backorder_encabezado = self._emitir(
+                        session,
+                        actor,
+                        product.id,
+                        li["qty"],
+                        usa_apartado,
+                        sale.id,
+                        permitir_backorder,
+                    )
                 session.add(
                     SaleLine(
                         sale_id=sale.id,
@@ -205,18 +257,21 @@ class SaleService:
                         line_subtotal=li["subtotal"],
                         line_tax=li["tax"],
                         line_total=li["total"],
-                        unit_cost_snapshot=self._costo_kit(kit_lines, li["qty"])
-                        if kit_lines is not None
-                        else self._emitir(
-                            session, actor, product.id, li["qty"], usa_apartado, sale.id
-                        ),
+                        unit_cost_snapshot=costo_encabezado,
                         kit_component_of=None,
+                        backorder_qty=backorder_encabezado,
                     )
                 )
                 if kit_lines is not None:
                     for kl in kit_lines:
-                        costo_componente = self._emitir(
-                            session, actor, kl.component_id, kl.qty, usa_apartado, sale.id
+                        costo_componente, backorder_componente = self._emitir(
+                            session,
+                            actor,
+                            kl.component_id,
+                            kl.qty,
+                            usa_apartado,
+                            sale.id,
+                            permitir_backorder,
                         )
                         session.add(
                             SaleLine(
@@ -234,6 +289,7 @@ class SaleService:
                                 line_total=Decimal("0.00"),
                                 unit_cost_snapshot=costo_componente,
                                 kit_component_of=li["line_no"],
+                                backorder_qty=backorder_componente,
                             )
                         )
 
@@ -361,11 +417,15 @@ class SaleService:
                     # La línea del kit en sí no tiene existencias propias: solo sus componentes
                     # (líneas con `kit_component_of` apuntando a esta) revierten inventario.
                     continue
+                # Solo se revierte lo realmente emitido: `backorder_qty` nunca movió inventario.
+                qty_emitida = linea.qty - linea.backorder_qty
+                if qty_emitida <= 0:
+                    continue
                 self.ledger.void_reversal_of_issue(
                     session,
                     actor,
                     linea.product_id,
-                    linea.qty,
+                    qty_emitida,
                     linea.unit_cost_snapshot,
                     ref_type="sale_void",
                     ref_id=str(sale.id),
@@ -425,14 +485,29 @@ class SaleService:
     # -- Internos: inventario ---------------------------------------------------------
 
     def _verificar_disponibilidad(
-        self, session: Session, product_id: int, cantidad: Decimal, usa_apartado: bool
-    ) -> None:
+        self,
+        session: Session,
+        product_id: int,
+        cantidad: Decimal,
+        usa_apartado: bool,
+        block_sale_without_stock: bool = True,
+    ) -> Decimal:
+        """Valida (o mide) el faltante de un producto; devuelve el faltante (0 si alcanza).
+
+        Con `block_sale_without_stock=True` (o venta desde apartado) un faltante rechaza la
+        venta con `InsufficientStock`, como en Fases 1-6. Con `False`, el faltante se devuelve
+        para que la emisión registre la diferencia como `backorder_qty` en vez de fallar.
+        """
         stock = session.get(Stock, product_id)
         if stock is None:
             raise NotFound(f"el producto {product_id} no tiene existencias")
         disponible = stock.reserved if usa_apartado else stock.on_hand - stock.reserved
-        if cantidad > disponible:
+        faltante = cantidad - disponible
+        if faltante <= 0:
+            return Decimal("0")
+        if block_sale_without_stock or usa_apartado:
             raise InsufficientStock(product_id, disponible, cantidad)
+        return qty(faltante)
 
     def _emitir(
         self,
@@ -442,14 +517,36 @@ class SaleService:
         cantidad: Decimal,
         usa_apartado: bool,
         sale_id: int,
-    ) -> Decimal:
+        permitir_backorder: bool = False,
+    ) -> tuple[Decimal, Decimal]:
+        """Emite `cantidad` del inventario vendible; devuelve `(costo_aplicado, backorder_qty)`.
+
+        Con `permitir_backorder=True` (ajuste `block_sale_without_stock=False`) solo emite lo
+        que hay disponible y reporta el resto como `backorder_qty`, sin mover más inventario del
+        que realmente existe.
+        """
         if usa_apartado:
-            return self.ledger.issue_reserved(
+            costo = self.ledger.issue_reserved(
                 session, actor, product_id, cantidad, ref_type="sale", ref_id=str(sale_id)
             )
-        return self.ledger.issue(
-            session, actor, product_id, cantidad, ref_type="sale", ref_id=str(sale_id)
-        )
+            return costo, Decimal("0")
+        if not permitir_backorder:
+            costo = self.ledger.issue(
+                session, actor, product_id, cantidad, ref_type="sale", ref_id=str(sale_id)
+            )
+            return costo, Decimal("0")
+
+        stock = session.get(Stock, product_id)
+        disponible = stock.on_hand - stock.reserved if stock is not None else Decimal("0")
+        a_emitir = min(cantidad, disponible) if disponible > 0 else Decimal("0")
+        backorder = qty(cantidad - a_emitir)
+        if a_emitir > 0:
+            costo = self.ledger.issue(
+                session, actor, product_id, a_emitir, ref_type="sale", ref_id=str(sale_id)
+            )
+        else:
+            costo = stock.avg_cost if stock is not None else Decimal("0.0000")
+        return costo, backorder
 
     def _costo_kit(self, kit_lines: list[kits.KitLine], qty_kit: Decimal) -> Decimal:
         total_costo = sum((kl.qty * kl.avg_cost for kl in kit_lines), Decimal("0"))
@@ -589,6 +686,7 @@ class SaleService:
                 line_total=linea.line_total,
                 unit_cost_snapshot=linea.unit_cost_snapshot,
                 kit_component_of=linea.kit_component_of,
+                backorder_qty=linea.backorder_qty,
             )
             for linea in lineas
         )
