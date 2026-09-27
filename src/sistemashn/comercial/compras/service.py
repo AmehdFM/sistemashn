@@ -26,6 +26,7 @@ from sistemashn.comercial.compras.schemas import (
     SupplierPriceView,
 )
 from sistemashn.comercial.contrapartes.models import Party
+from sistemashn.comercial.credito.models import Account
 from sistemashn.comercial.credito.schemas import AccountKind
 from sistemashn.comercial.credito.service import AccountService
 from sistemashn.comercial.idempotency import find_previous, remember
@@ -236,6 +237,64 @@ class PurchaseService:
                     "paid_initial": pagado,
                     "credit_amount": credito,
                 },
+                clock=self.clock,
+            )
+
+            ver_costos = self.authorizer.can(session, actor, "com.costos.ver")
+            return self._to_view(session, purchase, ver_costos)
+
+        return run_in_transaction(self.factory, _op)
+
+    # -- Anulación ---------------------------------------------------------
+
+    def void(self, actor: Actor, purchase_id: int, reason: str) -> PurchaseView:
+        def _op(session: Session) -> PurchaseView:
+            self.authorizer.require(session, actor, "com.compras.anular")
+
+            purchase = session.get(Purchase, purchase_id)
+            if purchase is None:
+                raise NotFound(f"compra {purchase_id} no existe")
+            if purchase.status != "confirmada":
+                raise ValidationError(
+                    f"la compra {purchase.number} está '{purchase.status}': no se puede anular"
+                )
+
+            lineas = session.scalars(
+                select(PurchaseLine)
+                .where(PurchaseLine.purchase_id == purchase.id)
+                .order_by(PurchaseLine.line_no.asc())
+            ).all()
+            for linea in lineas:
+                self.ledger.void_reversal_of_receive(
+                    session,
+                    actor,
+                    linea.product_id,
+                    linea.qty,
+                    ref_type="purchase_void",
+                    ref_id=str(purchase.id),
+                    reason=reason,
+                )
+
+            if purchase.credit_amount > 0:
+                cuenta = session.scalar(
+                    select(Account).where(
+                        Account.source_type == "purchase", Account.source_id == str(purchase.id)
+                    )
+                )
+                if cuenta is not None:
+                    self.accounts.void(session, actor, cuenta.id)
+
+            purchase.status = "anulada"
+            session.flush()
+
+            audit(
+                session,
+                actor,
+                "com.compra.anulada",
+                entity_type="com_purchase",
+                entity_id=str(purchase.id),
+                summary=f"Compra {purchase.number} anulada: {reason}",
+                detail={"reason": reason},
                 clock=self.clock,
             )
 

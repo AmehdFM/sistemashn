@@ -322,6 +322,66 @@ class InventoryLedger:
         )
         return nuevo_promedio
 
+    # -- Anulaciones --------------------------------------------------------
+
+    def void_reversal_of_receive(
+        self,
+        session: Session,
+        actor: Actor,
+        product_id: int,
+        qty_value: Decimal,
+        *,
+        ref_type: str | None = None,
+        ref_id: str | None = None,
+        reason: str | None = None,
+    ) -> Decimal:
+        """Revierte una ENTRADA previa (p. ej. anular una compra).
+
+        Decisión de diseño (T5.1): el promedio ponderado ya mezcló esa entrada con el stock
+        previo y es irreversible en general si hubo movimientos intermedios (no se puede
+        deshacer matemáticamente "como si nunca hubiera entrado"); por eso revertir una entrada
+        es simplemente una SALIDA de esa cantidad al costo promedio ACTUAL, reutilizando `issue`
+        (sin exigir apartado) con `kind=VOID_REVERSAL`.
+        """
+        return self.issue(
+            session,
+            actor,
+            product_id,
+            qty_value,
+            kind=MovementKind.VOID_REVERSAL,
+            ref_type=ref_type,
+            ref_id=ref_id,
+            reason=reason,
+        )
+
+    def void_reversal_of_issue(
+        self,
+        session: Session,
+        actor: Actor,
+        product_id: int,
+        qty_value: Decimal,
+        unit_cost: Decimal,
+        *,
+        ref_type: str | None = None,
+        ref_id: str | None = None,
+        reason: str | None = None,
+    ) -> Decimal:
+        """Revierte una SALIDA previa (p. ej. anular una venta): entra esa cantidad al costo
+        unitario que se aplicó en la operación original (`unit_cost_snapshot` de la línea),
+        reutilizando `receive` (misma fórmula de promedio ponderado) con `kind=VOID_REVERSAL`.
+        """
+        return self.receive(
+            session,
+            actor,
+            product_id,
+            qty_value,
+            unit_cost,
+            kind=MovementKind.VOID_REVERSAL,
+            ref_type=ref_type,
+            ref_id=ref_id,
+            reason=reason,
+        )
+
     # -- Ajustes --------------------------------------------------------
 
     def adjust_in(

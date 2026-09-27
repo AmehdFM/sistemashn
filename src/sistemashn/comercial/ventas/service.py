@@ -13,8 +13,10 @@ from sistemashn.comercial.catalogo import kits
 from sistemashn.comercial.catalogo.models import Product
 from sistemashn.comercial.cotizaciones.models import Quote, QuoteLine
 from sistemashn.comercial.cotizaciones.service import QuoteService
+from sistemashn.comercial.credito.models import Account
 from sistemashn.comercial.credito.schemas import AccountKind
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.idempotency import find_previous, remember
 from sistemashn.comercial.inventario.errors import InsufficientStock
 from sistemashn.comercial.inventario.ledger import InventoryLedger
@@ -63,6 +65,7 @@ class SaleService:
         accounts: AccountService,
         cash: CashService,
         quotes: QuoteService,
+        fiscal: FiscalService | None = None,
     ) -> None:
         self.factory = factory
         self.authorizer = authorizer
@@ -71,6 +74,9 @@ class SaleService:
         self.accounts = accounts
         self.cash = cash
         self.quotes = quotes
+        # Opcional: si no se pasa (p. ej. en pruebas que no lo necesitan), `void` omite la
+        # validación de factura fiscal emitida en vez de fallar por dependencia faltante.
+        self.fiscal = fiscal
 
     # -- Confirmación ---------------------------------------------------------
 
@@ -297,6 +303,95 @@ class SaleService:
                     "change_amount": vuelto,
                     "credit_amount": credito,
                 },
+                clock=self.clock,
+            )
+
+            return self._to_view(session, sale)
+
+        return run_in_transaction(self.factory, _op)
+
+    # -- Anulación ---------------------------------------------------------
+
+    def void(self, actor: Actor, sale_id: int, reason: str) -> SaleView:
+        def _op(session: Session) -> SaleView:
+            self.authorizer.require(session, actor, "com.ventas.anular")
+
+            sale = session.get(Sale, sale_id)
+            if sale is None:
+                raise NotFound(f"venta {sale_id} no existe")
+            if sale.status != "confirmada":
+                raise ValidationError(
+                    f"la venta {sale.number} está '{sale.status}': no se puede anular"
+                )
+
+            if self.fiscal is not None:
+                factura = self.fiscal.get_by_sale(actor, sale_id)
+                if factura is not None:
+                    raise ValidationError(
+                        "no se puede anular: la venta tiene una factura fiscal emitida "
+                        "(requiere nota de crédito, fuera de alcance)"
+                    )
+
+            lineas = session.scalars(
+                select(SaleLine).where(SaleLine.sale_id == sale.id).order_by(SaleLine.id.asc())
+            ).all()
+            pagos = session.scalars(select(SalePayment).where(SalePayment.sale_id == sale.id)).all()
+
+            # Se valida la caja ANTES de tocar inventario o cuentas: si la sesión donde se
+            # cobró ya cerró, la anulación se rechaza sin dejar ningún rastro parcial.
+            efectivo = money(
+                sum(
+                    (p.amount for p in pagos if p.method == PaymentMethod.EFECTIVO.value),
+                    Decimal("0"),
+                )
+            )
+            if efectivo > 0 and sale.cash_session_id is not None:
+                self.cash.reverse_entry(
+                    session,
+                    actor,
+                    sale.cash_session_id,
+                    efectivo,
+                    ref_type="sale_void",
+                    ref_id=str(sale.id),
+                )
+
+            for linea in lineas:
+                product = session.get(Product, linea.product_id)
+                if product is not None and product.is_kit:
+                    # La línea del kit en sí no tiene existencias propias: solo sus componentes
+                    # (líneas con `kit_component_of` apuntando a esta) revierten inventario.
+                    continue
+                self.ledger.void_reversal_of_issue(
+                    session,
+                    actor,
+                    linea.product_id,
+                    linea.qty,
+                    linea.unit_cost_snapshot,
+                    ref_type="sale_void",
+                    ref_id=str(sale.id),
+                    reason=reason,
+                )
+
+            if sale.credit_amount > 0:
+                cuenta = session.scalar(
+                    select(Account).where(
+                        Account.source_type == "sale", Account.source_id == str(sale.id)
+                    )
+                )
+                if cuenta is not None:
+                    self.accounts.void(session, actor, cuenta.id)
+
+            sale.status = "anulada"
+            session.flush()
+
+            audit(
+                session,
+                actor,
+                "com.venta.anulada",
+                entity_type="com_sale",
+                entity_id=str(sale.id),
+                summary=f"Venta {sale.number} anulada: {reason}",
+                detail={"reason": reason},
                 clock=self.clock,
             )
 

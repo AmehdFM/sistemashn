@@ -47,7 +47,12 @@ class Account(Base):
 
     __tablename__ = "com_account"
     __table_args__ = (
-        CheckConstraint("kind IN ('payable', 'receivable')", name="kind_valido"),
+        # Nota T5.2/T5.3: el valor 'credit_note' (saldo a favor de cliente o proveedor) se
+        # agregó a este CHECK sin que exista aún una migración que lo aplique a una base ya
+        # creada por Alembic (SQLite exige `op.batch_alter_table` para recrear la tabla con un
+        # CHECK nuevo): el integrador de la fase debe escribir esa migración. Las pruebas
+        # funcionan porque su engine se crea directo desde `Base.metadata.create_all`.
+        CheckConstraint("kind IN ('payable', 'receivable', 'credit_note')", name="kind_valido"),
         CheckConstraint("original_amount > 0", name="original_amount_positivo"),
         CheckConstraint("balance >= 0", name="balance_no_negativo"),
         CheckConstraint("balance <= original_amount", name="balance_no_mayor_original"),

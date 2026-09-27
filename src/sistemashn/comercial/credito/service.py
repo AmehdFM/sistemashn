@@ -37,10 +37,14 @@ _HONDURAS_OFFSET = timedelta(hours=-6)
 _VIEW_PERMISSION = {
     AccountKind.PAYABLE: "com.cxp.ver",
     AccountKind.RECEIVABLE: "com.cxc.ver",
+    # Una nota de crédito (saldo a favor) se gestiona con el mismo permiso que las devoluciones
+    # que la originan: no amerita un permiso de "ver"/"pagar" propio.
+    AccountKind.CREDIT_NOTE: "com.devoluciones.gestionar",
 }
 _PAY_PERMISSION = {
     AccountKind.PAYABLE: "com.cxp.pagar",
     AccountKind.RECEIVABLE: "com.cxc.cobrar",
+    AccountKind.CREDIT_NOTE: "com.devoluciones.gestionar",
 }
 
 
@@ -174,6 +178,36 @@ class AccountService:
             clock=self.clock,
         )
         return cuenta.id
+
+    def void(self, session: Session, actor: Actor, account_id: int) -> None:
+        """Salda a cero una cuenta por la anulación del documento que la originó.
+
+        Uso interno: recibe la `session` de la transacción del documento que anula (venta o
+        compra), no abre transacción propia ni verifica permiso (el permiso lo exige el
+        servicio llamador). No es un abono real: no crea `AccountPayment`.
+
+        Limitación aceptada explícitamente (plan T5.1): `AccountStatus` sigue mostrando
+        "pagada" para una cuenta anulada, el mismo criterio que una cuenta saldada normalmente
+        (`balance == 0`); no se migra el esquema para agregar un estado "anulada" distinto.
+        """
+        cuenta = session.get(Account, account_id)
+        if cuenta is None:
+            raise NotFound(f"cuenta {account_id} no existe")
+
+        saldo_previo = cuenta.balance
+        cuenta.balance = money(Decimal("0"))
+        session.flush()
+
+        audit(
+            session,
+            actor,
+            "com.cuenta.anulada",
+            entity_type="com_account",
+            entity_id=str(account_id),
+            summary=f"Cuenta #{account_id} anulada (saldo previo {saldo_previo})",
+            detail={"balance_before": saldo_previo},
+            clock=self.clock,
+        )
 
     def pay(
         self,

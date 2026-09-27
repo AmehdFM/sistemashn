@@ -7,8 +7,10 @@ import pytest
 from sqlalchemy import select
 from tests.comercial.conftest import make_product_input
 
+from sistemashn.comercial.caja.errors import NoCashSessionOpen
 from sistemashn.comercial.cotizaciones.schemas import QuoteInput, QuoteLineInput
 from sistemashn.comercial.credito.schemas import AccountKind
+from sistemashn.comercial.fiscal.schemas import FiscalAuthorizationInput
 from sistemashn.comercial.inventario.errors import InsufficientStock
 from sistemashn.comercial.inventario.models import Stock
 from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
@@ -17,6 +19,7 @@ from sistemashn.comercial.ventas.models import Sale
 from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput
 from sistemashn.core.errors import PermissionDenied, ValidationError
 
+from ..fiscal.conftest import set_business_fiscal
 from .conftest import recibir_stock
 
 
@@ -318,3 +321,120 @@ def test_sin_permiso_no_puede_confirmar(
     pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
     with pytest.raises(PermissionDenied):
         sale_service.confirm(bodega_actor, _input([_linea(producto_id, qty="1")], payments=pagos))
+
+
+# -- Anulación (T5.1) ---------------------------------------------------------
+
+
+def test_anular_venta_al_contado_revierte_stock(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos)
+    )
+    assert _stock(session_factory, producto_id).on_hand == Decimal("9.000")
+
+    anulada = sale_service.void(admin_actor, vista.id, "cliente se arrepintió")
+
+    assert anulada.status == "anulada"
+    assert _stock(session_factory, producto_id).on_hand == Decimal("10.000")
+
+
+def test_anular_venta_a_credito_salda_cxc(
+    sale_service,
+    account_service,
+    session_factory,
+    inventory_ledger,
+    admin_actor,
+    cliente_id,
+    producto_id,
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    vista = sale_service.confirm(
+        admin_actor,
+        _input(
+            [_linea(producto_id, qty="1")],
+            customer_id=cliente_id,
+            credit_due_date=date(2026, 10, 15),
+        ),
+    )
+    cuentas = account_service.list(admin_actor, AccountKind.RECEIVABLE)
+    cuenta_id = cuentas.items[0].id
+    assert account_service.get(admin_actor, cuenta_id).balance == Decimal("172.50")
+
+    sale_service.void(admin_actor, vista.id, "error de captura")
+
+    assert account_service.get(admin_actor, cuenta_id).balance == Decimal("0.00")
+
+
+def test_anular_venta_con_factura_fiscal_falla(
+    sale_service, fiscal_service, session_factory, now, inventory_ledger, admin_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos)
+    )
+
+    set_business_fiscal(session_factory, now, fiscal_enabled=True)
+    fiscal_service.register_authorization(
+        admin_actor,
+        FiscalAuthorizationInput(
+            cai="A1B2C3-A1B2C3-A1B2C3-A1B2C3-A1B2C3",
+            range_start="001-001-01-00000001",
+            range_end="001-001-01-00000100",
+            valid_until=date(2030, 1, 1),
+        ),
+    )
+    fiscal_service.issue(admin_actor, sale_id=vista.id, snapshot={"total": str(vista.total)})
+
+    with pytest.raises(ValidationError):
+        sale_service.void(admin_actor, vista.id, "no se debe poder")
+
+
+def test_anular_dos_veces_falla(
+    sale_service, session_factory, inventory_ledger, admin_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos)
+    )
+    sale_service.void(admin_actor, vista.id, "primera anulación")
+
+    with pytest.raises(ValidationError):
+        sale_service.void(admin_actor, vista.id, "segunda anulación")
+
+
+def test_anular_venta_sin_permiso_falla(
+    sale_service, session_factory, inventory_ledger, admin_actor, vendedor_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+    vista = sale_service.confirm(
+        admin_actor, _input([_linea(producto_id, qty="1")], payments=pagos)
+    )
+
+    with pytest.raises(PermissionDenied):
+        sale_service.void(vendedor_actor, vista.id, "sin permiso")
+
+
+def test_anular_venta_con_caja_ya_cerrada_falla(
+    sale_service, cash_service, session_factory, inventory_ledger, admin_actor, producto_id
+):
+    recibir_stock(session_factory, inventory_ledger, admin_actor, producto_id, "10")
+    sesion = cash_service.open(admin_actor, Decimal("100.00"))
+    pagos = [PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("172.50"))]
+    vista = sale_service.confirm(
+        admin_actor,
+        _input([_linea(producto_id, qty="1")], payments=pagos, cash_session_id=sesion.id),
+    )
+    cash_service.close(admin_actor, Decimal("272.50"))
+
+    with pytest.raises(NoCashSessionOpen):
+        sale_service.void(admin_actor, vista.id, "la caja ya cerró")
+
+    # No debió tocar el inventario: se valida la caja antes de revertir cualquier cosa.
+    assert _stock(session_factory, producto_id).on_hand == Decimal("9.000")

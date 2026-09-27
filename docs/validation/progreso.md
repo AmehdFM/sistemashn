@@ -64,3 +64,13 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T4.4 Cuentas por cobrar | Hecha (sin código nuevo: reutiliza `AccountService` con `AccountKind.RECEIVABLE`) | integración probada en `tests/comercial/ventas/` |
 | T4.5 Factura legal (CAI) | Hecha, deshabilitada por defecto | `comercial/fiscal/`, nunca emite fuera de rango/vigencia, 8 pruebas |
 | T4.6 Pantallas | Hecha | `pos_view.py`, `cotizaciones_view.py`, `ventas_view.py`, `caja_view.py`, `cxc_view.py`, registradas en `comercial/ui/screens.py` |
+
+## Fase 5 — Anulaciones, devoluciones, documentos y reportes
+
+| Tarea | Estado | Evidencia |
+|---|---|---|
+| T5.1 Anulaciones | Hecha | `InventoryLedger.void_reversal_of_receive/_of_issue`, `SaleService.void`, `PurchaseService.void`, `AccountService.void`, `CashService.reverse_entry`; 10 pruebas nuevas |
+| T5.2/T5.3 Devoluciones de cliente y proveedor | Hecha | `comercial/devoluciones/`, saldo a favor vía `com_account(kind='credit_note')`, 20 pruebas |
+| T5.4 Documentos PDF | Hecha | `core/documents/renderer.py` (promovido de la sonda de Etapa 0), `comercial/documentos/`, 24 pruebas |
+| T5.5 Excel y reportes | Hecha | `comercial/reportes/`, utilidad con costo histórico, exporta a Excel, 14 pruebas |
+| T5.6 Pantallas | Pendiente | falta registrar `/devoluciones` y `/reportes` (declaradas en `comercial/module.py`, sin builder) |

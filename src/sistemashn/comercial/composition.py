@@ -43,6 +43,9 @@ def register_services(
     ctx.services["purchases"] = PurchaseService(factory, authorizer, clock, ledger, accounts)
     ctx.services["cash"] = cash
     ctx.services["quotes"] = quotes
-    ctx.services["sales"] = SaleService(factory, authorizer, clock, ledger, accounts, cash, quotes)
-    ctx.services["fiscal"] = FiscalService(factory, authorizer, clock)
+    fiscal = FiscalService(factory, authorizer, clock)
+    ctx.services["sales"] = SaleService(
+        factory, authorizer, clock, ledger, accounts, cash, quotes, fiscal=fiscal
+    )
+    ctx.services["fiscal"] = fiscal
     ctx.services.setdefault(PRODUCT_FORM_EXTENSIONS_KEY, [])

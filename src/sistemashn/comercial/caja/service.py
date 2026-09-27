@@ -176,6 +176,50 @@ class CashService:
         )
         session.flush()
 
+    def reverse_entry(
+        self,
+        session: Session,
+        actor: Actor,
+        cash_session_id: int,
+        amount: Decimal,
+        *,
+        ref_type: str | None = None,
+        ref_id: str | None = None,
+    ) -> None:
+        """Revierte un cobro en efectivo (p. ej. anular una venta) con un movimiento de salida.
+
+        Uso interno: no verifica permisos ni abre transacción propia. Si la sesión de caja
+        donde se cobró ya no existe abierta (se cerró después de la venta), no revierte nada
+        silenciosamente: propaga `NoCashSessionOpen` para que el servicio llamador rechace la
+        anulación con un mensaje claro.
+        """
+        monto = money(amount)
+        if monto <= 0:
+            raise ValidationError("el monto del movimiento debe ser mayor a cero")
+
+        cash_session = session.get(CashSession, cash_session_id)
+        if cash_session is None:
+            raise NotFound(f"sesión de caja {cash_session_id} no existe")
+        if cash_session.status != "abierta":
+            raise NoCashSessionOpen(
+                f"la sesión de caja {cash_session_id} ya no está abierta: no se puede revertir "
+                "el movimiento de efectivo"
+            )
+
+        session.add(
+            CashMovement(
+                cash_session_id=cash_session_id,
+                occurred_at=self.clock(),
+                kind="salida",
+                amount=monto,
+                reason=None,
+                ref_type=ref_type,
+                ref_id=ref_id,
+                user_id=actor.user_id,
+            )
+        )
+        session.flush()
+
     def manual_entry(self, actor: Actor, amount: Decimal, reason: str) -> CashMovementView:
         return self._manual_movement(actor, amount, reason, "entrada")
 

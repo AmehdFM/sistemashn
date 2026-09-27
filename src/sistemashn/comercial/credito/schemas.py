@@ -11,6 +11,7 @@ class AccountKind(StrEnum):
 
     PAYABLE = "payable"
     RECEIVABLE = "receivable"
+    CREDIT_NOTE = "credit_note"
 
 
 class AccountStatus(StrEnum):

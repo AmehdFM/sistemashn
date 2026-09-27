@@ -280,6 +280,93 @@ def test_costos_ocultos_sin_permiso_com_costos_ver(
         purchase_service.last_prices(bodega_actor, producto_id)
 
 
+def test_anular_compra_revierte_stock_y_promedio_queda_al_costo_de_la_intermedia(
+    purchase_service, inventory_service, admin_actor, proveedor_id, producto_id
+):
+    primera = purchase_service.confirm(
+        admin_actor,
+        _input(
+            proveedor_id,
+            [_linea(producto_id, qty="10", unit_cost="50.00")],
+            payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("575.00"))],
+            request_id="req-1",
+        ),
+    )
+    # Compra intermedia a otro costo: promedio pasa a (10*50 + 10*70) / 20 = 60.
+    purchase_service.confirm(
+        admin_actor,
+        _input(
+            proveedor_id,
+            [_linea(producto_id, qty="10", unit_cost="70.00")],
+            payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("805.00"))],
+            request_id="req-2",
+        ),
+    )
+    stock_antes = inventory_service.stock(admin_actor, producto_id)
+    assert stock_antes.on_hand == Decimal("20.000")
+    assert stock_antes.avg_cost == Decimal("60.0000")
+
+    # Anular la primera compra revierte una SALIDA de 10 unidades al promedio ACTUAL (60), no
+    # "deshace" el promedio original de 50: el promedio ya se mezcló con la compra intermedia y
+    # es irreversible matemáticamente en general (decisión T5.1). Tras la anulación quedan 10
+    # unidades, y el promedio no cambia porque una salida no recalcula `avg_cost`.
+    purchase_service.void(admin_actor, primera.id, "producto dañado en tránsito")
+
+    stock_despues = inventory_service.stock(admin_actor, producto_id)
+    assert stock_despues.on_hand == Decimal("10.000")
+    assert stock_despues.avg_cost == Decimal("60.0000")
+
+
+def test_anular_compra_ya_anulada_falla(purchase_service, admin_actor, proveedor_id, producto_id):
+    vista = purchase_service.confirm(
+        admin_actor,
+        _input(
+            proveedor_id,
+            [_linea(producto_id, qty="10", unit_cost="50.00")],
+            payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("575.00"))],
+        ),
+    )
+    purchase_service.void(admin_actor, vista.id, "primera anulación")
+
+    with pytest.raises(ValidationError):
+        purchase_service.void(admin_actor, vista.id, "segunda anulación")
+
+
+def test_anular_compra_a_credito_salda_cxp(
+    purchase_service, account_service, admin_actor, proveedor_id, producto_id
+):
+    vista = purchase_service.confirm(
+        admin_actor,
+        _input(
+            proveedor_id,
+            [_linea(producto_id, qty="10", unit_cost="50.00")],
+            credit_due_date=date(2026, 10, 15),
+        ),
+    )
+    cuentas = account_service.list(admin_actor, AccountKind.PAYABLE)
+    cuenta_id = cuentas.items[0].id
+    assert account_service.get(admin_actor, cuenta_id).balance == Decimal("575.00")
+
+    purchase_service.void(admin_actor, vista.id, "compra cancelada")
+
+    assert account_service.get(admin_actor, cuenta_id).balance == Decimal("0.00")
+
+
+def test_anular_compra_sin_permiso_falla(
+    purchase_service, bodega_actor, admin_actor, proveedor_id, producto_id
+):
+    vista = purchase_service.confirm(
+        admin_actor,
+        _input(
+            proveedor_id,
+            [_linea(producto_id, qty="10", unit_cost="50.00")],
+            payments=[PaymentInput(method=PaymentMethod.EFECTIVO, amount=Decimal("575.00"))],
+        ),
+    )
+    with pytest.raises(PermissionDenied):
+        purchase_service.void(bodega_actor, vista.id, "sin permiso")
+
+
 def test_list_pagina_y_filtra_por_texto(
     purchase_service, party_service, admin_actor, proveedor_id, producto_id
 ):

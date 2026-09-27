@@ -9,6 +9,7 @@ from sistemashn.comercial.catalogo.kits import KitService
 from sistemashn.comercial.contrapartes.schemas import PartyInput, PartyKind
 from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.db.uow import run_in_transaction
 
@@ -36,6 +37,11 @@ def kit_service(session_factory, authorizer, clock) -> KitService:
 
 
 @pytest.fixture
+def fiscal_service(session_factory, authorizer, clock) -> FiscalService:
+    return FiscalService(session_factory, authorizer, clock=clock)
+
+
+@pytest.fixture
 def sale_service(
     session_factory,
     authorizer,
@@ -44,6 +50,7 @@ def sale_service(
     account_service,
     cash_service,
     quote_service,
+    fiscal_service,
 ) -> SaleService:
     return SaleService(
         session_factory,
@@ -53,6 +60,7 @@ def sale_service(
         accounts=account_service,
         cash=cash_service,
         quotes=quote_service,
+        fiscal=fiscal_service,
     )
 
 
