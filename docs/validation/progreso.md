@@ -74,3 +74,42 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T5.4 Documentos PDF | Hecha | `core/documents/renderer.py` (promovido de la sonda de Etapa 0), `comercial/documentos/`, 24 pruebas |
 | T5.5 Excel y reportes | Hecha | `comercial/reportes/`, utilidad con costo histórico, exporta a Excel, 14 pruebas |
 | T5.6 Pantallas | Hecha | `devoluciones_view.py`, `reportes_view.py`, registradas en `comercial/ui/screens.py` |
+
+## Fase 7 — Mejoras de UI/UX (fuera de la numeración original, investigación + plan del dueño)
+
+| Tarea | Estado | Evidencia |
+|---|---|---|
+| T7.1 Permisos `com.ventas.credito`/`com.ventas.descuento` | Hecha | `comercial/module.py`, solo perfil `gerente` por defecto |
+| T7.2 `core_business`: columnas de operación nuevas | Hecha | migración `0005_operacion_ui.py`, `OperationSettingsInput`/`update_operation_settings` |
+| T7.3 Comportamientos condicionados a `core_business` | Hecha | `SaleService.confirm` (caja/backorder/crédito/descuento), `AccountService.pay`, devolución "sin comprobante" |
+| T7.4 Fotos de producto | Hecha | `com_product.image_path`, `CatalogService.set_image`, miniatura en catálogo |
+| T7.5 POS: modo mostrador, ventas en espera, confirmación con resumen | Hecha (equivalencias sin stock, prioridad 4, quedó pendiente) | `ParkedSalesStore`, `pos_view.py` |
+| T7.6 Pantalla "Ajustes de operación" y "Configuración avanzada" | Hecha | `operation_settings_view.py`, `ScreenDef.advanced`, `ProfileDef.home_route` |
+
+## Fase 6 — Operación y entrega
+
+Planificada desde el inicio del proyecto pero no se había codificado hasta esta ronda (el
+placeholder de Respaldos quedó pendiente desde la Fase 1). Implementada íntegramente ahora,
+después de la Fase 7, a pedido del dueño tras un repaso de brechas para una v1 vendible.
+
+| Tarea | Estado | Evidencia |
+|---|---|---|
+| T6.1 Pantalla de respaldos real | Hecha | `BackupService` (`core/operations/service.py`), `backups_view.py`, historial y recordatorio vía `core_setting` (sin tabla nueva) |
+| T6.2 Paquete de actualización firmado | Hecha | `core/updater/keys.py` (clave `update-2026`), `core/updater/package.py`, `vendedor.py sign-update` |
+| T6.3 Proceso `updater/` | Hecha | `src/sistemashn/updater/` (`runner.py`, `__main__.py`), `src/updater_main.py`, archivo de bloqueo `.app.lock` (creado en `bootstrap.py`, borrado en `app_shell.py::_on_close`) |
+| T6.4 Actualización manual desde ZIP (UI) | Hecha | sección "Actualizaciones" en `backups_view.py`, `validate_update_package`/`build_updater_command` |
+| T6.5 Actualización obligatoria remota | Diseño documentado, NO codificado (según el plan) | `docs/superpowers/plans/fase-6-operacion-entrega.md`, sección T6.5 |
+| T6.6 Scripts de entrega | Escritos, NO ejecutados/verificados (requieren Windows) | `scripts/build_windows.bat`, `scripts/build_updater.bat`, `installer/sistemashn.iss` |
+| T6.7 Manual de operación | Hecha | `docs/manual-operacion.md` |
+
+Suite completa tras Fase 6: 680 passed, 1 skipped. Ningún test nuevo en skip/xfail.
+
+### Pendiente antes de vender (fuera del alcance de código de este repo)
+
+- Probar `build_windows.bat`, `build_updater.bat` e `installer/sistemashn.iss` en una PC Windows
+  real con Flutter/Visual Studio/Inno Setup — nada de esto se ejecutó en este entorno Linux.
+- Generar la clave de producción `core/updater/keys.py`/`tools/vendor/keys/` antes de firmar un
+  paquete de actualización para un cliente real (la que hay hoy es de desarrollo).
+- Recorrido de aceptación integral de la Fase 6 (ver "Salida de fase" en el plan): activar sin
+  internet, crear negocio y administrador, operar el flujo comercial completo, respaldar,
+  restaurar en ensayo y actualizar desde un paquete ZIP local firmado — todo en la PC del dueño.
