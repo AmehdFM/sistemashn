@@ -35,7 +35,7 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T2.3 Kits | Hecha | salida atómica de componentes |
 | T2.4 Repuestos (partes, equivalencias, vehículos) | Hecha | |
 | T2.5 Excel | Hecha | 1,000 filas < 10 s |
-| T2.6 Pantallas | En curso | Falta registrar `units_categories_view.py` (existe pero no tiene ruta en `comercial/module.py` ni en `comercial/ui/screens.py`) y falta la pantalla de kits (`/kits`, sin builder ni ruta). El resto del plan (catálogo, importación, inventario, stock bajo, vehículos, compatibles) sí está implementado y registrado. |
+| T2.6 Pantallas | Hecha (revisada: la nota anterior de "falta registrar" era incorrecta) | `units_categories_view.py` sí está en uso: `catalog_view.py` abre sus diálogos de Unidades/Categorías desde la pantalla `/catalogo`. La composición de kits no es una ruta aparte sino una sección embebida en el formulario de producto (`_kit_section` en `catalog_view.py`, visible cuando `is_kit=True`), consistente con que un kit es un producto más del catálogo. Repuestos agrega su pestaña de parte/equivalencias vía el hook `ProductFormExtension` (`repuestos/ui/part_extension.py`) y sus pantallas de vehículos/compatibles (`/repuestos/vehiculos`, `/repuestos/compatibles`) registradas en `repuestos/ui/screens.py`. Todo cubierto por pruebas existentes. |
 
 ## Fase A — Cierre de deuda técnica y script de pruebas
 
