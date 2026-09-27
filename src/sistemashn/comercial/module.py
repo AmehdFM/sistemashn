@@ -28,6 +28,10 @@ _PERMISOS = (
     PermissionDef("com.ventas.ver", "Ver ventas", _GRUPO_VENTAS),
     PermissionDef("com.ventas.registrar", "Registrar ventas", _GRUPO_VENTAS),
     PermissionDef("com.ventas.anular", "Anular ventas", _GRUPO_VENTAS),
+    PermissionDef("com.ventas.credito", "Vender a crédito", _GRUPO_VENTAS),
+    PermissionDef(
+        "com.ventas.descuento", "Aplicar descuentos por encima del límite", _GRUPO_VENTAS
+    ),
     PermissionDef("com.caja.ver", "Ver caja", _GRUPO_VENTAS),
     PermissionDef("com.caja.operar", "Operar caja", _GRUPO_VENTAS),
     PermissionDef("com.caja.cerrar", "Cerrar caja", _GRUPO_VENTAS),

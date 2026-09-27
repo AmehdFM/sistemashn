@@ -14,7 +14,7 @@ from sistemashn.core.authorization.service import Authorizer
 from sistemashn.core.db.uow import run_in_transaction
 from sistemashn.core.errors import ValidationError
 from sistemashn.core.settings.models import Business, Setting
-from sistemashn.core.settings.schemas import BusinessInput, BusinessView
+from sistemashn.core.settings.schemas import BusinessInput, BusinessView, OperationSettingsInput
 
 BUSINESS_ID = 1
 MAX_LOGO_BYTES = 2 * 1024 * 1024
@@ -73,6 +73,16 @@ def _to_view(business: Business) -> BusinessView:
         prices_include_isv=business.prices_include_isv,
         fiscal_enabled=business.fiscal_enabled,
         updated_at=business.updated_at,
+        cash_session_required=business.cash_session_required,
+        block_sale_without_stock=business.block_sale_without_stock,
+        print_receipt_policy=business.print_receipt_policy,
+        cashier_sees_own_sales_total=business.cashier_sees_own_sales_total,
+        max_discount_percent=business.max_discount_percent,
+        default_credit_days=business.default_credit_days,
+        default_quote_validity_days=business.default_quote_validity_days,
+        pos_simplified_mode_enabled=business.pos_simplified_mode_enabled,
+        pos_exit_requires_manager_auth=business.pos_exit_requires_manager_auth,
+        show_logo_in_app=business.show_logo_in_app,
     )
 
 
@@ -145,6 +155,47 @@ class SettingsService:
                 entity_type="core_business",
                 entity_id=str(BUSINESS_ID),
                 summary="Datos del negocio actualizados",
+                detail={"antes": antes, "despues": _to_view(business).model_dump(mode="json")},
+                clock=self.clock,
+            )
+
+        run_in_transaction(self.factory, _op)
+
+    def update_operation_settings(self, actor: Actor, data: OperationSettingsInput) -> None:
+        """Actualiza los interruptores de comportamiento de Fase 7 (ver T7.2/T7.6).
+
+        Separado de `update_business`: cambia con otra frecuencia y no toca identidad/contacto.
+        """
+
+        def _op(session: Session) -> None:
+            self.authorizer.require(session, actor, "core.ajustes.gestionar")
+            business = session.get(Business, BUSINESS_ID)
+            if business is None:
+                raise ValidationError(
+                    "no se pueden fijar los ajustes de operación sin datos de negocio"
+                )
+
+            antes = _to_view(business).model_dump(mode="json")
+            business.cash_session_required = data.cash_session_required
+            business.block_sale_without_stock = data.block_sale_without_stock
+            business.print_receipt_policy = data.print_receipt_policy
+            business.cashier_sees_own_sales_total = data.cashier_sees_own_sales_total
+            business.max_discount_percent = data.max_discount_percent
+            business.default_credit_days = data.default_credit_days
+            business.default_quote_validity_days = data.default_quote_validity_days
+            business.pos_simplified_mode_enabled = data.pos_simplified_mode_enabled
+            business.pos_exit_requires_manager_auth = data.pos_exit_requires_manager_auth
+            business.show_logo_in_app = data.show_logo_in_app
+            business.updated_at = self.clock()
+            session.flush()
+
+            audit(
+                session,
+                actor,
+                "core.ajustes.operacion_actualizada",
+                entity_type="core_business",
+                entity_id=str(BUSINESS_ID),
+                summary="Ajustes de operación actualizados",
                 detail={"antes": antes, "despues": _to_view(business).model_dump(mode="json")},
                 clock=self.clock,
             )
