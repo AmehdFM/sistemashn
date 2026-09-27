@@ -13,7 +13,6 @@ from sistemashn.comercial.module import COMERCIAL_MODULE
 from sistemashn.core.audit.service import AuditQueryService
 from sistemashn.core.authorization.service import Authorizer, PermissionAdminService
 from sistemashn.core.db import migrate
-from sistemashn.core.db.base import Base
 from sistemashn.core.db.engine import create_engine_for_path
 from sistemashn.core.db.engine import data_dir as default_data_dir
 from sistemashn.core.db.session import make_session_factory
@@ -68,9 +67,6 @@ def build_context(
     migrate.upgrade(db_path)
 
     engine = create_engine_for_path(db_path)
-    # TODO("fase 1 cierre: migración 0001_core"): retirar `create_all` cuando la cadena de
-    # migraciones incluya todos los modelos del Core/Comercial/Repuestos.
-    Base.metadata.create_all(engine)
     factory = make_session_factory(engine)
 
     registry = ModuleRegistry()

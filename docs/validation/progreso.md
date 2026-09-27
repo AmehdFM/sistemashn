@@ -37,6 +37,14 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T2.5 Excel | Hecha | 1,000 filas < 10 s |
 | T2.6 Pantallas | En curso | Falta registrar `units_categories_view.py` (existe pero no tiene ruta en `comercial/module.py` ni en `comercial/ui/screens.py`) y falta la pantalla de kits (`/kits`, sin builder ni ruta). El resto del plan (catálogo, importación, inventario, stock bajo, vehículos, compatibles) sí está implementado y registrado. |
 
+## Fase A — Cierre de deuda técnica y script de pruebas
+
+| Tarea | Estado | Evidencia |
+|---|---|---|
+| Script `scripts\pruebas.bat` (11 opciones, CRLF, `.gitattributes`) | Hecha | |
+| Cadena real de migraciones Alembic (`0001_base.py`, retiro de `create_all` en bootstrap) | Hecha | `tests/core/db/test_schema_matches_models.py`: `compare_metadata` vacío + triggers append-only verificados |
+| Documentación (`docs/README.md`, `README.md`, evidencia T2.6) | Hecha | |
+
 ## Fase 3 — Compras y crédito
 
 | Tarea | Estado | Evidencia |
