@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sistemashn-web",
+      "runtimeExecutable": "C:/Users/DELL/Documents/Proyectos/sistemashn/evn/Scripts/python.exe",
+      "runtimeArgs": ["scripts/run_web_dev.py", "8551"],
+      "port": 8551
+    }
+  ]
+}

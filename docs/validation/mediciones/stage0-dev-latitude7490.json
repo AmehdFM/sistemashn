@@ -1,0 +1,56 @@
+﻿{
+    "fecha":  "2026-09-27T07:27:15.5705839-06:00",
+    "exe_path":  "build\\flutter\\build\\windows\\x64\\runner\\Release\\sistemashn.exe",
+    "equipo":  {
+                   "modelo":  "Dell Inc. Latitude 7490",
+                   "ram_gb":  15.88
+               },
+    "cpu":  "Intel(R) Core(TM) i7-8650U CPU @ 1.90GHz",
+    "so":  {
+               "caption":  "Microsoft Windows 11 Pro",
+               "version":  "10.0.26200"
+           },
+    "tipo_disco":  "SSD",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "window_detected":  true,
+                     "startup_seconds":  0.68,
+                     "working_set_mb":  151.5,
+                     "private_mb":  121.04
+                 },
+                 {
+                     "run":  2,
+                     "window_detected":  true,
+                     "startup_seconds":  0.42,
+                     "working_set_mb":  146.89,
+                     "private_mb":  121.47
+                 },
+                 {
+                     "run":  3,
+                     "window_detected":  true,
+                     "startup_seconds":  0.66,
+                     "working_set_mb":  145.03,
+                     "private_mb":  120.03
+                 },
+                 {
+                     "run":  4,
+                     "window_detected":  true,
+                     "startup_seconds":  0.64,
+                     "working_set_mb":  145.45,
+                     "private_mb":  120.49
+                 },
+                 {
+                     "run":  5,
+                     "window_detected":  true,
+                     "startup_seconds":  0.86,
+                     "working_set_mb":  145.25,
+                     "private_mb":  119.65
+                 }
+             ],
+    "promedios":  {
+                      "startup_seconds_avg":  0.65,
+                      "working_set_mb_avg":  146.82,
+                      "private_mb_avg":  120.54
+                  }
+}

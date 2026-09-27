@@ -1,0 +1,7 @@
+-r requirements.txt
+flet-cli==1.0.0
+flet-desktop==1.0.0
+flet-web==1.0.0
+pytest==9.1.1
+ruff==0.16.8
+pyinstaller==6.22.3

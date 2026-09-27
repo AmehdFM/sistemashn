@@ -72,3 +72,16 @@ local_settings.py
 
 # Python tooling
 .python-version
+
+# Flet / build
+.flet/
+build/
+
+# Claves del vendedor (nunca al repo)
+tools/vendor/keys/
+*.priv
+
+# Datos locales de desarrollo
+data/
+
+.dev-data/

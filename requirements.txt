@@ -1,0 +1,10 @@
+# Dependencias de ejecución (fijadas). Instalar con: evn\Scripts\python.exe -m pip install -r requirements.txt
+flet==1.0.0
+SQLAlchemy==2.0.54
+alembic==1.20.0
+pydantic==2.13.5
+openpyxl==3.1.5
+argon2-cffi==25.1.0
+cryptography==50.0.1
+fpdf2==2.8.8
+httpx==0.28.1
