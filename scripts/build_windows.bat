@@ -9,27 +9,44 @@ REM  SistemasHN - Build de distribucion para Windows (flet build windows)
 REM
 REM  Uso:  scripts\build_windows.bat [vertical]
 REM
-REM  [vertical] es opcional (por defecto "repuestos"; hoy es la unica vertical con
-REM  entrypoint propio en src\sistemashn\app\, ver src\main.py). Cuando exista otra
-REM  vertical con su propio entrypoint, se agrega aqui su nombre "bonito" para el
-REM  archivo de salida (ver bloque VERTICAL_LABEL mas abajo).
+REM  Sin argumento, muestra un menu para elegir que vertical compilar. Con
+REM  argumento (p. ej. "scripts\build_windows.bat repuestos"), compila esa
+REM  vertical directamente sin preguntar (util para automatizar).
 REM
 REM  La version del ejecutable es la version GLOBAL del sistema, definida en un solo
 REM  lugar (src\sistemashn\__init__.py::__version__). No es la version de la vertical
 REM  ni se incrementa sola en cada build: para publicar una version nueva, se cambia
 REM  __version__ a mano y se vuelve a correr este script.
 REM
-REM  Resultado: build\SistemasHN<Vertical><Version>.zip (se sobrescribe en cada build;
-REM  la carpeta build\ en la raiz del proyecto es donde siempre queda el build mas
-REM  reciente listo para copiar a otra maquina y probar), ademas de una copia sin
-REM  comprimir en build\windows_release\ (ruta ESTABLE que usa installer\sistemashn.iss
-REM  como fuente, ya que la ruta interna que arma flet build cambia de version a
-REM  version y no sirve como referencia fija para el instalador).
+REM  Al terminar, la carpeta build\ en la raiz del proyecto SOLO contiene lo
+REM  compilado: build\SistemasHN<Vertical><Version>.zip (el build mas reciente,
+REM  listo para copiar a otra maquina y probar) y build\windows_release\ (la misma
+REM  copia sin comprimir, ruta ESTABLE que usa installer\sistemashn.iss como
+REM  fuente). Todo lo que "flet build" arma para compilar (el proyecto Flutter
+REM  completo, sus paquetes y cachés) es un paso intermedio que este script borra
+REM  al final desde una carpeta de trabajo FUERA de build\ (ver TRABAJO mas abajo)
+REM  para no ensuciar la carpeta del proyecto con eso.
 REM ===============================================================================
 
 set VERTICAL=%~1
-if "%VERTICAL%"=="" set VERTICAL=repuestos
+if not "%VERTICAL%"=="" goto :vertical_elegida
 
+:menu
+cls
+echo ===============================================
+echo   SistemasHN - Elegir vertical a compilar
+echo ===============================================
+echo  1. Repuestos
+echo  0. Cancelar
+echo ===============================================
+set /p opcion=Elija una opcion:
+if "%opcion%"=="1" set VERTICAL=repuestos & goto :vertical_elegida
+if "%opcion%"=="0" exit /b 0
+echo Opcion invalida.
+pause
+goto menu
+
+:vertical_elegida
 if /i "%VERTICAL%"=="repuestos" (
     set VERTICAL_LABEL=Repuestos
 ) else (
@@ -66,8 +83,17 @@ if "%VERSION%"=="" (
 
 set NOMBRE_SALIDA=SistemasHN%VERTICAL_LABEL%%VERSION%
 set BUILD_DIR=build
-set FLET_OUT=%BUILD_DIR%\_flet_out_%VERTICAL%
+set RELEASE_DIR=%BUILD_DIR%\windows_release
 set DESTINO=%BUILD_DIR%\%NOMBRE_SALIDA%.zip
+
+REM TRABAJO: "flet build" siempre crea su propio proyecto Flutter completo (con todo
+REM el SDK/paquetes/cache que eso implica, varios cientos de MB) en "<carpeta que se
+REM le pasa>\build\flutter" -- no hay forma de configurar esa ruta con un parametro,
+REM asi que el truco es pasarle como "carpeta del proyecto" una carpeta temporal
+REM FUERA del repositorio: toda esa maquinaria intermedia queda ahi y nunca toca
+REM nuestra carpeta build\ real.
+set TRABAJO=%TEMP%\sistemashn-build-%VERTICAL%
+set FLET_OUT=%TRABAJO%\salida
 
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
@@ -77,12 +103,25 @@ echo   Vertical: %VERTICAL_LABEL%     Version: %VERSION%
 echo ===============================================
 echo.
 
-REM Carpeta de trabajo de flet limpia en cada build, para no arrastrar restos de
-REM una compilacion anterior (p. ej. un DLL que ya no corresponde).
-if exist "%FLET_OUT%" rmdir /s /q "%FLET_OUT%"
+REM Carpeta de trabajo limpia en cada build, para no arrastrar restos de una
+REM compilacion anterior (p. ej. un DLL que ya no corresponde).
+if exist "%TRABAJO%" rmdir /s /q "%TRABAJO%"
+mkdir "%TRABAJO%"
+
+echo Copiando el proyecto a la carpeta de trabajo temporal...
+REM Solo hace falta "pyproject.toml" (metadatos, dependencias, [tool.flet]) y "src\"
+REM (path del programa segun [tool.flet.app]): copiar nada mas mantiene esto rapido.
+mkdir "%TRABAJO%\proyecto"
+copy /y pyproject.toml "%TRABAJO%\proyecto\" >nul
+robocopy src "%TRABAJO%\proyecto\src" /e /xd __pycache__ /xf *.pyc >nul
+if !ERRORLEVEL! geq 8 (
+    echo.
+    echo RESULTADO: FALLA al copiar el proyecto a la carpeta de trabajo ^(codigo !ERRORLEVEL!^)
+    exit /b 1
+)
 
 echo Compilando con "flet build windows" (puede tardar varios minutos)...
-"%FLET%" build windows --product "SistemasHN %VERTICAL_LABEL%" --build-version %VERSION% -o "%FLET_OUT%"
+"%FLET%" build windows --product "SistemasHN %VERTICAL_LABEL%" --build-version %VERSION% -o "%FLET_OUT%" "%TRABAJO%\proyecto"
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA en "flet build windows" ^(codigo !ERRORLEVEL!^)
@@ -100,10 +139,9 @@ if not defined EXE_DIR (
     echo.
     echo No se encontro "sistemashn.exe" dentro de "%FLET_OUT%" tras el build.
     echo Revise la salida de "flet build windows" arriba.
+    echo La carpeta de trabajo temporal NO se borro, para poder revisarla: %TRABAJO%
     exit /b 1
 )
-
-set RELEASE_DIR=%BUILD_DIR%\windows_release
 
 echo.
 echo Copiando "!EXE_DIR!" a la ruta estable "%RELEASE_DIR%" (se sobrescribe)...
@@ -127,9 +165,14 @@ if !ERRORLEVEL! neq 0 (
 )
 
 echo.
+echo Limpiando la carpeta de trabajo temporal (%TRABAJO%)...
+rmdir /s /q "%TRABAJO%" 2>nul
+
+echo.
 echo RESULTADO: OK
-echo Listo para copiar a otra maquina y probar: %DESTINO%
-echo Fuente estable para el instalador (installer\sistemashn.iss): %RELEASE_DIR%
+echo build\ solo contiene lo compilado:
+echo   - Distribuible: %DESTINO%
+echo   - Fuente estable para el instalador (installer\sistemashn.iss): %RELEASE_DIR%
 
 endlocal
 exit /b 0

@@ -39,9 +39,13 @@ if not exist "src\updater_main.py" (
 
 set BUILD_DIR=build
 set DIST_DIR=%BUILD_DIR%\updater
-set WORK_DIR=%BUILD_DIR%\_pyinstaller_updater
+REM Cache/spec de PyInstaller: solo son un paso intermedio, se arman FUERA de build\
+REM (igual que el proyecto Flutter temporal de build_windows.bat) para que build\ solo
+REM termine con updater.exe, y se borran al final.
+set WORK_DIR=%TEMP%\sistemashn-build-updater
 
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
+if exist "%WORK_DIR%" rmdir /s /q "%WORK_DIR%"
 
 echo ===============================================
 echo   SistemasHN - Build del updater (PyInstaller)
@@ -63,9 +67,11 @@ if not exist "%DIST_DIR%\updater.exe" (
     exit /b 1
 )
 
+rmdir /s /q "%WORK_DIR%" 2>nul
+
 echo.
 echo RESULTADO: OK
-echo Listo: %DIST_DIR%\updater.exe
+echo build\updater\ solo contiene lo compilado: %DIST_DIR%\updater.exe
 
 endlocal
 exit /b 0
