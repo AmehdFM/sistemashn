@@ -24,6 +24,7 @@ dist/
 pip-wheel-metadata/
 
 # Testing / coverage
+test-results/
 .pytest_cache/
 .coverage
 .coverage.*

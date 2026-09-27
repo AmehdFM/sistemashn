@@ -35,7 +35,7 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T2.3 Kits | Hecha | salida atómica de componentes |
 | T2.4 Repuestos (partes, equivalencias, vehículos) | Hecha | |
 | T2.5 Excel | Hecha | 1,000 filas < 10 s |
-| T2.6 Pantallas | En curso | |
+| T2.6 Pantallas | En curso | Falta registrar `units_categories_view.py` (existe pero no tiene ruta en `comercial/module.py` ni en `comercial/ui/screens.py`) y falta la pantalla de kits (`/kits`, sin builder ni ruta). El resto del plan (catálogo, importación, inventario, stock bajo, vehículos, compatibles) sí está implementado y registrado. |
 
 ## Fase 3 — Compras y crédito
 

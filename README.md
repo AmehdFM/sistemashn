@@ -1,69 +1,47 @@
-# Sistemashn app
+# SistemasHN
 
-## Run the app
+POS/ERP offline para negocios de repuestos en Honduras, hecho con Python 3.14, Flet 1.0,
+SQLAlchemy 2 (SQLite) y Alembic. Corre local, sin dependencia de internet, en equipos Windows
+de un negocio. La primera entrega instalable es el vertical de Repuestos; Ferretería y Clínica
+son extensiones futuras planeadas pero no bloquean esta entrega.
 
-### uv
+Documentación completa del diseño, planes y estado de avance en [`docs/README.md`](docs/README.md).
 
-Run as a desktop app:
+## Requisitos
 
-```bash
-uv run flet run
+- Python 3.14 (CPython) instalado en el sistema.
+- Entorno virtual propio del proyecto, llamado `evn`, dentro de la raíz del repositorio.
+- Nada se instala fuera de `evn` (ver `docs/decisions/001-toolchain.md`).
+
+## Instalación
+
+```bat
+py -3.14 -m venv evn
+evn\Scripts\python.exe -m pip install -r requirements-dev.txt
+evn\Scripts\python.exe -m pip install -e . --no-deps
 ```
 
-Run as a web app:
+## Correr la app
 
-```bash
-uv run flet run --web
+```bat
+evn\Scripts\python.exe src\main.py
 ```
 
-For more details on running the app, refer to the [Getting Started Guide](https://flet.dev/docs/).
+El motor resuelve la carpeta de datos con, en orden de prioridad: el argumento `--data-dir`,
+la variable de entorno `SISTEMASHN_DATA_DIR`, o una carpeta por defecto. Por ejemplo, para usar
+datos de prueba:
 
-## Build the app
-
-### Android
-
-```bash
-flet build apk -v
+```bat
+evn\Scripts\python.exe src\main.py --data-dir .dev-data\manual
 ```
 
-For more details on building and signing `.apk` or `.aab`, refer to the [Android Packaging Guide](https://flet.dev/docs/publish/android/).
+## Pruebas y calidad
 
-### iOS
+El script `scripts\pruebas.bat` centraliza pytest, ruff y migraciones en un menú interactivo
+(suite completa, por módulo, por archivo, última fase, ruff, migraciones, abrir la app con
+datos de prueba). Cada corrida se guarda en `test-results\`. Ejecutarlo desde la raíz del
+repositorio:
 
-```bash
-flet build ipa -v
+```bat
+scripts\pruebas.bat
 ```
-
-For more details on building and signing `.ipa`, refer to the [iOS Packaging Guide](https://flet.dev/docs/publish/ios/).
-
-### macOS
-
-```bash
-flet build macos -v
-```
-
-For more details on building macOS package, refer to the [macOS Packaging Guide](https://flet.dev/docs/publish/macos/).
-
-### Linux
-
-```bash
-flet build linux -v
-```
-
-For more details on building Linux package, refer to the [Linux Packaging Guide](https://flet.dev/docs/publish/linux/).
-
-### Windows
-
-```bash
-flet build windows -v
-```
-
-For more details on building Windows package, refer to the [Windows Packaging Guide](https://flet.dev/docs/publish/windows/).
-
-### Web
-
-```bash
-flet build web -v
-```
-
-For more details on building Web app, refer to the [Web Packaging Guide](https://flet.dev/docs/publish/web/).

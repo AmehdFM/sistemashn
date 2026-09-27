@@ -19,4 +19,12 @@ Esta rama inicia la implementación nueva desde cero. El sistema C#/SQL Server a
 
 ## Estado
 
-Documentación inicial para revisión. No hay código de producto en esta rama todavía.
+Etapa 0 (viabilidad Windows) y Fase 1 (Core: módulos, autorización, identidad, auditoría,
+licencia, ajustes/primer arranque, UI base y pantallas Core) están terminadas. La Fase 2
+(catálogo, inventario y Repuestos) está prácticamente cerrada: catálogo, libro de inventario,
+kits, partes/equivalencias/vehículos e importación de Excel están hechos; las pantallas (T2.6)
+están en curso, falta registrar la vista de unidades/categorías y la pantalla de kits. La Fase 3
+(compras y crédito) está en curso: contrapartes/numeración/pagos hechos, compras y pantallas
+pendientes, cuentas por pagar/cobrar en curso. Las Fases 4 a 6 (cotizaciones/POS/caja,
+devoluciones/documentos, operación/entrega) todavía no comienzan. Ver
+`docs/validation/progreso.md` para el detalle tarea por tarea.
