@@ -6,6 +6,9 @@ de un negocio. La primera entrega instalable es el vertical de Repuestos; Ferret
 son extensiones futuras planeadas pero no bloquean esta entrega.
 
 Documentación completa del diseño, planes y estado de avance en [`docs/README.md`](docs/README.md).
+¿No encuentras algo en el repositorio? Empieza por
+[`docs/mapa-del-proyecto.md`](docs/mapa-del-proyecto.md): dónde compilar, dónde están las
+pruebas, y qué hace cada carpeta de `src/`.
 
 ## Requisitos
 

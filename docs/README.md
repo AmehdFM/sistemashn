@@ -2,6 +2,10 @@
 
 Esta rama inicia la implementación nueva desde cero. El sistema C#/SQL Server anterior se usa como referencia funcional e histórica; no se migra su código ni su base de datos.
 
+¿Buscas dónde está algo puntual (compilar, pruebas, qué hace cada carpeta de `src/`)? Ver
+[`mapa-del-proyecto.md`](mapa-del-proyecto.md). Este documento, en cambio, explica el diseño y el
+plan de desarrollo.
+
 ## Orden de lectura
 
 1. [Diseño del producto](superpowers/specs/2026-09-25-sistemashn-python-design.md): alcance, decisiones acordadas e invariantes.
@@ -19,12 +23,7 @@ Esta rama inicia la implementación nueva desde cero. El sistema C#/SQL Server a
 
 ## Estado
 
-Etapa 0 (viabilidad Windows) y Fase 1 (Core: módulos, autorización, identidad, auditoría,
-licencia, ajustes/primer arranque, UI base y pantallas Core) están terminadas. La Fase 2
-(catálogo, inventario y Repuestos) está prácticamente cerrada: catálogo, libro de inventario,
-kits, partes/equivalencias/vehículos e importación de Excel están hechos; las pantallas (T2.6)
-están en curso, falta registrar la vista de unidades/categorías y la pantalla de kits. La Fase 3
-(compras y crédito) está en curso: contrapartes/numeración/pagos hechos, compras y pantallas
-pendientes, cuentas por pagar/cobrar en curso. Las Fases 4 a 6 (cotizaciones/POS/caja,
-devoluciones/documentos, operación/entrega) todavía no comienzan. Ver
-`docs/validation/progreso.md` para el detalle tarea por tarea.
+Fases 0 a 7 (Core, catálogo/inventario/Repuestos, compras/crédito, cotizaciones/POS/caja,
+devoluciones/documentos/reportes, mejoras de UI/UX, y operación/entrega: respaldos,
+actualizaciones firmadas, instalador) están completas. Ver `docs/validation/progreso.md` para el
+detalle tarea por tarea y qué queda pendiente de verificar en Windows antes de vender.
