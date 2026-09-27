@@ -53,3 +53,14 @@ Transversal: tipo `UtcDateTime` (fechas siempre UTC aware) añadido tras detecta
 | T3.2 Compras | Hecha | `comercial/compras/`, migración `0002_compras.py`, 14 pruebas (contado, crédito, pagos mixtos, fallo en última línea no deja rastro, idempotencia, historial de precios) |
 | T3.3 Cuentas por pagar/cobrar | Hecha (revisada: `AccountService` estaba implementado y probado pero no se registraba en `composition.py`; ya corregido) | `tests/comercial/credito/` |
 | T3.4 Pantallas | Hecha | `contrapartes_view.py`, `compras_view.py` (historial + nueva compra), `cxp_view.py`, registradas en `comercial/ui/screens.py` |
+
+## Fase 4 — Cotizaciones, POS, pagos, caja y cuentas por cobrar
+
+| Tarea | Estado | Evidencia |
+|---|---|---|
+| T4.1 Cotizaciones y apartados | Hecha | `comercial/cotizaciones/`, vencimiento perezoso, reserva de kits componente a componente, 13 pruebas |
+| T4.2 Ventas y comprobante interno | Hecha | `comercial/ventas/`, expansión de kits con snapshot de costo, conversión de cotización con `QuoteConversionMismatch`, 11 pruebas |
+| T4.3 Caja | Hecha | `comercial/caja/`, movimientos append-only, apertura/cierre con conciliación, 20 pruebas |
+| T4.4 Cuentas por cobrar | Hecha (sin código nuevo: reutiliza `AccountService` con `AccountKind.RECEIVABLE`) | integración probada en `tests/comercial/ventas/` |
+| T4.5 Factura legal (CAI) | Hecha, deshabilitada por defecto | `comercial/fiscal/`, nunca emite fuera de rango/vigencia, 8 pruebas |
+| T4.6 Pantallas | Hecha | `pos_view.py`, `cotizaciones_view.py`, `ventas_view.py`, `caja_view.py`, `cxc_view.py`, registradas en `comercial/ui/screens.py` |

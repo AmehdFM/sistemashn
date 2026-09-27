@@ -4,15 +4,19 @@ from collections.abc import Callable
 
 import pytest
 
+from sistemashn.comercial.caja.service import CashService
 from sistemashn.comercial.catalogo.excel import ExcelImportService
 from sistemashn.comercial.catalogo.kits import KitService
 from sistemashn.comercial.catalogo.service import CatalogService
 from sistemashn.comercial.compras.service import PurchaseService
 from sistemashn.comercial.contrapartes.service import PartyService
+from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.credito.service import AccountService
+from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.module import COMERCIAL_MODULE
+from sistemashn.comercial.ventas.service import SaleService
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
 from sistemashn.core.identity.models import User
@@ -84,6 +88,18 @@ def ctx_factory(
         purchases_service = PurchaseService(
             session_factory, authorizer, clock, ledger, accounts_service
         )
+        cash_service = CashService(session_factory, authorizer, clock)
+        quotes_service = QuoteService(session_factory, authorizer, clock, ledger)
+        sales_service = SaleService(
+            session_factory,
+            authorizer,
+            clock,
+            ledger,
+            accounts_service,
+            cash_service,
+            quotes_service,
+        )
+        fiscal_service = FiscalService(session_factory, authorizer, clock)
         services = {
             "catalog": catalog_service,
             "inventory": inventory_service,
@@ -93,6 +109,10 @@ def ctx_factory(
             "parties": parties_service,
             "accounts": accounts_service,
             "purchases": purchases_service,
+            "cash": cash_service,
+            "quotes": quotes_service,
+            "sales": sales_service,
+            "fiscal": fiscal_service,
         }
         return AppContext(
             session_factory=session_factory,
