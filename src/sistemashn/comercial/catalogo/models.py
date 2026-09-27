@@ -55,6 +55,8 @@ class Product(Base):
     min_stock: Mapped[object] = mapped_column(Quantity(), nullable=False)
     is_kit: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    #: Foto del producto (T7.4); nombre de archivo relativo a `data_dir/productos/`.
+    image_path: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(UtcDateTime(), nullable=False)
 

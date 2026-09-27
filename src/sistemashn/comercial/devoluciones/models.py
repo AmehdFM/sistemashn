@@ -18,12 +18,23 @@ class CustomerReturn(Base):
         CheckConstraint(
             "resolution IN ('reembolso', 'cambio', 'saldo_a_favor')", name="resolution_valida"
         ),
+        CheckConstraint(
+            "sale_line_id IS NOT NULL "
+            "OR (product_id IS NOT NULL AND unit_price_override IS NOT NULL)",
+            name="sin_comprobante_valida",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    sale_line_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("com_sale_line.id"), nullable=False
+    #: Nulo en una devolución "sin comprobante" (T7.3): en ese caso `product_id` y
+    #: `unit_price_override` traen los datos que normalmente vendrían de la línea de venta.
+    sale_line_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("com_sale_line.id"), nullable=True
     )
+    product_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("com_product.id"), nullable=True
+    )
+    unit_price_override: Mapped[object | None] = mapped_column(Money(), nullable=True)
     qty: Mapped[object] = mapped_column(Quantity(), nullable=False)
     condition: Mapped[str] = mapped_column(String(20), nullable=False)
     resolution: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -45,12 +56,23 @@ class SupplierReturn(Base):
             "resolution IN ('reemplazo', 'reembolso', 'credito_futuro')",
             name="resolution_valida",
         ),
+        CheckConstraint(
+            "purchase_line_id IS NOT NULL "
+            "OR (product_id IS NOT NULL AND unit_price_override IS NOT NULL)",
+            name="sin_comprobante_valida",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    purchase_line_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("com_purchase_line.id"), nullable=False
+    #: Nulo en una devolución "sin comprobante" (T7.3): en ese caso `product_id` y
+    #: `unit_price_override` traen los datos que normalmente vendrían de la línea de compra.
+    purchase_line_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("com_purchase_line.id"), nullable=True
     )
+    product_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("com_product.id"), nullable=True
+    )
+    unit_price_override: Mapped[object | None] = mapped_column(Money(), nullable=True)
     qty: Mapped[object] = mapped_column(Quantity(), nullable=False)
     resolution: Mapped[str] = mapped_column(String(20), nullable=False)
     amount: Mapped[object] = mapped_column(Money(), nullable=False)

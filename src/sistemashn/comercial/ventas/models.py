@@ -64,6 +64,8 @@ class SaleLine(Base):
     line_total: Mapped[object] = mapped_column(Money(), nullable=False)
     unit_cost_snapshot: Mapped[object] = mapped_column(UnitCost(), nullable=False)
     kit_component_of: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: Cantidad vendida sin stock disponible al momento (T7.3, `block_sale_without_stock=False`).
+    backorder_qty: Mapped[object] = mapped_column(Quantity(), nullable=False, default=0)
 
 
 class SalePayment(Base):
