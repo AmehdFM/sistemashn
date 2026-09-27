@@ -18,7 +18,18 @@ def test_comercial_module_se_registra_junto_a_core() -> None:
 
     perfiles = registry.profiles()
     assert perfiles["vendedor"].permissions == frozenset(
-        {"com.catalogo.ver", "com.inventario.ver", "com.cxc.ver"}
+        {
+            "com.catalogo.ver",
+            "com.inventario.ver",
+            "com.cxc.ver",
+            "com.cxc.cobrar",
+            "com.cotizaciones.ver",
+            "com.cotizaciones.gestionar",
+            "com.ventas.ver",
+            "com.ventas.registrar",
+            "com.caja.ver",
+            "com.caja.operar",
+        }
     )
 
     rutas = {s.route for s in registry.screens()}
