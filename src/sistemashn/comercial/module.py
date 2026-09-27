@@ -6,6 +6,7 @@ _GRUPO_CATALOGO = "Catálogo"
 _GRUPO_INVENTARIO = "Inventario"
 _GRUPO_COMPRAS = "Compras"
 _GRUPO_VENTAS = "Ventas"
+_GRUPO_REPORTES = "Reportes"
 
 _PERMISOS = (
     PermissionDef("com.catalogo.ver", "Ver catálogo", _GRUPO_CATALOGO),
@@ -31,6 +32,9 @@ _PERMISOS = (
     PermissionDef("com.caja.operar", "Operar caja", _GRUPO_VENTAS),
     PermissionDef("com.caja.cerrar", "Cerrar caja", _GRUPO_VENTAS),
     PermissionDef("com.fiscal.gestionar", "Gestionar autorizaciones fiscales", _GRUPO_VENTAS),
+    PermissionDef("com.compras.anular", "Anular compras", _GRUPO_COMPRAS),
+    PermissionDef("com.devoluciones.gestionar", "Gestionar devoluciones", _GRUPO_VENTAS),
+    PermissionDef("com.reportes.ver", "Ver reportes", _GRUPO_REPORTES),
 )
 
 _PERFIL_VENDEDOR = ProfileDef(
@@ -48,6 +52,7 @@ _PERFIL_VENDEDOR = ProfileDef(
             "com.ventas.registrar",
             "com.caja.ver",
             "com.caja.operar",
+            "com.devoluciones.gestionar",
         }
     ),
 )
@@ -66,6 +71,7 @@ _PERFIL_BODEGA = ProfileDef(
             "com.contrapartes.gestionar",
             "com.compras.ver",
             "com.compras.registrar",
+            "com.devoluciones.gestionar",
         }
     ),
 )
@@ -180,6 +186,22 @@ _PANTALLAS = (
         permission="com.cxc.ver",
         group=_GRUPO_VENTAS,
         order=5,
+    ),
+    ScreenDef(
+        route="/devoluciones",
+        label="Devoluciones",
+        icon="ASSIGNMENT_RETURN",
+        permission="com.devoluciones.gestionar",
+        group=_GRUPO_VENTAS,
+        order=6,
+    ),
+    ScreenDef(
+        route="/reportes",
+        label="Reportes",
+        icon="BAR_CHART",
+        permission="com.reportes.ver",
+        group=_GRUPO_REPORTES,
+        order=1,
     ),
 )
 

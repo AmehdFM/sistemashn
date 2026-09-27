@@ -29,6 +29,7 @@ def test_comercial_module_se_registra_junto_a_core() -> None:
             "com.ventas.registrar",
             "com.caja.ver",
             "com.caja.operar",
+            "com.devoluciones.gestionar",
         }
     )
 
