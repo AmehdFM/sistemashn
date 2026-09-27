@@ -74,12 +74,19 @@ def test_login_correcto_devuelve_actor_y_crea_sesion(identity_service, session_f
     actor = identity_service.login("ana", CLAVE)
     assert actor.username == "ana"
     assert actor.is_admin is False
+    assert actor.profile_code is None
     with session_factory() as session:
         sesion = session.get(LoginSession, actor.session_id)
         assert sesion is not None
         assert sesion.ended_at is None
         user = session.scalar(select(User).where(User.username == "ana"))
         assert user.failed_attempts == 0
+
+
+def test_login_incluye_profile_code_del_usuario(identity_service):
+    identity_service.create_user(SYSTEM_ACTOR, "vero", "Vero", CLAVE, profile_code="vendedor")
+    actor = identity_service.login("vero", CLAVE)
+    assert actor.profile_code == "vendedor"
 
 
 def test_login_incorrecto_y_usuario_inexistente_dan_el_mismo_mensaje(identity_service):

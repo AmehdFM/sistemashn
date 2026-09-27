@@ -51,7 +51,7 @@ def _build_sidebar(
     on_logout: Callable[[], None],
 ) -> ft.Control:
     encabezado: list[ft.Control] = []
-    if ctx.logo_path is not None:
+    if ctx.show_logo_in_app and ctx.logo_path is not None:
         encabezado.append(ft.Image(src=str(ctx.logo_path), width=40, height=40))
     encabezado.append(
         ft.Text(
@@ -64,7 +64,10 @@ def _build_sidebar(
 
     secciones: list[ft.Control] = []
     pantallas = router.visible_screens()
-    for grupo, items in groupby(pantallas, key=lambda s: s.group):
+    pantallas_normales = [s for s in pantallas if not s.advanced]
+    pantallas_avanzadas = [s for s in pantallas if s.advanced]
+
+    for grupo, items in groupby(pantallas_normales, key=lambda s: s.group):
         items = list(items)
         secciones.append(
             ft.Text(
@@ -85,6 +88,31 @@ def _build_sidebar(
                     on_navigate,
                 )
             )
+
+    if pantallas_avanzadas:
+        avanzada_activa = any(s.route == current_route for s in pantallas_avanzadas)
+        secciones.append(
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "CONFIGURACIÓN AVANZADA",
+                    color=theme.SIDEBAR_MUTED,
+                    size=11,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                expanded=avanzada_activa,
+                controls=[
+                    _menu_item(
+                        ctx,
+                        screen.route,
+                        screen.label,
+                        screen.icon,
+                        screen.route == current_route,
+                        on_navigate,
+                    )
+                    for screen in pantallas_avanzadas
+                ],
+            )
+        )
 
     pie: list[ft.Control] = [ft.Divider(color=theme.SIDEBAR_MUTED)]
     if ctx.actor is not None:

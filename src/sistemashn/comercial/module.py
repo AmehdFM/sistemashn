@@ -59,6 +59,7 @@ _PERFIL_VENDEDOR = ProfileDef(
             "com.devoluciones.gestionar",
         }
     ),
+    simplified_by_default=True,
 )
 
 _PERFIL_BODEGA = ProfileDef(
@@ -102,6 +103,7 @@ _PANTALLAS = (
         permission="com.catalogo.importar",
         group=_GRUPO_CATALOGO,
         order=2,
+        advanced=True,
     ),
     ScreenDef(
         route="/inventario",

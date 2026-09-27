@@ -16,6 +16,12 @@ class ProfileDef:
     code: str
     label: str
     permissions: frozenset[str]
+    #: Ruta inicial de este perfil al entrar al sistema (T7.6); si es None, se usa la
+    #: primera pantalla visible, como hasta ahora.
+    home_route: str | None = None
+    #: Arranca en "modo mostrador" (sin barra lateral, T7.5) salvo que el usuario cambie
+    #: a "Menú completo" desde la pantalla.
+    simplified_by_default: bool = False
 
 
 @dataclass(frozen=True)
@@ -26,6 +32,9 @@ class ScreenDef:
     permission: str | None
     group: str
     order: int
+    #: Pantallas de uso poco frecuente (T7.6): se agrupan en "Configuración avanzada" al
+    #: final de la barra lateral en vez de mezclarse con el uso diario.
+    advanced: bool = False
 
 
 @dataclass(frozen=True)

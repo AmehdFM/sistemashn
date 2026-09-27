@@ -131,6 +131,12 @@ class DesktopApp:
         business = self.ctx.service("settings").get_business()
         if business is not None:
             self.ctx.business_name = business.name
+            self.ctx.show_logo_in_app = business.show_logo_in_app
+        perfil = (
+            self.ctx.registry.profiles().get(actor.profile_code) if actor.profile_code else None
+        )
+        if perfil is not None and perfil.home_route is not None:
+            self.current_route = perfil.home_route
         self._render()
 
     def _on_logout(self) -> None:

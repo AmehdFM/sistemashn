@@ -53,12 +53,21 @@ _PANTALLAS = (
         order=3,
     ),
     ScreenDef(
+        route="/ajustes/operacion",
+        label="Ajustes de operación",
+        icon="TUNE",
+        permission="core.ajustes.gestionar",
+        group=_GRUPO_ADMIN,
+        order=4,
+    ),
+    ScreenDef(
         route="/respaldos",
         label="Respaldos",
         icon="BACKUP",
         permission="core.respaldos.gestionar",
         group=_GRUPO_ADMIN,
-        order=4,
+        order=5,
+        advanced=True,
     ),
     ScreenDef(
         route="/licencia",
@@ -66,7 +75,8 @@ _PANTALLAS = (
         icon="VERIFIED_USER",
         permission="core.licencia.ver",
         group=_GRUPO_ADMIN,
-        order=5,
+        order=6,
+        advanced=True,
     ),
 )
 

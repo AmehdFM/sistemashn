@@ -346,6 +346,7 @@ class IdentityService:
                     username=user.username,
                     is_admin=user.is_admin,
                     session_id=session_id,
+                    profile_code=user.profile_code,
                 )
                 audit(
                     session,

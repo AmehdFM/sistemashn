@@ -28,6 +28,7 @@ class AppContext:
     actor: Actor | None = None
     business_name: str = "SistemasHN"
     logo_path: Path | None = None
+    show_logo_in_app: bool = True
 
     def service(self, name: str) -> Any:
         """Devuelve el servicio registrado bajo `name` o lanza KeyError explicativo."""
