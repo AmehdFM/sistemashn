@@ -147,16 +147,15 @@ if !ERRORLEVEL! neq 0 (
     exit /b !ERRORLEVEL!
 )
 
-REM El ejecutable final queda en una subcarpeta de "%FLET_OUT%" (la ruta exacta
-REM depende de la version de Flet/Flutter, p. ej. algo como
-REM "%FLET_OUT%\x64\runner\Release\sistemashn.exe"): se busca en vez de asumir la
-REM ruta, para no romper el script si esa ruta interna cambia.
-set EXE_DIR=
-for /r "%FLET_OUT%" %%f in (sistemashn.exe) do set "EXE_DIR=%%~dpf"
-
-if not defined EXE_DIR (
+REM Con "-o", flet ya copia ahi mismo el contenido final y PLANO de la carpeta
+REM Release de Windows (el .exe junto con sus DLL y la carpeta "data\"): "%FLET_OUT%"
+REM YA ES esa carpeta, sin necesidad de buscarla mas adentro. (Antes este script
+REM buscaba "sistemashn.exe" recursivamente dentro de "%FLET_OUT%", pero eso podia
+REM encontrar por error un archivo con ese nombre anidado en otro lado dentro del
+REM propio paquete de Python empaquetado, en vez del ejecutable real.)
+if not exist "%FLET_OUT%\sistemashn.exe" (
     echo.
-    echo No se encontro "sistemashn.exe" dentro de "%FLET_OUT%" tras el build.
+    echo No se encontro "%FLET_OUT%\sistemashn.exe" tras el build.
     echo Revise la salida de "flet build windows" arriba.
     echo La carpeta de trabajo temporal NO se borro, para poder revisarla: %TRABAJO%
     pause
@@ -164,15 +163,24 @@ if not defined EXE_DIR (
 )
 
 echo.
-echo Copiando "!EXE_DIR!" a la ruta estable "%RELEASE_DIR%" (se sobrescribe)...
+echo Copiando "%FLET_OUT%" a la ruta estable "%RELEASE_DIR%" (se sobrescribe)...
 if exist "%RELEASE_DIR%" rmdir /s /q "%RELEASE_DIR%"
 mkdir "%RELEASE_DIR%"
-xcopy "!EXE_DIR!*" "%RELEASE_DIR%\" /e /i /y >nul
+xcopy "%FLET_OUT%\*" "%RELEASE_DIR%\" /e /i /y >nul
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA al copiar el resultado a "%RELEASE_DIR%" ^(codigo !ERRORLEVEL!^)
+    echo La carpeta de trabajo temporal NO se borro, para poder revisarla: %TRABAJO%
     pause
     exit /b !ERRORLEVEL!
+)
+
+if not exist "%RELEASE_DIR%\sistemashn.exe" (
+    echo.
+    echo Se copio "%FLET_OUT%" pero "%RELEASE_DIR%\sistemashn.exe" no aparecio.
+    echo La carpeta de trabajo temporal NO se borro, para poder revisarla: %TRABAJO%
+    pause
+    exit /b 1
 )
 
 echo.
