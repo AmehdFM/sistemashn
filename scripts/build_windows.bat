@@ -21,7 +21,10 @@ REM  __version__ a mano y se vuelve a correr este script.
 REM
 REM  Resultado: build\SistemasHN<Vertical><Version>.zip (se sobrescribe en cada build;
 REM  la carpeta build\ en la raiz del proyecto es donde siempre queda el build mas
-REM  reciente listo para copiar a otra maquina y probar).
+REM  reciente listo para copiar a otra maquina y probar), ademas de una copia sin
+REM  comprimir en build\windows_release\ (ruta ESTABLE que usa installer\sistemashn.iss
+REM  como fuente, ya que la ruta interna que arma flet build cambia de version a
+REM  version y no sirve como referencia fija para el instalador).
 REM ===============================================================================
 
 set VERTICAL=%~1
@@ -100,10 +103,23 @@ if not defined EXE_DIR (
     exit /b 1
 )
 
+set RELEASE_DIR=%BUILD_DIR%\windows_release
+
 echo.
-echo Empaquetando "!EXE_DIR!" en "%DESTINO%" (se sobrescribe si ya existia)...
+echo Copiando "!EXE_DIR!" a la ruta estable "%RELEASE_DIR%" (se sobrescribe)...
+if exist "%RELEASE_DIR%" rmdir /s /q "%RELEASE_DIR%"
+mkdir "%RELEASE_DIR%"
+xcopy "!EXE_DIR!*" "%RELEASE_DIR%\" /e /i /y >nul
+if !ERRORLEVEL! neq 0 (
+    echo.
+    echo RESULTADO: FALLA al copiar el resultado a "%RELEASE_DIR%" ^(codigo !ERRORLEVEL!^)
+    exit /b !ERRORLEVEL!
+)
+
+echo.
+echo Empaquetando "%RELEASE_DIR%" en "%DESTINO%" (se sobrescribe si ya existia)...
 if exist "%DESTINO%" del /f /q "%DESTINO%"
-powershell -NoProfile -Command "Compress-Archive -Path '!EXE_DIR!*' -DestinationPath '%DESTINO%' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path '%RELEASE_DIR%\*' -DestinationPath '%DESTINO%' -Force"
 if !ERRORLEVEL! neq 0 (
     echo.
     echo RESULTADO: FALLA al comprimir el resultado ^(codigo !ERRORLEVEL!^)
@@ -113,6 +129,7 @@ if !ERRORLEVEL! neq 0 (
 echo.
 echo RESULTADO: OK
 echo Listo para copiar a otra maquina y probar: %DESTINO%
+echo Fuente estable para el instalador (installer\sistemashn.iss): %RELEASE_DIR%
 
 endlocal
 exit /b 0
