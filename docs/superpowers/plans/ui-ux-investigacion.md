@@ -32,6 +32,33 @@ Fecha: 2026-09-27 · Rama: `desarrollo` · Alcance: estructura de pantallas, nav
 | L1 | Densidad de información | Depende de la pantalla: simple en POS/mostrador, más denso en pantallas administrativas — no aplicar un único criterio a todo el sistema. |
 | G3/G7 | Devolución sin comprobante original | Debe permitirse (no exigir siempre localizar la venta original), con motivo registrado. |
 | B4 | Soporte de pantalla táctil | No es un requisito real; asumir siempre mouse y teclado, no complicar el diseño por táctil. |
+| K2 | Vendedor ve costo/margen | Mantener como está: solo con permiso `com.costos.ver`. |
+| K3 | Fotos de piezas en el catálogo | Sí, importante — agregar soporte de foto por producto, visible en catálogo y búsqueda del POS. |
+| K4 | Ubicación física en bodega (estante/pasillo) | No es necesario. |
+| K5 | Mostrar equivalencias/alternativas cuando no hay stock | Muy importante — debe aparecer automáticamente al detectar falta de stock. |
+| G2 | Quién acepta una devolución de cliente | Configurable por negocio. |
+| G5 | Quién puede anular una venta del mismo día | Configurable por negocio. |
+| D15 | Aceptar dólares u otra moneda | No, solo lempiras para v1. |
+| D8 | Ventas "en espera" mientras se atiende a otro cliente | Sí, bastante común — el POS debe soportar "aparcar" una venta y tener varias abiertas a la vez. |
+| B5/B6 | Tipo de impresora e impresión automática | Debe soportar térmica y carta, configurable por negocio, y siempre debe poder usarse sin imprimir (solo guardar/ver PDF). Si imprime automático, pregunta o nunca: configurable por negocio. |
+| J1/J2 | Qué reportes mira más el dueño | Utilidad por producto/categoría, además de lo ya implementado (ventas/utilidad total, stock bajo, CxC/CxP, cierres de caja). |
+| J3 | Cajero ve su propio total vendido en el turno | Configurable por negocio. |
+| D4 | Cajero puede editar el precio de una línea (descuento) | Configurable por negocio (libre, con tope, o nunca sin autorización — el dueño define la política). |
+| D11 | Cliente anónimo por defecto en venta al contado | Sí, anónimo por defecto; solo se registra cliente si es a crédito o el cliente lo pide. |
+| F3/H3 | Vigencia por defecto de una cotización | Configurable por negocio, sin un valor fijo impuesto por el diseño. |
+| F1 | Plazo de crédito por defecto | Configurable por negocio, sin un valor fijo impuesto por el diseño. |
+| I3 | Costo sugerido al comprar | Último costo pagado a ESE proveedor específico (no a cualquiera, no el promedio). |
+| I4 | Proponer actualizar precio de venta al cambiar el costo | No, son cosas separadas — el precio se ajusta aparte en el catálogo. |
+| E4 | Ver saldo del cliente al elegirlo en una venta | No hace falta ahí mismo; se consulta en Cuentas por cobrar. |
+| L4 | Algo que extrañarían de un sistema anterior | No usaban otro sistema antes — sin referencia previa que preservar. |
+| L3 | Alerta cuando falla una búsqueda/escaneo | Solo visual, sin sonido. |
+| L7 | Logo del negocio en el POS | Sí, también en pantalla (no solo en documentos impresos). |
+| F2 | Selección de fechas (crédito, vigencia) | Calendario visual (`DatePicker`), sujeto a que la prueba técnica en Windows lo confirme viable; si falla, cae a texto `AAAA-MM-DD` como hoy. |
+| E6 | Imprimir recibo de abono para el cliente | Sí, es importante. |
+| C4 | Vendedor ve Catálogo/Inventario/Stock bajo completos en su menú | Configurable por negocio. |
+| C5 | Ocultar pantallas de uso raro (Importar catálogo, Licencia) del menú diario | Sí, moverlas a una sección de "Configuración avanzada" separada. |
+| K1 | Columnas imprescindibles en catálogo/búsqueda del POS | Código y nombre, número de parte/marca, precio y existencias disponibles — las cuatro. |
+| L6 | Probar un prototipo del POS con un empleado real antes de aplicar a todo | No es viable por ahora — avanzar con el criterio del plan sin sesión de prueba previa. |
 
 ### Efecto de estas decisiones sobre el plan de la sección 4
 - **Nueva pieza de alcance no contemplada originalmente**: varios de estos puntos ("exigir caja abierta", "quién puede cerrar caja", "quién autoriza crédito", "quién puede crear clientes", "pantalla de inicio por perfil", "modo mostrador libre o con clave de gerente") requieren **ajustes de configuración por negocio**, no solo cambios de UI fija. Esto agrega una tarea nueva de infraestructura (una pantalla/sección de "Ajustes de operación" con estos toggles, y que los servicios los lean) que no estaba en el plan P0/P1/P2 original y debe incorporarse antes o junto con P1a.
@@ -40,6 +67,13 @@ Fecha: 2026-09-27 · Rama: `desarrollo` · Alcance: estructura de pantallas, nav
 - **D3 confirmado**: la pantalla de resultado de venta (P1b) debe incluir un paso de confirmación con resumen antes de aplicar el cobro, no un cobro directo de un solo clic — esto ajusta la propuesta original de "ir lo más rápido posible" que el plan había sugerido por defecto.
 - **Devoluciones sin comprobante**: `comercial/devoluciones/` (ya implementado en Fase 5) hoy exige `sale_line_id`/`purchase_line_id` reales. Falta una vía alterna para devolución "libre" sin referencia a una venta, que es trabajo de backend, no solo de UI — anotar como ítem adicional de Fase 5/6.
 - **Exportar a Excel** confirma que `comercial/reportes/export_excel` (ya implementado) es una pieza importante a pulir en P2, no un extra postergable.
+- **Fotos de producto**: requiere agregar un campo de imagen a `com_product` (migración nueva), un `image_picker` (ya existe en `core/ui/widgets.py`, reutilizable) en el formulario de catálogo, y mostrar la foto en tarjetas de resultado del POS — no estaba en el plan original, se agrega como tarea nueva de Catálogo.
+- **Equivalencias/alternativas al no haber stock**: ya existe el motor (`RepuestosSearchProvider`, `equivalents`), falta conectarlo a la UI del POS para que aparezca automáticamente cuando `_verificar_disponibilidad` (o su equivalente en la búsqueda) detecta stock insuficiente — tarea nueva de integración P1b, no solo de diseño visual.
+- **Ventas "en espera" (aparcar venta)**: no existe hoy ningún soporte de múltiples ventas abiertas en `pos_view.py` (guarda un solo `estado` en memoria) ni en el backend. Es una pieza de alcance nueva y no trivial: guardar/restaurar carritos en memoria (o en `com_setting`/una tabla ligera) por sesión de usuario, con una lista de "ventas aparcadas" para retomar. Se agrega como tarea explícita de P1b, con su propio diseño antes de implementar.
+- **Ajustes de operación configurables por negocio**: la lista creció bastante en esta ronda (edición de precio por el cajero, quién anula/devuelve/autoriza crédito/cierra caja, impresión automática, visibilidad de ventas propias del cajero, menú del vendedor). Confirma que hace falta un módulo de configuración con varios toggles/permisos ya existentes (muchos ya son permisos de `comercial/module.py`, solo falta exponerlos bien en una pantalla de Ajustes) más un puñado de ajustes nuevos de comportamiento (imprimir automático, bloquear sin stock, editar precio con tope).
+- **`DatePicker`**: queda como la opción preferida para fechas, condicionada explícitamente a la prueba técnica en Windows que el plan ya proponía (sección 2.4) — no se asume que funciona sin probarlo primero.
+- **Recibo de abono imprimible**: `comercial/documentos/service.py::for_receipt` ya existe (T5.4); falta conectar un botón "Imprimir recibo" en el diálogo de abono de CxC/CxP — tarea de UI en P2, backend ya listo.
+- **Menú del vendedor y pantallas de uso raro**: confirma la necesidad de que `ScreenDef`/el perfil permitan marcar una pantalla como "oculta por defecto, visible solo en Configuración avanzada" — no es solo reordenar grupos (P1a), sino un nivel adicional de visibilidad condicional.
 
 ## 1. Resumen ejecutivo
 
