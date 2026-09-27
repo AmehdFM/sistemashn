@@ -1,19 +1,66 @@
-"""Pantalla real de Respaldos: historial, crear, verificar y restaurar en ensayo (T6.1)."""
+"""Pantalla real de Respaldos: historial, crear, verificar, restaurar en ensayo (T6.1)
+y aplicar una actualización manual firmada desde un paquete ZIP local (T6.4)."""
 
 from __future__ import annotations
 
 import contextlib
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import flet as ft
 
+from sistemashn import __version__
 from sistemashn.core.errors import SistemasHNError
+from sistemashn.core.operations.probe_update import InvalidPackageError, validate_package
 from sistemashn.core.ui import theme, widgets
 from sistemashn.core.ui.app_context import AppContext
+from sistemashn.core.updater.package import verify_signature
 
 _UMBRAL_RECORDATORIO = timedelta(hours=24)
+
+
+def _instalacion_actual() -> Path:
+    """Carpeta de instalación del programa en ejecución.
+
+    Empaquetado (PyInstaller/`flet build`): la carpeta del ejecutable. En desarrollo
+    (sin empaquetar) no hay una instalación real que reemplazar — este valor solo
+    importa cuando de verdad se aplica una actualización, algo que solo tiene sentido
+    probar en un build de Windows real (ver docs/superpowers/plans/fase-6-operacion-entrega.md).
+    """
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(sys.argv[0]).resolve().parent
+
+
+def build_updater_command(
+    package: Path,
+    installation: Path,
+    db_path: Path,
+    work_dir: Path,
+    lock_file: Path,
+    *,
+    python_executable: str = sys.executable,
+) -> list[str]:
+    """Arma el comando para invocar el proceso `updater` (T6.3) fuera del proceso de la app.
+
+    En desarrollo se invoca `updater/__main__.py` con el mismo intérprete; en un build
+    empaquetado, `installer/sistemashn.iss` instala `updater.exe` junto al programa y
+    este comando debería apuntar a él en su lugar (decisión pendiente de ajustar al
+    integrar el instalador real, documentada aquí para no perder el enlace).
+    """
+    return [
+        python_executable,
+        "-m",
+        "sistemashn.updater",
+        str(package),
+        str(installation),
+        str(db_path),
+        str(work_dir),
+        str(lock_file),
+    ]
 
 
 def _recordatorio_respaldo(ultimo: datetime | None, ahora: datetime) -> ft.Control | None:
@@ -89,6 +136,111 @@ def _fila_historial(
     )
 
 
+def validate_update_package(
+    zip_path: Path,
+    installed_version: str,
+    *,
+    public_keys: dict[str, bytes] | None = None,
+) -> Any:
+    """Verifica la firma Ed25519 del manifiesto y luego su contenido (T6.2/T6.4).
+
+    Propaga `InvalidPackageError` (o su subclase `InvalidSignatureError`) ante
+    cualquier problema, sin tocar disco. Extraído como función independiente de la
+    UI para poder probarlo sin construir controles de Flet.
+    """
+    if public_keys is None:
+        verify_signature(zip_path)
+    else:
+        verify_signature(zip_path, public_keys)
+    return validate_package(zip_path, installed_version)
+
+
+def _seccion_actualizaciones(ctx: AppContext) -> ft.Control:
+    """ "Aplicar paquete local (ZIP)" (T6.4): valida firma+manifiesto, muestra un resumen
+    y solo tras confirmar cierra la app y lanza el proceso `updater` (T6.3) por separado."""
+    resumen = ft.Text("")
+    error = ft.Text("", color=theme.ERROR)
+    manifest_valido: dict[str, Any] = {}
+
+    def _mostrar_error(texto: str) -> None:
+        resumen.value = ""
+        error.value = texto
+        with contextlib.suppress(RuntimeError):
+            resumen.update()
+            error.update()
+
+    def _al_elegir_zip(ruta: Path) -> None:
+        error.value = ""
+        manifest_valido.clear()
+        try:
+            manifest = validate_update_package(ruta, __version__)
+        except InvalidPackageError as exc:
+            _mostrar_error(f"Paquete inválido: {exc}")
+            return
+
+        manifest_valido["package"] = ruta
+        manifest_valido["manifest"] = manifest
+        resumen.value = (
+            f"Versión actual: {__version__}  →  Nueva versión: {manifest.version}\n"
+            f"Revisión de esquema destino: {manifest.schema_revision}\n"
+            f"Archivos a reemplazar: {len(manifest.files)}"
+        )
+        with contextlib.suppress(RuntimeError):
+            resumen.update()
+            error.update()
+
+    def _aplicar(evento: ft.Event[ft.Control]) -> None:
+        if "package" not in manifest_valido:
+            return
+        ctx_data_dir = ctx.data_dir
+        if ctx_data_dir is None:
+            _mostrar_error("No se pudo determinar la carpeta de datos de la instalación.")
+            return
+
+        db_path = getattr(ctx.service("backups"), "db_path", ctx_data_dir / "sistemashn.db")
+        work_dir = ctx_data_dir / "update-work"
+        lock_file = ctx_data_dir / ".app.lock"
+        comando = build_updater_command(
+            manifest_valido["package"],
+            _instalacion_actual(),
+            Path(db_path),
+            work_dir,
+            lock_file,
+        )
+        # Lanza el updater como proceso APARTE y cierra esta app: la app nunca aplica la
+        # actualización sobre sí misma (ver T6.3). No hay forma de probar el cierre real de
+        # ventana ni el proceso hijo en este entorno de pruebas (requiere un build de
+        # Windows real); `build_updater_command` sí está probado de forma aislada.
+        subprocess.Popen(comando)
+        pagina = evento.control.page
+        if pagina is not None:
+            pagina.window.close()
+
+    selector_zip = widgets.file_picker(
+        _al_elegir_zip,
+        button_label="Elegir paquete de actualización (.zip)...",
+        allowed_extensions=["zip"],
+        icon=ft.Icons.SYSTEM_UPDATE,
+    )
+    boton_aplicar = widgets.primary_button("Aplicar actualización", _aplicar)
+
+    return ft.Column(
+        controls=[
+            ft.Text("Actualizaciones", weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Buscar actualización por internet: requiere configurar un servidor de "
+                "actualizaciones (pendiente, ver T6.5).",
+                color=theme.TEXT_MUTED,
+            ),
+            selector_zip,
+            resumen,
+            error,
+            boton_aplicar,
+        ],
+        spacing=theme.SPACING["sm"],
+    )
+
+
 def build_backups_view(ctx: AppContext) -> ft.Control:
     backups_service = ctx.service("backups")
     actor = ctx.actor
@@ -139,7 +291,9 @@ def build_backups_view(ctx: AppContext) -> ft.Control:
     recordatorio = _recordatorio_respaldo(ultimo, ahora)
     if recordatorio is not None:
         controles.append(recordatorio)
-    controles.extend([selector_destino, tabla, mensaje])
+    controles.extend(
+        [selector_destino, tabla, mensaje, ft.Divider(), _seccion_actualizaciones(ctx)]
+    )
 
     return ft.Column(
         controls=controles,
