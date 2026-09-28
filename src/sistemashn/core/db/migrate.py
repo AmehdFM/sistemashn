@@ -18,11 +18,29 @@ def _alembic_config(db_path: Path) -> Config:
     return cfg
 
 
+class NoMigrationsFoundError(RuntimeError):
+    """`_MIGRATIONS_DIR` no tiene ninguna migración: `upgrade()` sería un no-op silencioso.
+
+    Pasa desapercibido con facilidad: Alembic no lanza error al "migrar" una cadena vacía,
+    así que sin este chequeo la base queda sin tablas y el primer síntoma real aparece varios
+    pasos después, como un "no such table" confuso al primer arranque (visto en builds
+    empaquetados de Windows donde `migrations/versions/*.py` no llegó a incluirse en el
+    ejecutable).
+    """
+
+
 def upgrade(db_path: Path, revision: str = "head") -> None:
     """Aplica migraciones hasta `revision` (por defecto la última)."""
     from alembic import command
+    from alembic.script import ScriptDirectory
 
-    command.upgrade(_alembic_config(db_path), revision)
+    cfg = _alembic_config(db_path)
+    if not ScriptDirectory.from_config(cfg).get_heads():
+        raise NoMigrationsFoundError(
+            f"No se encontró ninguna migración en '{_MIGRATIONS_DIR}'. Revise que "
+            "'migrations/versions/*.py' se haya incluido en el paquete/instalación."
+        )
+    command.upgrade(cfg, revision)
 
 
 def downgrade(db_path: Path, revision: str) -> None:

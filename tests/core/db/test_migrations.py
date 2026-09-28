@@ -3,7 +3,7 @@
 import pytest
 from sqlalchemy import create_engine, text
 
-from sistemashn.core.db.migrate import current_revision, downgrade, upgrade
+from sistemashn.core.db.migrate import NoMigrationsFoundError, current_revision, downgrade, upgrade
 
 pytestmark = pytest.mark.usefixtures("probe_migrations")
 
@@ -82,3 +82,18 @@ def test_current_revision_none_sin_migrar(tmp_path) -> None:
     engine = create_engine(f"sqlite+pysqlite:///{db_path}")
     engine.dispose()
     assert current_revision(db_path) is None
+
+
+def test_upgrade_sin_migraciones_falla_claro_en_vez_de_no_hacer_nada(tmp_path, monkeypatch) -> None:
+    """Sin esto, una carpeta "versions/" vacía (p. ej. no incluida en un build empaquetado)
+    dejaría la base sin tablas sin avisar: `upgrade()` a una cadena vacía no es un error para
+    Alembic, así que el primer síntoma real llegaría mucho después, como un "no such table"
+    confuso al primer arranque."""
+    from sistemashn.core.db import migrate
+
+    vacia = tmp_path / "sin_migraciones"
+    (vacia / "versions").mkdir(parents=True)
+    monkeypatch.setattr(migrate, "_MIGRATIONS_DIR", vacia)
+
+    with pytest.raises(NoMigrationsFoundError):
+        upgrade(tmp_path / "m6.db", "head")
