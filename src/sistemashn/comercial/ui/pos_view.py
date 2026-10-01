@@ -77,11 +77,13 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     aviso_caja = ft.Text("", color=theme.ERROR)
     boton_ventas_espera = widgets.secondary_button("Ventas en espera (0)", lambda e: None)
 
-    campo_cliente_busqueda = widgets.form_field("Buscar cliente por nombre o RTN (opcional)")
+    campo_cliente_busqueda = widgets.form_field("Buscar cliente")
+    campo_cliente_busqueda.hint_text = "Nombre o RTN (opcional)"
     resultados_cliente = ft.Column(spacing=theme.SPACING["xs"])
     cliente_elegido = ft.Text("", weight=ft.FontWeight.BOLD)
 
-    campo_codigo_producto = widgets.form_field("Código o código de barras (Enter para agregar)")
+    campo_codigo_producto = widgets.form_field("Código o barras")
+    campo_codigo_producto.hint_text = "Enter para agregar"
     campo_cantidad = widgets.form_field("Cantidad", value="1")
     lista_lineas = ft.Column(spacing=theme.SPACING["xs"])
 
@@ -94,7 +96,8 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     campo_referencia_pago = widgets.form_field("Referencia (opcional)")
     lista_pagos = ft.Column(spacing=theme.SPACING["xs"])
 
-    campo_vencimiento = widgets.form_field("Vencimiento de crédito (AAAA-MM-DD)")
+    campo_vencimiento = widgets.form_field("Vencimiento de crédito")
+    campo_vencimiento.hint_text = "AAAA-MM-DD"
     totales = ft.Column(spacing=2)
 
     error = ft.Text("", color=theme.ERROR)
@@ -584,7 +587,12 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
                 ],
                 spacing=theme.SPACING["sm"],
             ),
-            ft.Text("Cliente", weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Cliente",
+                size=theme.FONT_SUBTITLE,
+                weight=ft.FontWeight.W_600,
+                color=theme.TEXT,
+            ),
             ft.Row(
                 controls=[
                     campo_cliente_busqueda,
@@ -595,7 +603,9 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
             resultados_cliente,
             cliente_elegido,
             ft.Divider(),
-            ft.Text("Líneas", weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Líneas", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600, color=theme.TEXT
+            ),
             ft.Row(
                 controls=[campo_codigo_producto, campo_cantidad],
                 wrap=True,
@@ -603,7 +613,9 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
             ),
             lista_lineas,
             ft.Divider(),
-            ft.Text("Pagos", weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Pagos", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600, color=theme.TEXT
+            ),
             ft.Row(
                 controls=[
                     campo_metodo_pago,

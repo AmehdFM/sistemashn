@@ -258,17 +258,19 @@ def build_backups_view(ctx: AppContext) -> ft.Control:
             mensaje.update()
 
     if historial:
-        tabla: ft.Control = ft.DataTable(
-            columns=[
-                ft.DataColumn(label=ft.Text("Fecha")),
-                ft.DataColumn(label=ft.Text("Destino")),
-                ft.DataColumn(label=ft.Text("Verificado")),
-                ft.DataColumn(label=ft.Text("Acciones")),
-            ],
-            rows=[
-                _fila_historial(backups_service, actor, registro, _mostrar_mensaje)
-                for registro in historial
-            ],
+        tabla: ft.Control = widgets.readable_table(
+            ft.DataTable(
+                columns=[
+                    ft.DataColumn(label=ft.Text("Fecha")),
+                    ft.DataColumn(label=ft.Text("Destino")),
+                    ft.DataColumn(label=ft.Text("Verificado")),
+                    ft.DataColumn(label=ft.Text("Acciones")),
+                ],
+                rows=[
+                    _fila_historial(backups_service, actor, registro, _mostrar_mensaje)
+                    for registro in historial
+                ],
+            )
         )
     else:
         tabla = widgets.empty_state("Todavía no hay respaldos registrados.", icon=ft.Icons.BACKUP)

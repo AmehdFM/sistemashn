@@ -60,7 +60,12 @@ def build_login_view(ctx: AppContext, on_login: Callable[[Actor], None]) -> ft.C
     if ctx.logo_path is not None:
         encabezado.append(ft.Image(src=str(ctx.logo_path), width=64, height=64))
     encabezado.append(
-        ft.Text(ctx.business_name, size=20, weight=ft.FontWeight.BOLD, color=theme.TEXT)
+        ft.Text(
+            ctx.business_name,
+            size=theme.FONT_SUBTITLE,
+            weight=ft.FontWeight.W_600,
+            color=theme.TEXT,
+        )
     )
 
     tarjeta = ft.Container(
@@ -86,6 +91,7 @@ def build_login_view(ctx: AppContext, on_login: Callable[[Actor], None]) -> ft.C
                 ),
             ],
             spacing=theme.SPACING["md"],
+            tight=True,
         ),
     )
 

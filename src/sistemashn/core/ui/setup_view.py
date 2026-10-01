@@ -96,7 +96,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
 
         return ft.Column(
             controls=[
-                ft.Text("1. Licencia", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text("1. Licencia", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600),
                 ft.Text("Envíe este código a su proveedor y pegue la licencia recibida."),
                 campo_codigo,
                 _copy_button("Copiar código", codigo),
@@ -143,7 +143,9 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
 
         return ft.Column(
             controls=[
-                ft.Text("2. Datos del negocio", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    "2. Datos del negocio", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600
+                ),
                 nombre,
                 razon,
                 rtn,
@@ -179,7 +181,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
 
         return ft.Column(
             controls=[
-                ft.Text("3. Administrador", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text("3. Administrador", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600),
                 usuario,
                 nombre,
                 password,
@@ -216,7 +218,11 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
 
         return ft.Column(
             controls=[
-                ft.Text("4. Códigos de recuperación", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    "4. Códigos de recuperación",
+                    size=theme.FONT_SUBTITLE,
+                    weight=ft.FontWeight.W_600,
+                ),
                 ft.Text(
                     "Anote estos códigos en un lugar seguro: permiten recuperar el acceso "
                     "del administrador si olvida su contraseña. No se mostrarán de nuevo."
@@ -232,7 +238,11 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
     return ft.Container(
         content=ft.Column(
             controls=[
-                ft.Text("Configuración inicial de SistemasHN", size=22, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    "Configuración inicial de SistemasHN",
+                    size=theme.FONT_TITLE,
+                    weight=ft.FontWeight.W_600,
+                ),
                 error_slot,
                 content_slot,
             ],

@@ -38,13 +38,16 @@ datos de prueba:
 evn\Scripts\python.exe src\main.py --data-dir .dev-data\manual
 ```
 
-## Pruebas y calidad
+## Probar y compilar en Windows
 
-El script `scripts\pruebas.bat` centraliza pytest, ruff y migraciones en un menú interactivo
-(suite completa, por módulo, por archivo, última fase, ruff, migraciones, abrir la app con
-datos de prueba). Cada corrida se guarda en `test-results\`. Ejecutarlo desde la raíz del
-repositorio:
+Desde PowerShell, en la raíz del repositorio:
 
-```bat
-scripts\pruebas.bat
+```powershell
+.\scripts\dev.ps1 test   # pytest completo, ruff check y formato
+.\scripts\dev.ps1 build  # lo anterior + ejecutable Windows y ZIP en build/
+.\scripts\dev.ps1 run    # app de escritorio con datos aislados en .dev-data/manual
 ```
+
+`build` incluye las migraciones fuente que Alembic necesita y arranca el ejecutable con una
+base temporal para comprobar que crea `core_installation`. El resultado queda en
+`build/windows_release/` y `build/SistemasHNRepuestos<version>.zip`.

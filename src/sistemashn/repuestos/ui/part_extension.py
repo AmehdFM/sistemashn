@@ -287,6 +287,7 @@ class PartFormExtension:
                             widgets.secondary_button("Agregar", _agregar_compatibilidad),
                         ],
                         spacing=theme.SPACING["sm"],
+                        wrap=True,
                     )
                 )
                 controles.append(error_compat)
@@ -299,16 +300,26 @@ class PartFormExtension:
 
         secciones: list[ft.Control] = [
             ft.Row(
-                controls=[campo_numero, campo_fabricante, campo_origen], spacing=theme.SPACING["sm"]
+                controls=[campo_numero, campo_fabricante, campo_origen],
+                spacing=theme.SPACING["sm"],
+                wrap=True,
             ),
             error_datos,
         ]
         if puede_gestionar:
             secciones.append(widgets.primary_button("Guardar datos de parte", _guardar_datos))
 
-        secciones.append(ft.Text("Equivalencias", weight=ft.FontWeight.BOLD))
+        secciones.append(
+            ft.Text("Equivalencias", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600)
+        )
         secciones.append(equivalentes_col)
-        secciones.append(ft.Text("Compatibilidad con vehículos", weight=ft.FontWeight.BOLD))
+        secciones.append(
+            ft.Text(
+                "Compatibilidad con vehículos",
+                size=theme.FONT_SUBTITLE,
+                weight=ft.FontWeight.W_600,
+            )
+        )
         secciones.append(compatibilidades_col)
 
         root.controls = secciones

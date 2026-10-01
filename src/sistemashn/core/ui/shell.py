@@ -11,7 +11,7 @@ from sistemashn.core.ui import theme
 from sistemashn.core.ui.app_context import AppContext
 from sistemashn.core.ui.router import Router
 
-SIDEBAR_WIDTH = 240
+SIDEBAR_WIDTH = 248
 
 
 def _menu_item(
@@ -31,7 +31,7 @@ def _menu_item(
                 ft.Icon(
                     getattr(ft.Icons, icon, ft.Icons.CIRCLE), color=theme.SIDEBAR_TEXT, size=18
                 ),
-                ft.Text(label, color=theme.SIDEBAR_TEXT),
+                ft.Text(label, size=theme.FONT_BODY, color=theme.SIDEBAR_TEXT),
             ],
             spacing=theme.SPACING["sm"],
         ),
@@ -57,8 +57,8 @@ def _build_sidebar(
         ft.Text(
             ctx.business_name,
             color=theme.SIDEBAR_TEXT,
-            size=16,
-            weight=ft.FontWeight.BOLD,
+            size=18,
+            weight=ft.FontWeight.W_600,
         )
     )
 
@@ -73,8 +73,8 @@ def _build_sidebar(
             ft.Text(
                 grupo.upper(),
                 color=theme.SIDEBAR_MUTED,
-                size=11,
-                weight=ft.FontWeight.BOLD,
+                size=theme.FONT_CAPTION,
+                weight=ft.FontWeight.W_600,
             )
         )
         for screen in items:
@@ -96,8 +96,8 @@ def _build_sidebar(
                 title=ft.Text(
                     "CONFIGURACIÓN AVANZADA",
                     color=theme.SIDEBAR_MUTED,
-                    size=11,
-                    weight=ft.FontWeight.BOLD,
+                    size=theme.FONT_CAPTION,
+                    weight=ft.FontWeight.W_600,
                 ),
                 expanded=avanzada_activa,
                 controls=[
@@ -172,7 +172,7 @@ def build_shell(
             expand=True,
         ),
         bgcolor=theme.CONTENT_BG,
-        padding=ft.Padding.all(theme.SPACING["lg"]),
+        padding=ft.Padding.all(theme.SPACING["xl"]),
         expand=True,
     )
 

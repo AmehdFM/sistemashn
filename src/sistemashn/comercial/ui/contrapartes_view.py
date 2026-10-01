@@ -110,6 +110,7 @@ def build_parties_view(ctx: AppContext) -> ft.Control:
         filtros = ft.Row(
             controls=[campo_busqueda, campo_rol, campo_incluir_inactivos],
             spacing=theme.SPACING["md"],
+            wrap=True,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 

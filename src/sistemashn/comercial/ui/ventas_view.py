@@ -119,7 +119,11 @@ def _mostrar_detalle(control: ft.Control, venta: SaleView) -> None:
 
     body = ft.Column(
         controls=[
-            ft.Text(f"Venta {venta.number}", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(
+                f"Venta {venta.number}",
+                size=theme.FONT_SUBTITLE,
+                weight=ft.FontWeight.W_600,
+            ),
             *resumen,
             ft.Divider(),
             *lineas,

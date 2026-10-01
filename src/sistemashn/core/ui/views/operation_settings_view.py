@@ -21,13 +21,16 @@ _ETIQUETAS_POLITICA_IMPRESION = {
 
 
 def _texto_ayuda(mensaje: str) -> ft.Text:
-    return ft.Text(mensaje, size=12, color=theme.TEXT_MUTED)
+    return ft.Text(mensaje, size=theme.FONT_BODY, color=theme.TEXT_MUTED)
 
 
 def _seccion(titulo: str, controles: list[ft.Control]) -> ft.Control:
     return ft.Column(
-        controls=[ft.Text(titulo, weight=ft.FontWeight.BOLD), *controles],
-        spacing=theme.SPACING["xs"],
+        controls=[
+            ft.Text(titulo, size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600),
+            *controles,
+        ],
+        spacing=theme.SPACING["sm"],
     )
 
 

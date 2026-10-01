@@ -121,6 +121,7 @@ def build_quotes_view(ctx: AppContext) -> ft.Control:
         filtros = ft.Row(
             controls=[campo_busqueda, campo_estado],
             spacing=theme.SPACING["md"],
+            wrap=True,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 

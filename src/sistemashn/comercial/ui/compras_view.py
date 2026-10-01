@@ -126,7 +126,11 @@ def _mostrar_detalle(control: ft.Control, compra: PurchaseView, puede_ver_costos
 
     body = ft.Column(
         controls=[
-            ft.Text(f"Compra {compra.number}", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(
+                f"Compra {compra.number}",
+                size=theme.FONT_SUBTITLE,
+                weight=ft.FontWeight.W_600,
+            ),
             *resumen,
             ft.Divider(),
             *lineas,

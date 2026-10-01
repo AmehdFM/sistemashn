@@ -50,7 +50,14 @@ def build_audit_view(ctx: AppContext) -> ft.Control:
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(evento.action),
-            content=ft.Container(content=ft.Text(texto, selectable=True), width=480),
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[ft.Text(texto, size=theme.FONT_BODY, selectable=True)],
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                width=480,
+                height=360,
+            ),
         )
 
         def _cerrar(_: ft.Event[ft.Control]) -> None:

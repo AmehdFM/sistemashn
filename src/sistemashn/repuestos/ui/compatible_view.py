@@ -92,6 +92,7 @@ def build_compatible_view(ctx: AppContext) -> ft.Control:
             widgets.primary_button("Buscar", lambda e: _buscar(1)),
         ],
         spacing=theme.SPACING["sm"],
+        wrap=True,
     )
 
     root.controls = [widgets.page_header("Buscar por vehículo"), filtros, resultados]

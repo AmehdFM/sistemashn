@@ -68,7 +68,11 @@ def build_inventory_view(ctx: AppContext) -> ft.Control:
             return controles
 
         controles.append(
-            ft.Text(f"{producto.code} · {producto.name}", size=18, weight=ft.FontWeight.BOLD)
+            ft.Text(
+                f"{producto.code} · {producto.name}",
+                size=theme.FONT_SUBTITLE,
+                weight=ft.FontWeight.W_600,
+            )
         )
         controles.append(
             stock_and_movements_section(

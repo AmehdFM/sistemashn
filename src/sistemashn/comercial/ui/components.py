@@ -114,7 +114,7 @@ def stock_and_movements_section(
     resumen = ft.Row(
         controls=[
             ft.Column(
-                controls=[ft.Text(etiqueta, color=theme.TEXT_MUTED), ft.Text(valor, size=16)],
+                controls=[ft.Text(etiqueta, color=theme.TEXT_MUTED), ft.Text(valor, size=18)],
                 spacing=2,
             )
             for etiqueta, valor in filas_stock

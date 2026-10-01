@@ -219,7 +219,7 @@ def _tabla_ventas(rows: tuple[SalesProfitRow, ...], reporte) -> list[ft.Control]
     resumen = ft.Text(
         f"Total: {widgets.format_lempiras(reporte.total_sales)} · Utilidad: {utilidad_txt}"
     )
-    return [tabla, resumen]
+    return [widgets.readable_table(tabla), resumen]
 
 
 def _tabla_stock_bajo(rows: list[LowStockRow]) -> ft.Control:
@@ -237,9 +237,11 @@ def _tabla_stock_bajo(rows: list[LowStockRow]) -> ft.Control:
         ]
         for r in rows
     ]
-    return ft.DataTable(
-        columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
-        rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+    return widgets.readable_table(
+        ft.DataTable(
+            columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
+            rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+        )
     )
 
 
@@ -256,9 +258,11 @@ def _tabla_saldos(rows: list[AccountBalanceRow]) -> ft.Control:
         ]
         for r in rows
     ]
-    return ft.DataTable(
-        columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
-        rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+    return widgets.readable_table(
+        ft.DataTable(
+            columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
+            rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+        )
     )
 
 
@@ -276,7 +280,9 @@ def _tabla_cierres(rows: list[CashClosureRow]) -> ft.Control:
         ]
         for r in rows
     ]
-    return ft.DataTable(
-        columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
-        rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+    return widgets.readable_table(
+        ft.DataTable(
+            columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
+            rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
+        )
     )

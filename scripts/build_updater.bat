@@ -23,7 +23,7 @@ set PY=evn\Scripts\python.exe
 
 if not exist "%PY%" (
     echo No se encontro el entorno virtual "evn".
-    echo Cree el entorno primero ^(ver scripts\pruebas.bat, opcion 1^):
+    echo Cree el entorno primero ^(ver README.md^):
     echo.
     echo   py -3.14 -m venv evn
     echo   evn\Scripts\python.exe -m pip install -r requirements-dev.txt
@@ -42,7 +42,7 @@ if not exist "src\updater_main.py" (
 set BUILD_DIR=build
 set DIST_DIR=%BUILD_DIR%\updater
 REM Cache/spec de PyInstaller: solo son un paso intermedio, se arman FUERA de build\
-REM (igual que el proyecto Flutter temporal de build_windows.bat) para que build\ solo
+REM (igual que el proyecto Flutter temporal de dev.ps1 build) para que build\ solo
 REM termine con updater.exe, y se borran al final.
 set WORK_DIR=%TEMP%\sistemashn-build-updater
 

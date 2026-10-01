@@ -8,7 +8,7 @@ import flet as ft
 import pytest
 
 from sistemashn.core.pagination import Page
-from sistemashn.core.ui import widgets
+from sistemashn.core.ui import theme, widgets
 
 
 @pytest.mark.parametrize(
@@ -86,3 +86,21 @@ def test_paginated_table_construye_sin_lanzar():
         on_page_change=lambda p: None,
     )
     assert tabla is not None
+
+
+def test_tema_y_tablas_comparten_escala_legible():
+    visual = theme.build_theme()
+    assert visual.text_theme.body_medium.size == 14
+    assert visual.text_theme.title_large.size == 28
+
+    tabla = ft.DataTable(columns=[ft.DataColumn(label=ft.Text("Nombre"))])
+    superficie = widgets.readable_table(tabla)
+    assert isinstance(superficie, ft.Row)
+    assert superficie.scroll == ft.ScrollMode.AUTO
+    assert tabla.heading_row_height == 44
+    assert tabla.data_row_min_height == 44
+    assert tabla.data_text_style.size == 14
+
+    encabezado = widgets.page_header("Catálogo", actions=[ft.Button(content="Nuevo")])
+    assert isinstance(encabezado, ft.ResponsiveRow)
+    assert encabezado.controls[0].col["sm"] == 12

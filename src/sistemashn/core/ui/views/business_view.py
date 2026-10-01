@@ -85,7 +85,7 @@ def build_business_view(ctx: AppContext) -> ft.Control:
             widgets.primary_button("Guardar", _guardar),
             mensaje,
             ft.Divider(),
-            ft.Text("Logo", weight=ft.FontWeight.BOLD),
+            ft.Text("Logo", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600),
             selector_logo,
         ],
         spacing=theme.SPACING["sm"],
@@ -97,7 +97,11 @@ def build_business_view(ctx: AppContext) -> ft.Control:
         secciones.extend(
             [
                 ft.Divider(),
-                ft.Text("Códigos de recuperación", weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    "Códigos de recuperación",
+                    size=theme.FONT_SUBTITLE,
+                    weight=ft.FontWeight.W_600,
+                ),
                 ft.Text(
                     "Regenerar invalida los códigos anteriores. Anótelos: solo se "
                     "muestran una vez.",

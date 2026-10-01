@@ -147,7 +147,7 @@ def build_import_view(ctx: AppContext) -> ft.Control:
                 columns=[ft.DataColumn(label=ft.Text(c)) for c in columnas],
                 rows=[ft.DataRow(cells=[ft.DataCell(c) for c in fila]) for fila in filas],
             )
-            controles.append(tabla)
+            controles.append(widgets.readable_table(tabla))
         controles.append(widgets.primary_button("Confirmar importación", _confirmar_importacion))
         return controles
 

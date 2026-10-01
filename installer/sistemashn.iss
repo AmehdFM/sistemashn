@@ -6,7 +6,7 @@
 ; y prueba en su PC Windows con Inno Setup 6.
 ;
 ; Requisitos antes de compilar este script:
-;   1. scripts\build_windows.bat        -> deja el programa listo en build\windows_release\
+;   1. powershell -File scripts\dev.ps1 build -> deja el programa en build\windows_release\
 ;   2. scripts\build_updater.bat        -> deja el updater listo en build\updater\updater.exe
 ;   3. Abrir este archivo con el compilador de Inno Setup (o "iscc sistemashn.iss").
 ;

@@ -9,11 +9,11 @@ lo que necesites hacer.
 | Necesito... | Está en... |
 |---|---|
 | Correr la app en mi PC | `evn\Scripts\python.exe src\main.py` |
-| Correr la app con datos de prueba aislados | `evn\Scripts\python.exe src\main.py --data-dir .dev-data\manual` |
-| Compilar el instalable de Windows | `scripts\build_windows.bat` (menú para elegir vertical; deja el resultado en `build\`) |
+| Correr la app con datos de prueba aislados | `.\scripts\dev.ps1 run` |
+| Compilar el ejecutable Windows y ZIP | `.\scripts\dev.ps1 build` (deja el resultado en `build\`) |
 | Empaquetar el proceso de actualización | `scripts\build_updater.bat` |
 | Armar el instalador final (.exe de instalación) | `installer\sistemashn.iss` (con Inno Setup, en Windows) |
-| Correr las pruebas automatizadas | `scripts\pruebas.bat` (menú interactivo) |
+| Correr las pruebas automatizadas | `.\scripts\dev.ps1 test` |
 | Generar un código de activación de prueba | `activar_licencia.py` (raíz del repo, solo desarrollo) |
 | Firmar licencias/actualizaciones (solo el vendedor) | `tools\vendor\vendedor.py` |
 | Manual para el dueño del negocio/cajero | `docs\manual-operacion.md` |
@@ -37,7 +37,7 @@ tools/vendor/   Herramienta EXCLUSIVA del vendedor (para firmar licencias/actual
                 Nunca se instala en la PC de un cliente.
 evn/            El entorno virtual de Python. No se edita a mano: se genera con los
                 comandos de "Instalación" en README.md.
-build/          Se genera al compilar (scripts\build_windows.bat / build_updater.bat).
+build/          Se genera al compilar (scripts\dev.ps1 build / build_updater.bat).
                 No es parte del código fuente; se puede borrar y volver a generar siempre.
 ```
 

@@ -53,7 +53,14 @@ def build_license_view(ctx: AppContext) -> ft.Control:
     ]
     tarjeta = ft.Column(
         controls=[
-            ft.Row(controls=[ft.Text(etiqueta, color=theme.TEXT_MUTED, width=200), ft.Text(valor)])
+            ft.Row(
+                controls=[
+                    ft.Text(etiqueta, size=theme.FONT_BODY, color=theme.TEXT_MUTED, width=200),
+                    ft.Text(valor, size=theme.FONT_BODY, selectable=True),
+                ],
+                wrap=True,
+                spacing=theme.SPACING["sm"],
+            )
             for etiqueta, valor in filas
         ],
         spacing=theme.SPACING["sm"],

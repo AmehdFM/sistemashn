@@ -59,7 +59,8 @@ def build_catalog_view(ctx: AppContext) -> ft.Control:
 
     puede_gestionar = tiene_permiso(ctx, PERMISO_GESTIONAR)
 
-    campo_busqueda = widgets.form_field("Buscar por código, nombre o código de barras")
+    campo_busqueda = widgets.form_field("Buscar producto")
+    campo_busqueda.hint_text = "Código, nombre o barras"
     campo_incluir_inactivos = ft.Checkbox(label="Incluir inactivos", value=False)
 
     estado = {"page": 1, "texto": ""}
@@ -163,6 +164,7 @@ def build_catalog_view(ctx: AppContext) -> ft.Control:
         filtros = ft.Row(
             controls=[campo_busqueda, campo_incluir_inactivos],
             spacing=theme.SPACING["md"],
+            wrap=True,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )
 

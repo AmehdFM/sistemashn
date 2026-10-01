@@ -32,17 +32,33 @@ def page_header(
 ) -> ft.Control:
     """Encabezado de pantalla: título, subtítulo opcional y acciones a la derecha."""
     textos: list[ft.Control] = [
-        ft.Text(title, size=22, weight=ft.FontWeight.BOLD, color=theme.TEXT)
+        ft.Text(title, size=theme.FONT_TITLE, weight=ft.FontWeight.W_600, color=theme.TEXT)
     ]
     if subtitle:
-        textos.append(ft.Text(subtitle, size=14, color=theme.TEXT_MUTED))
+        textos.append(ft.Text(subtitle, size=theme.FONT_BODY, color=theme.TEXT_MUTED))
 
-    return ft.Row(
-        controls=[
-            ft.Column(controls=textos, spacing=2, expand=True),
-            ft.Row(controls=actions or [], spacing=theme.SPACING["sm"]),
-        ],
-        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+    controles: list[ft.Control] = [
+        ft.Column(
+            controls=textos,
+            spacing=theme.SPACING["xs"],
+            col={"xs": 12, "sm": 12, "md": 7 if actions else 12, "lg": 6 if actions else 12},
+        )
+    ]
+    if actions:
+        controles.append(
+            ft.Row(
+                controls=actions,
+                spacing=theme.SPACING["sm"],
+                wrap=True,
+                alignment=ft.MainAxisAlignment.END,
+                col={"xs": 12, "sm": 12, "md": 5, "lg": 6},
+            )
+        )
+
+    return ft.ResponsiveRow(
+        controls=controles,
+        spacing=theme.SPACING["sm"],
+        run_spacing=theme.SPACING["sm"],
         vertical_alignment=ft.CrossAxisAlignment.START,
     )
 
@@ -55,7 +71,12 @@ def empty_state(
     """Estado vacío: icono, mensaje y acción opcional, centrados."""
     controles: list[ft.Control] = [
         ft.Icon(icon, size=48, color=theme.TEXT_MUTED),
-        ft.Text(message, color=theme.TEXT_MUTED, text_align=ft.TextAlign.CENTER),
+        ft.Text(
+            message,
+            size=theme.FONT_BODY,
+            color=theme.TEXT_MUTED,
+            text_align=ft.TextAlign.CENTER,
+        ),
     ]
     if action is not None:
         controles.append(action)
@@ -187,7 +208,23 @@ def paginated_table(
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
     )
 
-    return ft.Column(controls=[tabla, paginador], spacing=theme.SPACING["sm"])
+    return ft.Column(controls=[readable_table(tabla), paginador], spacing=theme.SPACING["sm"])
+
+
+def readable_table(tabla: ft.DataTable) -> ft.Control:
+    """Aplica el estilo de tablas administrativas y permite desplazamiento horizontal."""
+    tabla.bgcolor = theme.SURFACE
+    tabla.heading_row_color = theme.TABLE_HEADER_BG
+    tabla.heading_row_height = 44
+    tabla.data_row_min_height = 44
+    tabla.data_row_max_height = 56
+    tabla.horizontal_margin = theme.SPACING["lg"]
+    tabla.column_spacing = theme.SPACING["xl"]
+    tabla.heading_text_style = ft.TextStyle(
+        size=theme.FONT_BODY, weight=ft.FontWeight.W_600, color=theme.TEXT
+    )
+    tabla.data_text_style = ft.TextStyle(size=theme.FONT_BODY, color=theme.TEXT)
+    return ft.Row(controls=[tabla], scroll=ft.ScrollMode.AUTO)
 
 
 def form_field(
