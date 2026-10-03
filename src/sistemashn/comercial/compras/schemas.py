@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from sistemashn.comercial.pagos.methods import PaymentInput
+from sistemashn.comercial.presentacion import PresentationSnapshot, validate_presentation_quantity
 from sistemashn.core.money import qty, rate, unit_cost
 
 
@@ -19,6 +20,16 @@ class PurchaseLineInput(BaseModel):
     qty: Decimal
     unit_cost: Decimal
     tax_rate: Decimal | None = None
+    presentation: PresentationSnapshot | None = None
+
+    @model_validator(mode="after")
+    def _presentacion(self) -> PurchaseLineInput:
+        validate_presentation_quantity(self.qty, self.presentation)
+        if self.presentation is not None:
+            amount = self.presentation.unit_amount
+            if amount is None or amount != self.unit_cost * self.presentation.factor_base:
+                raise ValueError("costo de presentación no coincide con el costo base")
+        return self
 
     @field_validator("qty")
     @classmethod
@@ -94,6 +105,7 @@ class PurchaseLineView:
     line_subtotal: Decimal
     line_tax: Decimal
     line_total: Decimal
+    presentation: PresentationSnapshot | None = None
 
 
 @dataclass(frozen=True)

@@ -28,6 +28,8 @@ from sistemashn.core.operations.service import BackupService
 from sistemashn.core.settings.service import SettingsService
 from sistemashn.core.setup.service import SetupService
 from sistemashn.core.ui.app_context import AppContext
+from sistemashn.ferreteria import composition as ferreteria_composition
+from sistemashn.ferreteria.module import FERRETERIA_MODULE
 from sistemashn.repuestos import composition as repuestos_composition
 from sistemashn.repuestos.module import REPUESTOS_MODULE
 
@@ -61,6 +63,8 @@ def build_context(
     `sys.argv`, la variable de entorno `SISTEMASHN_DATA_DIR` o la carpeta por defecto del
     motor (`sistemashn.core.db.engine.data_dir`).
     """
+    if vertical not in {"repuestos", "ferreteria"}:
+        raise ValueError(f"vertical desconocida: {vertical}")
     reloj = clock or _utcnow
     carpeta = Path(data_dir) if data_dir is not None else _resolve_data_dir(vertical)
     carpeta.mkdir(parents=True, exist_ok=True)
@@ -74,7 +78,7 @@ def build_context(
     registry = ModuleRegistry()
     registry.register(CORE_MODULE)
     registry.register(COMERCIAL_MODULE)
-    registry.register(REPUESTOS_MODULE)
+    registry.register(REPUESTOS_MODULE if vertical == "repuestos" else FERRETERIA_MODULE)
     registry.validate()
 
     authorizer = Authorizer(registry, reloj)
@@ -109,18 +113,26 @@ def build_context(
     ctx.services["setup"] = setup_service
     ctx.services["license"] = license_service
     ctx.services["backups"] = BackupService(factory, authorizer, reloj, db_path)
-    comercial_composition.register_services(
-        ctx,
-        search_providers=repuestos_composition.search_providers(),
-        excel_extensions=repuestos_composition.excel_extensions(),
-    )
-    repuestos_composition.register_services(ctx)
+    if vertical == "repuestos":
+        comercial_composition.register_services(
+            ctx,
+            search_providers=repuestos_composition.search_providers(),
+            excel_extensions=repuestos_composition.excel_extensions(),
+        )
+        repuestos_composition.register_services(ctx)
+    else:
+        comercial_composition.register_services(
+            ctx, search_providers=ferreteria_composition.search_providers()
+        )
+        ferreteria_composition.register_services(ctx)
 
     negocio = settings_service.get_business()
     if negocio is not None:
         ctx.business_name = negocio.name
         if negocio.logo_path:
             ctx.logo_path = carpeta / negocio.logo_path
+    else:
+        ctx.business_name = "Repuestos" if vertical == "repuestos" else "Ferretería"
 
     (carpeta / ".app.lock").write_text(str(os.getpid()), encoding="utf-8")
 

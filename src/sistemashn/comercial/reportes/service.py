@@ -2,8 +2,8 @@
 
 `ReportService` no declara modelos ni tablas propias: lee directamente `com_sale`/
 `com_sale_line`/`com_purchase`/`com_account`/`com_cash_session` con SQLAlchemy. La utilidad de
-`sales_and_profit` usa siempre el costo histórico congelado en `com_sale_line.unit_cost_snapshot`,
-nunca el costo promedio actual del producto (que puede haber cambiado por compras posteriores).
+`sales_and_profit` usa el subtotal sin ISV y el costo histórico congelado en
+`com_sale_line.unit_cost_snapshot`, nunca el costo promedio actual del producto.
 """
 
 from collections.abc import Callable
@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sistemashn.comercial.caja.models import CashSession
 from sistemashn.comercial.contrapartes.models import Party
 from sistemashn.comercial.credito.models import Account
+from sistemashn.comercial.devoluciones.models import CustomerReturn
 from sistemashn.comercial.inventario.service import InventoryService
 from sistemashn.comercial.reportes.schemas import (
     AccountBalanceRow,
@@ -67,6 +68,12 @@ class ReportService:
     # -- Ventas y utilidad ---------------------------------------------------
 
     def sales_and_profit(self, actor: Actor, since: datetime, until: datetime) -> SalesProfitReport:
+        """Margen bruto de ventas del rango, neto de devoluciones vinculadas hasta ``until``.
+
+        El rango selecciona la cohorte de ventas. Devoluciones de ventas anteriores al rango
+        y devoluciones sin comprobante no se asignan a filas; estas últimas se cuentan aparte.
+        """
+
         def _op(session: Session) -> SalesProfitReport:
             self.authorizer.require(session, actor, "com.reportes.ver")
             ver_costos = self.authorizer.can(session, actor, "com.costos.ver")
@@ -80,11 +87,21 @@ class ReportService:
             ).all()
 
             rows: list[SalesProfitRow] = []
+            incomplete_sales = 0
             for venta in sorted(ventas, key=lambda v: (v.sold_at, v.id)):
                 lineas = session.scalars(select(SaleLine).where(SaleLine.sale_id == venta.id)).all()
-                # El total de la venta viene de las líneas que sí llevan precio: las que NO son
-                # componente de un kit (`kit_component_of IS NULL`); la línea de kit-encabezado ya
-                # trae su `line_total` real. El costo suma `qty * unit_cost_snapshot` de TODAS las
+                devoluciones = session.scalars(
+                    select(CustomerReturn)
+                    .join(SaleLine, CustomerReturn.sale_line_id == SaleLine.id)
+                    .where(SaleLine.sale_id == venta.id, CustomerReturn.created_at <= until)
+                ).all()
+                devoluciones_por_linea: dict[int, list[CustomerReturn]] = {}
+                for devolucion in devoluciones:
+                    devoluciones_por_linea.setdefault(devolucion.sale_line_id, []).append(
+                        devolucion
+                    )
+                # El subtotal de la venta vive en líneas sin `kit_component_of`. El costo suma
+                # `qty * unit_cost_snapshot` de TODAS las
                 # líneas, pero para una venta con kit el costo del encabezado del kit está
                 # duplicado en sus componentes (ver `SaleService._costo_kit`: el costo del
                 # encabezado ya es el promedio de los componentes), así que solo se toma el costo
@@ -104,9 +121,22 @@ class ReportService:
                     if linea.kit_component_of is not None:
                         costo_total += linea.qty * linea.unit_cost_snapshot
 
-                total_venta = venta.total
-                costo_venta = money(costo_total) if ver_costos else None
-                utilidad = money(total_venta - costo_total) if ver_costos else None
+                subtotal_devuelto = Decimal("0")
+                costo_recuperado = Decimal("0")
+                for linea in lineas:
+                    for devolucion in devoluciones_por_linea.get(linea.id, []):
+                        if linea.kit_component_of is None:
+                            subtotal_devuelto += linea.line_subtotal * devolucion.qty / linea.qty
+                        if devolucion.condition == "vendible":
+                            costo_recuperado += linea.unit_cost_snapshot * devolucion.qty
+
+                costo_total -= costo_recuperado
+                total_venta = money(venta.subtotal - subtotal_devuelto)
+                sin_costo_fiable = any(linea.backorder_qty > 0 for linea in lineas)
+                if sin_costo_fiable:
+                    incomplete_sales += 1
+                costo_venta = money(costo_total) if ver_costos and not sin_costo_fiable else None
+                utilidad = money(total_venta - costo_total) if costo_venta is not None else None
 
                 rows.append(
                     SalesProfitRow(
@@ -121,7 +151,7 @@ class ReportService:
                 )
 
             total_sales = money(sum((r.total for r in rows), Decimal("0")))
-            if ver_costos:
+            if ver_costos and not incomplete_sales:
                 total_cost: Decimal | None = money(
                     sum((r.cost for r in rows if r.cost is not None), Decimal("0"))
                 )
@@ -130,6 +160,15 @@ class ReportService:
                 total_cost = None
                 total_profit = None
 
+            unlinked_returns = len(
+                session.scalars(
+                    select(CustomerReturn.id).where(
+                        CustomerReturn.sale_line_id.is_(None),
+                        CustomerReturn.created_at >= since,
+                        CustomerReturn.created_at <= until,
+                    )
+                ).all()
+            )
             return SalesProfitReport(
                 rows=tuple(rows),
                 total_sales=total_sales,
@@ -137,6 +176,8 @@ class ReportService:
                 total_profit=total_profit,
                 since=since,
                 until=until,
+                incomplete_cost_sales=incomplete_sales,
+                unlinked_returns=unlinked_returns,
             )
 
         return run_in_transaction(self.factory, _op, readonly=True)

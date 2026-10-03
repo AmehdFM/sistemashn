@@ -3,6 +3,8 @@
 import hashlib
 import json
 import os
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -64,6 +66,23 @@ def _make_db(base: Path) -> Path:
 # --------------------------------------------------------------------------
 # wait_for_app_exit
 # --------------------------------------------------------------------------
+
+
+def test_process_alive_no_termina_el_proceso_consultado() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import os; from sistemashn.updater.runner import _process_alive; "
+            "assert _process_alive(os.getpid()); print('sigue vivo')",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "sigue vivo" in result.stdout
 
 
 def test_wait_for_app_exit_sin_lock_file_retorna_true_de_inmediato(tmp_path: Path) -> None:

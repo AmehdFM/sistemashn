@@ -6,6 +6,8 @@ from decimal import Decimal
 import pytest
 from openpyxl import load_workbook
 
+from sistemashn.comercial.devoluciones.models import CustomerReturn
+from sistemashn.comercial.ventas.models import SaleLine
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.models import UserPermission
 from sistemashn.core.errors import PermissionDenied, ValidationError
@@ -45,6 +47,154 @@ def _actor_sin_costos(session_factory, now) -> Actor:
 
 
 class TestSalesAndProfit:
+    def test_excluye_isv_y_descuenta_devolucion_vendible_con_costo_historico(
+        self,
+        report_service,
+        purchase_service,
+        sale_service,
+        session_factory,
+        admin_actor,
+        proveedor_id,
+        producto_id,
+        now,
+    ):
+        from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
+        from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput
+
+        confirmar_compra(purchase_service, admin_actor, proveedor_id, producto_id, "10", "70")
+        venta = sale_service.confirm(
+            admin_actor,
+            SaleInput(
+                customer_id=None,
+                lines=[
+                    SaleLineInput(
+                        product_id=producto_id,
+                        qty=Decimal("2"),
+                        unit_price=Decimal("150"),
+                        tax_rate=Decimal("0.15"),
+                    )
+                ],
+                payments=[PaymentInput(method=PaymentMethod.TARJETA, amount=Decimal("345"))],
+                request_id="reporte-gravado-devolucion",
+            ),
+        )
+        with session_factory() as session:
+            linea = session.query(SaleLine).filter_by(sale_id=venta.id).one()
+            session.add(
+                CustomerReturn(
+                    sale_line_id=linea.id,
+                    product_id=None,
+                    unit_price_override=None,
+                    qty=Decimal("1"),
+                    condition="vendible",
+                    resolution="reembolso",
+                    amount=Decimal("150"),
+                    new_sale_id=None,
+                    user_id=admin_actor.user_id,
+                    reason=None,
+                    created_at=now,
+                )
+            )
+            session.commit()
+        confirmar_compra(purchase_service, admin_actor, proveedor_id, producto_id, "10", "90")
+
+        reporte = report_service.sales_and_profit(admin_actor, DESDE, HASTA)
+
+        assert reporte.total_sales == Decimal("150.00")
+        assert reporte.total_cost == Decimal("70.00")
+        assert reporte.total_profit == Decimal("80.00")
+
+    def test_devolucion_no_vendible_reduce_ingreso_pero_no_recupera_costo(
+        self,
+        report_service,
+        purchase_service,
+        sale_service,
+        session_factory,
+        admin_actor,
+        proveedor_id,
+        producto_id,
+        now,
+    ):
+        confirmar_compra(purchase_service, admin_actor, proveedor_id, producto_id, "2", "70")
+        venta = confirmar_venta(sale_service, admin_actor, producto_id, "2", "150")
+        with session_factory() as session:
+            linea = session.query(SaleLine).filter_by(sale_id=venta.id).one()
+            session.add(
+                CustomerReturn(
+                    sale_line_id=linea.id,
+                    product_id=None,
+                    unit_price_override=None,
+                    qty=Decimal("1"),
+                    condition="no_vendible",
+                    resolution="reembolso",
+                    amount=Decimal("150"),
+                    new_sale_id=None,
+                    user_id=admin_actor.user_id,
+                    reason=None,
+                    created_at=now,
+                )
+            )
+            session.commit()
+
+        reporte = report_service.sales_and_profit(admin_actor, DESDE, HASTA)
+        assert reporte.total_sales == Decimal("150.00")
+        assert reporte.total_cost == Decimal("140.00")
+        assert reporte.total_profit == Decimal("10.00")
+
+    def test_backorder_deja_margen_sin_calcular(
+        self,
+        report_service,
+        purchase_service,
+        sale_service,
+        session_factory,
+        admin_actor,
+        proveedor_id,
+        producto_id,
+    ):
+        confirmar_compra(purchase_service, admin_actor, proveedor_id, producto_id, "1", "70")
+        venta = confirmar_venta(sale_service, admin_actor, producto_id, "1", "150")
+        with session_factory() as session:
+            linea = session.query(SaleLine).filter_by(sale_id=venta.id).one()
+            linea.backorder_qty = Decimal("1")
+            session.commit()
+
+        reporte = report_service.sales_and_profit(admin_actor, DESDE, HASTA)
+        assert reporte.incomplete_cost_sales == 1
+        assert reporte.rows[0].cost is None
+        assert reporte.rows[0].profit is None
+        assert reporte.total_cost is None
+        assert reporte.total_profit is None
+
+    def test_devolucion_sin_comprobante_queda_identificada_sin_inventar_margen(
+        self,
+        report_service,
+        session_factory,
+        admin_actor,
+        producto_id,
+        now,
+    ):
+        with session_factory() as session:
+            session.add(
+                CustomerReturn(
+                    sale_line_id=None,
+                    product_id=producto_id,
+                    unit_price_override=Decimal("20"),
+                    qty=Decimal("1"),
+                    condition="vendible",
+                    resolution="reembolso",
+                    amount=Decimal("20"),
+                    new_sale_id=None,
+                    user_id=admin_actor.user_id,
+                    reason=None,
+                    created_at=now,
+                )
+            )
+            session.commit()
+
+        reporte = report_service.sales_and_profit(admin_actor, DESDE, HASTA)
+        assert reporte.unlinked_returns == 1
+        assert reporte.rows == ()
+
     def test_utilidad_usa_costo_historico_no_promedio_recalculado(
         self,
         report_service,

@@ -2,6 +2,8 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet('run', 'build', 'license')]
     [string]$Action,
+    [ValidateSet('repuestos', 'ferreteria')]
+    [string]$Vertical,
     [string]$DataDir
 )
 
@@ -23,8 +25,30 @@ if (-not $Action) {
     }
 }
 
+if (-not $Vertical) {
+    $available = @(@('repuestos', 'ferreteria') | Where-Object {
+        $entry = if ($_ -eq 'repuestos') { 'src\main.py' } else { "src\main_$_.py" }
+        Test-Path -LiteralPath (Join-Path $repo $entry)
+    })
+    if ($available.Count -eq 0) { throw 'No hay verticales disponibles.' }
+    Write-Host 'Seleccione la vertical:'
+    for ($i = 0; $i -lt $available.Count; $i++) {
+        Write-Host "$($i + 1). $($available[$i])"
+    }
+    $selection = Read-Host 'Opcion'
+    $index = 0
+    if (-not [int]::TryParse($selection, [ref]$index) -or $index -lt 1 -or $index -gt $available.Count) {
+        throw 'Vertical invalida.'
+    }
+    $Vertical = $available[$index - 1]
+}
+$entry = if ($Vertical -eq 'repuestos') { 'src\main.py' } else { "src\main_$Vertical.py" }
+if (-not (Test-Path -LiteralPath (Join-Path $repo $entry))) {
+    throw "La vertical $Vertical no esta disponible en este proyecto."
+}
+
 if ($Action -eq 'build') {
-    & (Join-Path $repo 'scripts\dev.ps1') build
+    & (Join-Path $repo 'scripts\dev.ps1') build -Vertical $Vertical
     exit $LASTEXITCODE
 }
 
@@ -36,18 +60,18 @@ if (-not (Test-Path -LiteralPath $python)) {
 Push-Location $repo
 try {
     if (-not $DataDir) {
-        $DataDir = & $python -c 'from sistemashn.core.db.engine import data_dir; print(data_dir("repuestos"))'
+        $DataDir = & $python -c "from sistemashn.core.db.engine import data_dir; print(data_dir('$Vertical'))"
         if ($LASTEXITCODE -ne 0 -or -not $DataDir) {
             throw 'No se pudo determinar la carpeta de datos.'
         }
     }
 
     if ($Action -eq 'license') {
-        Write-Host "Licencia de desarrollo para: $DataDir"
-        & $python activar_licencia.py --data-dir $DataDir
+        Write-Host "Licencia de desarrollo ($Vertical) para: $DataDir"
+        & $python activar_licencia.py --data-dir $DataDir --vertical $Vertical
     }
     else {
-        & $python src\main.py --data-dir $DataDir
+        & $python $entry --data-dir $DataDir
     }
     $code = $LASTEXITCODE
 }

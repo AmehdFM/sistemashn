@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+from sistemashn.comercial.presentacion import PresentationSnapshot, validate_presentation_quantity
 from sistemashn.core.money import qty, rate
 
 
@@ -18,6 +19,20 @@ class QuoteLineInput(BaseModel):
     qty: Decimal
     unit_price: Decimal | None = None
     tax_rate: Decimal | None = None
+    presentation: PresentationSnapshot | None = None
+
+    @model_validator(mode="after")
+    def _presentacion(self) -> QuoteLineInput:
+        validate_presentation_quantity(self.qty, self.presentation)
+        if self.presentation is not None:
+            amount = self.presentation.unit_amount
+            if (
+                amount is None
+                or self.unit_price is None
+                or amount != self.unit_price * self.presentation.factor_base
+            ):
+                raise ValueError("precio de presentación no coincide con el precio base")
+        return self
 
     @field_validator("qty")
     @classmethod
@@ -93,6 +108,7 @@ class QuoteLineView:
     line_subtotal: Decimal
     line_tax: Decimal
     line_total: Decimal
+    presentation: PresentationSnapshot | None = None
 
 
 @dataclass(frozen=True)

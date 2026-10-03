@@ -29,7 +29,7 @@ from sistemashn.core.ui.app_context import AppContext
 PERMISO = "com.reportes.ver"
 
 _REPORTES = (
-    ("ventas_utilidad", "Ventas y utilidad"),
+    ("ventas_utilidad", "Ventas y margen bruto"),
     ("stock_bajo", "Stock bajo"),
     ("cxc", "Saldos por cobrar"),
     ("cxp", "Saldos por pagar"),
@@ -198,7 +198,7 @@ def build_reports_view(ctx: AppContext) -> ft.Control:
 def _tabla_ventas(rows: tuple[SalesProfitRow, ...], reporte) -> list[ft.Control]:
     if not rows:
         return [widgets.empty_state("No hay ventas en el rango indicado.")]
-    columnas = ["Número", "Fecha", "Total", "Costo", "Utilidad"]
+    columnas = ["Número", "Fecha", "Venta sin ISV", "Costo", "Margen bruto"]
     filas = [
         [
             ft.Text(r.number),
@@ -217,7 +217,8 @@ def _tabla_ventas(rows: tuple[SalesProfitRow, ...], reporte) -> list[ft.Control]
         widgets.format_lempiras(reporte.total_profit) if reporte.total_profit is not None else "—"
     )
     resumen = ft.Text(
-        f"Total: {widgets.format_lempiras(reporte.total_sales)} · Utilidad: {utilidad_txt}"
+        f"Venta neta sin ISV: {widgets.format_lempiras(reporte.total_sales)} · "
+        f"Margen bruto: {utilidad_txt}"
     )
     return [widgets.readable_table(tabla), resumen]
 

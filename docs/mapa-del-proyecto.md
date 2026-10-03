@@ -9,8 +9,9 @@ lo que necesites hacer.
 | Necesito... | Está en... |
 |---|---|
 | Correr la app en mi PC | `evn\Scripts\python.exe src\main.py` |
-| Correr la app con datos de prueba aislados | `.\scripts\dev.ps1 run` |
-| Compilar el ejecutable Windows y ZIP | `.\scripts\dev.ps1 build` (deja el resultado en `build\`) |
+| Correr una vertical con datos de prueba aislados | `.\scripts\dev.ps1 run -Vertical repuestos` o `ferreteria` |
+| Ejecutar, compilar o generar licencia desde menú | `.\sistemashn.ps1` o doble clic en `SistemasHN.cmd` |
+| Compilar el ejecutable Windows y ZIP | `.\scripts\dev.ps1 build -Vertical repuestos` o `ferreteria` (deja el resultado en `build\`) |
 | Empaquetar el proceso de actualización | `scripts\build_updater.bat` |
 | Armar el instalador final (.exe de instalación) | `installer\sistemashn.iss` (con Inno Setup, en Windows) |
 | Correr las pruebas automatizadas | `.\scripts\dev.ps1 test` |

@@ -19,7 +19,7 @@ from sistemashn.comercial.catalogo.schemas import (
     UnitView,
 )
 from sistemashn.comercial.catalogo.search import ProductSearchProvider, normalize_search
-from sistemashn.comercial.inventario.models import Stock
+from sistemashn.comercial.inventario.models import Stock, StockMovement
 from sistemashn.core.audit.service import audit
 from sistemashn.core.authorization.actor import Actor
 from sistemashn.core.authorization.service import Authorizer
@@ -31,6 +31,7 @@ from sistemashn.core.pagination import Page, normalize_page
 # `core` no puede importar de `comercial`, pero lo inverso sí está permitido: reusamos la
 # validación de firma de bytes ya escrita para el logo del negocio en vez de duplicarla.
 from sistemashn.core.settings.service import sniff_image_extension
+from sistemashn.ferreteria.catalogo.models import FerPack
 
 MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024
 
@@ -124,6 +125,26 @@ class CatalogService:
             )
             if duplicada is not None:
                 raise ValidationError(f"la unidad '{data.code}' ya existe")
+            if unit.allows_fraction != data.allows_fraction:
+                products = select(Product.id).where(Product.unit_id == unit_id)
+                has_movement = (
+                    session.scalar(
+                        select(StockMovement.id)
+                        .where(StockMovement.product_id.in_(products))
+                        .limit(1)
+                    )
+                    is not None
+                )
+                has_pack = (
+                    session.scalar(
+                        select(FerPack.id).where(FerPack.product_id.in_(products)).limit(1)
+                    )
+                    is not None
+                )
+                if has_movement or has_pack:
+                    raise ValidationError(
+                        "no se puede cambiar la fraccionabilidad con movimientos o presentaciones"
+                    )
             unit.code = data.code
             unit.name = data.name
             unit.allows_fraction = data.allows_fraction
@@ -252,6 +273,25 @@ class CatalogService:
 
             self._validar_referencias(session, data)
             self._validar_unicidad(session, data, product_id=product_id)
+            if product.unit_id != data.unit_id:
+                has_movement = (
+                    session.scalar(
+                        select(StockMovement.id)
+                        .where(StockMovement.product_id == product_id)
+                        .limit(1)
+                    )
+                    is not None
+                )
+                has_pack = (
+                    session.scalar(
+                        select(FerPack.id).where(FerPack.product_id == product_id).limit(1)
+                    )
+                    is not None
+                )
+                if has_movement or has_pack:
+                    raise ValidationError(
+                        "no se puede cambiar la unidad base con movimientos o presentaciones"
+                    )
 
             antes = {"sale_price": product.sale_price, "tax_rate": product.tax_rate}
 
@@ -442,6 +482,8 @@ class CatalogService:
             condiciones_code.append(Product.id != product_id)
         if session.scalar(select(Product).where(and_(*condiciones_code))) is not None:
             raise ValidationError(f"el código '{data.code}' ya existe")
+        if session.scalar(select(FerPack.id).where(FerPack.code == data.code)) is not None:
+            raise ValidationError(f"el código '{data.code}' ya existe como presentación")
 
         if data.barcode is not None:
             condiciones_barcode = [Product.barcode == data.barcode]
@@ -449,6 +491,10 @@ class CatalogService:
                 condiciones_barcode.append(Product.id != product_id)
             if session.scalar(select(Product).where(and_(*condiciones_barcode))) is not None:
                 raise ValidationError(f"el código de barras '{data.barcode}' ya existe")
+            if session.scalar(select(FerPack.id).where(FerPack.code == data.barcode)) is not None:
+                raise ValidationError(
+                    f"el código de barras '{data.barcode}' ya existe como presentación"
+                )
 
     def _to_view(self, session: Session, product: Product, ver_costos: bool) -> ProductView:
         stock = session.get(Stock, product.id)

@@ -17,6 +17,7 @@ from sistemashn.comercial.contrapartes.service import PartyService
 from sistemashn.comercial.cotizaciones.schemas import QuoteInput, QuoteLineInput, QuoteSummary
 from sistemashn.comercial.cotizaciones.service import QuoteService
 from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
+from sistemashn.comercial.presentacion import PresentationSnapshot
 from sistemashn.comercial.ui.components import safe_page, tiene_permiso
 from sistemashn.comercial.ventas.errors import QuoteConversionMismatch
 from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput
@@ -44,6 +45,7 @@ class _LineaCapturada:
     qty: Decimal
     unit_price: Decimal
     tax_rate: Decimal
+    presentation: PresentationSnapshot | None = None
 
 
 @dataclass
@@ -164,6 +166,8 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
     catalog: CatalogService = ctx.service("catalog")
     parties: PartyService = ctx.service("parties")
     quotes: QuoteService = ctx.service("quotes")
+    fer_catalog = ctx.services.get("fer_catalog")
+    fer_lines = ctx.services.get("fer_lines")
 
     estado: dict = {"cliente": None, "lineas": []}
 
@@ -171,7 +175,9 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
     resultados_cliente = ft.Column(spacing=theme.SPACING["xs"])
     cliente_elegido = ft.Text("", weight=ft.FontWeight.BOLD)
 
-    campo_codigo_producto = widgets.form_field("Código de producto")
+    campo_codigo_producto = widgets.form_field(
+        "SKU o código de empaque" if fer_lines is not None else "Código de producto"
+    )
     campo_cantidad = widgets.form_field("Cantidad")
     lista_lineas = ft.Column(spacing=theme.SPACING["xs"])
 
@@ -231,17 +237,25 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
     def _render_lineas() -> None:
         filas: list[ft.Control] = []
         for linea in estado["lineas"]:
+            pack_id = linea.presentation.pack_id if linea.presentation else None
+            detail = (
+                f" · {linea.presentation.quantity} {linea.presentation.label}"
+                if linea.presentation
+                else ""
+            )
             filas.append(
                 ft.Row(
                     controls=[
                         ft.Text(
-                            f"{linea.code} - {linea.name} · cant {linea.qty} · "
+                            f"{linea.code} - {linea.name}{detail} · base {linea.qty} · "
                             f"precio {widgets.format_lempiras(linea.unit_price)}"
                         ),
                         ft.IconButton(
                             icon=ft.Icons.DELETE,
                             tooltip="Quitar",
-                            on_click=lambda e, pid=linea.product_id: _quitar_linea(pid),
+                            on_click=lambda e, pid=linea.product_id, pack=pack_id: _quitar_linea(
+                                pid, pack
+                            ),
                         ),
                     ],
                     spacing=theme.SPACING["sm"],
@@ -250,8 +264,13 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
         lista_lineas.controls = filas
         _render_totales()
 
-    def _quitar_linea(product_id: int) -> None:
-        estado["lineas"] = [ln for ln in estado["lineas"] if ln.product_id != product_id]
+    def _quitar_linea(product_id: int, pack_id: int | None = None) -> None:
+        estado["lineas"] = [
+            ln
+            for ln in estado["lineas"]
+            if (ln.product_id, ln.presentation.pack_id if ln.presentation else None)
+            != (product_id, pack_id)
+        ]
         _render_lineas()
         lista_lineas.update()
         totales.update()
@@ -269,8 +288,22 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
             error.update()
             return
         try:
-            producto = catalog.find_by_code_or_barcode(ctx.actor, codigo)
-        except SistemasHNError as exc:
+            captured = None
+            if fer_catalog is not None and fer_lines is not None:
+                pack_id = int(codigo[5:]) if codigo.startswith("PACK:") else None
+                pack = (
+                    None if pack_id is not None else fer_catalog.resolve_barcode(ctx.actor, codigo)
+                )
+                if pack_id is not None or pack is not None:
+                    captured = fer_lines.quote_line(
+                        ctx.actor, pack_id if pack_id is not None else pack.id, cantidad
+                    )
+                    producto = catalog.get_product(ctx.actor, captured.product_id)
+                else:
+                    producto = catalog.find_by_code_or_barcode(ctx.actor, codigo)
+            else:
+                producto = catalog.find_by_code_or_barcode(ctx.actor, codigo)
+        except (SistemasHNError, ValueError) as exc:
             error.value = str(exc)
             error.update()
             return
@@ -280,14 +313,21 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
             return
 
         error.value = ""
-        estado["lineas"] = [ln for ln in estado["lineas"] if ln.product_id != producto.id] + [
+        pack_id = captured.presentation.pack_id if captured else None
+        estado["lineas"] = [
+            ln
+            for ln in estado["lineas"]
+            if (ln.product_id, ln.presentation.pack_id if ln.presentation else None)
+            != (producto.id, pack_id)
+        ] + [
             _LineaCapturada(
                 product_id=producto.id,
                 code=producto.code,
                 name=producto.name,
-                qty=cantidad,
-                unit_price=producto.sale_price,
+                qty=captured.qty if captured else cantidad,
+                unit_price=captured.unit_price if captured else producto.sale_price,
                 tax_rate=producto.tax_rate,
+                presentation=captured.presentation if captured else None,
             )
         ]
         campo_codigo_producto.value = ""
@@ -298,6 +338,56 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
         totales.update()
         campo_codigo_producto.update()
         campo_cantidad.update()
+
+    def _elegir_presentacion(event: ft.Event[ft.Control]) -> None:
+        if fer_catalog is None or fer_lines is None:
+            return
+        codigo = (campo_codigo_producto.value or "").strip()
+        try:
+            pack_found = fer_catalog.resolve_barcode(ctx.actor, codigo)
+            producto = (
+                catalog.get_product(ctx.actor, pack_found.product_id)
+                if pack_found is not None
+                else catalog.find_by_code_or_barcode(ctx.actor, codigo)
+            )
+            if producto is None:
+                raise ValueError("indique el SKU o código de un artículo existente")
+            packs = fer_catalog.list_packs(ctx.actor, producto.id)
+            if not packs:
+                raise ValueError("este artículo no tiene presentaciones adicionales")
+        except (SistemasHNError, ValueError) as exc:
+            error.value = str(exc)
+            error.update()
+            return
+
+        chooser = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Elegir presentación"),
+            content=ft.Column(tight=True, spacing=theme.SPACING["sm"]),
+        )
+
+        def _seleccionar(pack_code: str | None, pack_id: int) -> None:
+            campo_codigo_producto.value = pack_code or f"PACK:{pack_id}"
+            campo_codigo_producto.update()
+            chooser.open = False
+            chooser.update()
+
+        chooser.content.controls = [
+            widgets.secondary_button(
+                f"{pack.label} · × {pack.factor_base}",
+                lambda e, code=pack.code, pid=pack.id: _seleccionar(code, pid),
+            )
+            for pack in packs
+        ]
+
+        def _cerrar_chooser(_: ft.Event[ft.Control]) -> None:
+            chooser.open = False
+            chooser.update()
+
+        chooser.actions = [widgets.secondary_button("Cerrar", _cerrar_chooser)]
+        pagina = safe_page(event.control)
+        if pagina is not None:
+            pagina.show_dialog(chooser)
 
     dialog = ft.AlertDialog(modal=True, title=ft.Text("Nueva cotización"))
     body = ft.Column(controls=[], tight=True, scroll=ft.ScrollMode.AUTO, height=560, width=520)
@@ -328,7 +418,12 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
             data = QuoteInput(
                 customer_id=estado["cliente"].id if estado["cliente"] is not None else None,
                 lines=[
-                    QuoteLineInput(product_id=ln.product_id, qty=ln.qty, unit_price=ln.unit_price)
+                    QuoteLineInput(
+                        product_id=ln.product_id,
+                        qty=ln.qty,
+                        unit_price=ln.unit_price,
+                        presentation=ln.presentation,
+                    )
                     for ln in estado["lineas"]
                 ],
                 valid_until=vigencia,
@@ -364,6 +459,11 @@ def _dialogo_nueva_cotizacion(ctx: AppContext, control: ft.Control, on_saved: Ca
             controls=[
                 campo_codigo_producto,
                 campo_cantidad,
+                *(
+                    [widgets.secondary_button("Elegir empaque", _elegir_presentacion)]
+                    if fer_lines is not None
+                    else []
+                ),
                 widgets.secondary_button("Agregar línea", _agregar_linea),
             ],
             wrap=True,
@@ -493,7 +593,12 @@ def _dialogo_conversion(
                 customer_id=cotizacion.customer_id,
                 quote_id=cotizacion.id,
                 lines=[
-                    SaleLineInput(product_id=ln.product_id, qty=ln.qty, unit_price=ln.unit_price)
+                    SaleLineInput(
+                        product_id=ln.product_id,
+                        qty=ln.qty,
+                        unit_price=ln.unit_price,
+                        presentation=ln.presentation,
+                    )
                     for ln in cotizacion.lines
                 ],
                 payments=[

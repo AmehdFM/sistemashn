@@ -16,6 +16,7 @@ from sistemashn.comercial.contrapartes.schemas import PartyView
 from sistemashn.comercial.contrapartes.service import PartyService
 from sistemashn.comercial.fiscal.service import FiscalService
 from sistemashn.comercial.pagos.methods import PaymentInput, PaymentMethod
+from sistemashn.comercial.presentacion import PresentationSnapshot
 from sistemashn.comercial.ui.components import safe_page
 from sistemashn.comercial.ui.parked_sales_store import ParkedSalesStore
 from sistemashn.comercial.ventas.schemas import SaleInput, SaleLineInput, SaleView
@@ -36,6 +37,7 @@ class _LineaCapturada:
     qty: Decimal
     unit_price: Decimal
     tax_rate: Decimal
+    presentation: PresentationSnapshot | None = None
 
 
 @dataclass
@@ -60,6 +62,8 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     fiscal: FiscalService = ctx.service("fiscal")
     parked: ParkedSalesStore = ctx.service("parked_sales")
     settings_service: SettingsService = ctx.service("settings")
+    fer_catalog = ctx.services.get("fer_catalog")
+    fer_lines = ctx.services.get("fer_lines")
 
     def _nuevo_estado() -> dict:
         return {
@@ -83,7 +87,9 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     cliente_elegido = ft.Text("", weight=ft.FontWeight.BOLD)
 
     campo_codigo_producto = widgets.form_field("Código o barras")
-    campo_codigo_producto.hint_text = "Enter para agregar"
+    campo_codigo_producto.hint_text = (
+        "SKU o código de empaque · Enter" if fer_lines is not None else "Enter para agregar"
+    )
     campo_cantidad = widgets.form_field("Cantidad", value="1")
     lista_lineas = ft.Column(spacing=theme.SPACING["xs"])
 
@@ -184,17 +190,25 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
     def _render_lineas() -> None:
         filas: list[ft.Control] = []
         for linea in estado["lineas"]:
+            pack_id = linea.presentation.pack_id if linea.presentation else None
+            detail = (
+                f" · {linea.presentation.quantity} {linea.presentation.label}"
+                if linea.presentation
+                else ""
+            )
             filas.append(
                 ft.Row(
                     controls=[
                         ft.Text(
-                            f"{linea.code} - {linea.name} · cant {linea.qty} · "
+                            f"{linea.code} - {linea.name}{detail} · base {linea.qty} · "
                             f"precio {widgets.format_lempiras(linea.unit_price)}"
                         ),
                         ft.IconButton(
                             icon=ft.Icons.DELETE,
                             tooltip="Quitar",
-                            on_click=lambda e, pid=linea.product_id: _quitar_linea(pid),
+                            on_click=lambda e, pid=linea.product_id, pack=pack_id: _quitar_linea(
+                                pid, pack
+                            ),
                         ),
                     ],
                     spacing=theme.SPACING["sm"],
@@ -203,21 +217,35 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
         lista_lineas.controls = filas
         _render_totales()
 
-    def _quitar_linea(product_id: int) -> None:
-        estado["lineas"] = [ln for ln in estado["lineas"] if ln.product_id != product_id]
+    def _quitar_linea(product_id: int, pack_id: int | None = None) -> None:
+        estado["lineas"] = [
+            ln
+            for ln in estado["lineas"]
+            if (ln.product_id, ln.presentation.pack_id if ln.presentation else None)
+            != (product_id, pack_id)
+        ]
         _render_lineas()
         lista_lineas.update()
         totales.update()
 
-    def _agregar_producto(producto: ProductView, cantidad: Decimal) -> None:
-        estado["lineas"] = [ln for ln in estado["lineas"] if ln.product_id != producto.id] + [
+    def _agregar_producto(
+        producto: ProductView, cantidad: Decimal, captured: SaleLineInput | None = None
+    ) -> None:
+        pack_id = captured.presentation.pack_id if captured and captured.presentation else None
+        estado["lineas"] = [
+            ln
+            for ln in estado["lineas"]
+            if (ln.product_id, ln.presentation.pack_id if ln.presentation else None)
+            != (producto.id, pack_id)
+        ] + [
             _LineaCapturada(
                 product_id=producto.id,
                 code=producto.code,
                 name=producto.name,
-                qty=cantidad,
-                unit_price=producto.sale_price,
+                qty=captured.qty if captured else cantidad,
+                unit_price=captured.unit_price if captured else producto.sale_price,
                 tax_rate=producto.tax_rate,
+                presentation=captured.presentation if captured else None,
             )
         ]
         campo_codigo_producto.value = ""
@@ -241,8 +269,16 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
             error.update()
             return
         try:
+            if fer_catalog is not None and fer_lines is not None:
+                pack = fer_catalog.resolve_barcode(ctx.actor, codigo)
+                if pack is not None:
+                    captured = fer_lines.sale_line(ctx.actor, pack.id, cantidad)
+                    _agregar_producto(
+                        catalog.get_product(ctx.actor, captured.product_id), cantidad, captured
+                    )
+                    return
             producto = catalog.find_by_code_or_barcode(ctx.actor, codigo)
-        except SistemasHNError as exc:
+        except (SistemasHNError, ValueError) as exc:
             error.value = str(exc)
             error.update()
             return
@@ -253,6 +289,65 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
         _agregar_producto(producto, cantidad)
 
     campo_codigo_producto.on_submit = _on_submit_codigo
+
+    def _elegir_presentacion(event: ft.Event[ft.Control]) -> None:
+        if fer_catalog is None or fer_lines is None:
+            return
+        codigo = (campo_codigo_producto.value or "").strip()
+        try:
+            cantidad = Decimal((campo_cantidad.value or "1").strip().replace(",", ""))
+            pack_found = fer_catalog.resolve_barcode(ctx.actor, codigo)
+            producto = (
+                catalog.get_product(ctx.actor, pack_found.product_id)
+                if pack_found is not None
+                else catalog.find_by_code_or_barcode(ctx.actor, codigo)
+            )
+            if producto is None:
+                raise ValueError("indique el SKU o código de un artículo existente")
+            packs = fer_catalog.list_packs(ctx.actor, producto.id)
+            if not packs:
+                raise ValueError("este artículo no tiene presentaciones adicionales")
+        except (SistemasHNError, ValueError, InvalidOperation) as exc:
+            error.value = str(exc)
+            error.update()
+            return
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Elegir presentación"),
+            content=ft.Column(tight=True, spacing=theme.SPACING["sm"]),
+        )
+
+        def _seleccionar(pack_id: int) -> None:
+            try:
+                line = fer_lines.sale_line(ctx.actor, pack_id, cantidad)
+            except (SistemasHNError, ValueError) as exc:
+                error.value = str(exc)
+                error.update()
+                return
+            dialog.open = False
+            dialog.update()
+            _agregar_producto(producto, cantidad, line)
+
+        dialog.content.controls = [
+            widgets.secondary_button(
+                f"{pack.label} · × {pack.factor_base} · "
+                + (
+                    widgets.format_lempiras(pack.price) if pack.price is not None else "precio base"
+                ),
+                lambda e, pid=pack.id: _seleccionar(pid),
+            )
+            for pack in packs
+        ]
+        dialog.actions = [widgets.secondary_button("Cerrar", lambda e: _cerrar())]
+
+        def _cerrar() -> None:
+            dialog.open = False
+            dialog.update()
+
+        pagina = safe_page(event.control)
+        if pagina is not None:
+            pagina.show_dialog(dialog)
 
     def _render_pagos() -> None:
         filas: list[ft.Control] = []
@@ -450,7 +545,12 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
             return SaleInput(
                 customer_id=estado["cliente"].id if estado["cliente"] is not None else None,
                 lines=[
-                    SaleLineInput(product_id=ln.product_id, qty=ln.qty, unit_price=ln.unit_price)
+                    SaleLineInput(
+                        product_id=ln.product_id,
+                        qty=ln.qty,
+                        unit_price=ln.unit_price,
+                        presentation=ln.presentation,
+                    )
                     for ln in estado["lineas"]
                 ],
                 payments=[
@@ -607,7 +707,15 @@ def build_pos_view(ctx: AppContext) -> ft.Control:
                 "Líneas", size=theme.FONT_SUBTITLE, weight=ft.FontWeight.W_600, color=theme.TEXT
             ),
             ft.Row(
-                controls=[campo_codigo_producto, campo_cantidad],
+                controls=[
+                    campo_codigo_producto,
+                    campo_cantidad,
+                    *(
+                        [widgets.secondary_button("Elegir empaque", _elegir_presentacion)]
+                        if fer_lines is not None
+                        else []
+                    ),
+                ],
                 wrap=True,
                 spacing=theme.SPACING["sm"],
             ),

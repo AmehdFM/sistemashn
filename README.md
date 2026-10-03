@@ -43,11 +43,20 @@ evn\Scripts\python.exe src\main.py --data-dir .dev-data\manual
 Desde PowerShell, en la raíz del repositorio:
 
 ```powershell
+.\sistemashn.ps1       # menú: ejecutar, compilar o generar licencia; luego elegir vertical
+.\sistemashn.ps1 run -Vertical repuestos
+.\sistemashn.ps1 run -Vertical ferreteria
 .\scripts\dev.ps1 test   # pytest completo, ruff check y formato
-.\scripts\dev.ps1 build  # lo anterior + ejecutable Windows y ZIP en build/
-.\scripts\dev.ps1 run    # app de escritorio con datos aislados en .dev-data/manual
+.\scripts\dev.ps1 build -Vertical repuestos  # pruebas + ejecutable Windows y ZIP
+.\scripts\dev.ps1 run -Vertical ferreteria   # datos aislados en .dev-data/manual-ferreteria
 ```
+
+También se puede abrir `SistemasHN.cmd` con doble clic: deja la consola abierta al terminar.
+El menú muestra solo verticales cuyo punto de entrada esté disponible. Cada vertical usa su
+propia carpeta de datos; la licencia de desarrollo se genera para la vertical elegida.
+El flujo y los límites de Ferretería están en [docs/ferreteria.md](docs/ferreteria.md).
 
 `build` incluye las migraciones fuente que Alembic necesita y arranca el ejecutable con una
 base temporal para comprobar que crea `core_installation`. El resultado queda en
-`build/windows_release/` y `build/SistemasHNRepuestos<version>.zip`.
+`build/windows_release/` y `build/SistemasHNRepuestos<version>.zip` para Repuestos; en
+`build/windows_release_ferreteria/` y `build/SistemasHNFerreteria<version>.zip` para Ferretería.

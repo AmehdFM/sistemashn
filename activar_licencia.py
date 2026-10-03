@@ -7,9 +7,10 @@ la reconozca (la clave publica que ya estaba en ese archivo no tiene una privada
 disponible en este repositorio, por eso hace falta generar una nueva).
 
 Uso:
-    evn\\Scripts\\python.exe activar_licencia.py [--data-dir RUTA] [--business "Nombre"]
+    evn\\Scripts\\python.exe activar_licencia.py [--data-dir RUTA] [--vertical VERTICAL]
+        [--business "Nombre"]
 
-Imprime el codigo de activacion (SHNLIC1...) para pegarlo en la pantalla de primer
+Imprime el codigo de activacion (SHN1...) para pegarlo en la pantalla de primer
 arranque de la app.
 """
 
@@ -71,22 +72,35 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--data-dir",
-        default=str(ROOT / ".dev-data" / "manual"),
-        help="Carpeta de datos de la instalacion a activar (por defecto .dev-data/manual)",
+        default=None,
+        help="Carpeta de datos de la instalacion a activar",
     )
     parser.add_argument(
         "--business",
-        default="Repuestos Demo",
+        default=None,
         help="Nombre de negocio que queda grabado en la licencia (solo informativo)",
     )
+    parser.add_argument(
+        "--vertical",
+        choices=("repuestos", "ferreteria"),
+        default="repuestos",
+        help="Vertical de la instalación que se va a activar",
+    )
     args = parser.parse_args()
+    data_path = (
+        Path(args.data_dir)
+        if args.data_dir
+        else (
+            ROOT / ".dev-data" / ("manual" if args.vertical == "repuestos" else "manual-ferreteria")
+        )
+    )
 
     _ensure_dev_key()
 
     from sistemashn.app.bootstrap import build_context
     from sistemashn.core.setup.service import SetupStep
 
-    contexto = build_context(Path(args.data_dir))
+    contexto = build_context(data_path, vertical=args.vertical)
     setup = contexto.service("setup")
     estado = setup.state()
 
@@ -105,7 +119,7 @@ def main() -> None:
             "--request",
             estado.request_code,
             "--business",
-            args.business,
+            args.business or f"{args.vertical.capitalize()} Demo",
             "--key",
             str(PRIV_PATH),
             "--key-id",

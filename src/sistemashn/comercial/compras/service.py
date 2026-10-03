@@ -31,6 +31,7 @@ from sistemashn.comercial.credito.schemas import AccountKind
 from sistemashn.comercial.credito.service import AccountService
 from sistemashn.comercial.idempotency import find_previous, remember
 from sistemashn.comercial.inventario.ledger import InventoryLedger
+from sistemashn.comercial.presentacion import PresentationSnapshot
 from sistemashn.comercial.sequences import format_number, next_number
 from sistemashn.core.audit.service import audit
 from sistemashn.core.authorization.actor import Actor
@@ -116,6 +117,7 @@ class PurchaseService:
                         "subtotal": subtotal,
                         "tax": impuesto,
                         "total": total_linea,
+                        "presentation": linea.presentation,
                     }
                 )
 
@@ -168,13 +170,23 @@ class PurchaseService:
                         purchase_id=purchase.id,
                         line_no=li["line_no"],
                         product_id=product.id,
-                        description_snapshot=product.name,
+                        description_snapshot=(
+                            f"{product.name} · {li['presentation'].quantity} × "
+                            f"{li['presentation'].label}"
+                        )[:200]
+                        if li["presentation"] is not None
+                        else product.name,
                         qty=li["qty"],
                         unit_cost=li["unit_cost"],
                         tax_rate=li["tax_rate"],
                         line_subtotal=li["subtotal"],
                         line_tax=li["tax"],
                         line_total=li["total"],
+                        presentation_snapshot=(
+                            li["presentation"].model_dump_json()
+                            if li["presentation"] is not None
+                            else None
+                        ),
                     )
                 )
                 self.ledger.receive(
@@ -427,6 +439,15 @@ class PurchaseService:
                 line_subtotal=linea.line_subtotal,
                 line_tax=linea.line_tax,
                 line_total=linea.line_total,
+                presentation=(
+                    PresentationSnapshot.model_validate_json(
+                        linea.presentation_snapshot
+                    ).model_copy(update={"unit_amount": None})
+                    if linea.presentation_snapshot and not ver_costos
+                    else PresentationSnapshot.model_validate_json(linea.presentation_snapshot)
+                    if linea.presentation_snapshot
+                    else None
+                ),
             )
             for linea in lineas
         )

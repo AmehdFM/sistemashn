@@ -49,6 +49,7 @@ class PurchaseLine(Base):
     line_subtotal: Mapped[object] = mapped_column(Money(), nullable=False)
     line_tax: Mapped[object] = mapped_column(Money(), nullable=False)
     line_total: Mapped[object] = mapped_column(Money(), nullable=False)
+    presentation_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class PurchasePayment(Base):

@@ -48,8 +48,12 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
     """Asistente de 4 pasos según `SetupService.state()`; reinicia en el paso donde quedó."""
     setup_service = ctx.service("setup")
 
-    error_slot = ft.Column(controls=[])
-    content_slot = ft.Column(controls=[], spacing=theme.SPACING["md"])
+    error_slot = ft.Column(controls=[], horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+    content_slot = ft.Column(
+        controls=[],
+        spacing=theme.SPACING["md"],
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+    )
     pending_codes: dict[str, list[str]] = {}
 
     def _set_error(message: str | None) -> None:
@@ -104,6 +108,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 widgets.primary_button("Continuar", _enviar),
             ],
             spacing=theme.SPACING["sm"],
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
 
     def _step_business() -> ft.Control:
@@ -157,6 +162,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 widgets.primary_button("Continuar", _enviar),
             ],
             spacing=theme.SPACING["sm"],
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
 
     def _step_admin() -> ft.Control:
@@ -189,6 +195,7 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 widgets.primary_button("Continuar", _enviar),
             ],
             spacing=theme.SPACING["sm"],
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
 
     def _step_recovery() -> ft.Control:
@@ -232,10 +239,13 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 boton,
             ],
             spacing=theme.SPACING["sm"],
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
 
     _refresh()
-    return ft.Container(
+    panel = ft.Container(
+        width=680,
+        padding=ft.Padding.all(theme.SPACING["xl"]),
         content=ft.Column(
             controls=[
                 ft.Text(
@@ -247,8 +257,15 @@ def build_setup_view(ctx: AppContext, on_done: Callable[[], None]) -> ft.Control
                 content_slot,
             ],
             spacing=theme.SPACING["md"],
-            scroll=ft.ScrollMode.AUTO,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+            tight=True,
         ),
-        padding=ft.Padding.all(theme.SPACING["xl"]),
+    )
+    return ft.Container(
+        content=ft.Column(
+            controls=[ft.Row(controls=[panel], alignment=ft.MainAxisAlignment.CENTER)],
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        ),
         expand=True,
     )

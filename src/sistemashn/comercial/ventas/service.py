@@ -22,6 +22,7 @@ from sistemashn.comercial.inventario.errors import InsufficientStock
 from sistemashn.comercial.inventario.ledger import InventoryLedger
 from sistemashn.comercial.inventario.models import Stock
 from sistemashn.comercial.pagos.methods import PaymentMethod
+from sistemashn.comercial.presentacion import PresentationSnapshot
 from sistemashn.comercial.sequences import format_number, next_number
 from sistemashn.comercial.ventas.errors import (
     InvalidSaleLine,
@@ -180,6 +181,7 @@ class SaleService:
                         "tax": impuesto,
                         "total": total_linea,
                         "kit_lines": kit_lines,
+                        "presentation": linea.presentation,
                     }
                 )
 
@@ -250,7 +252,12 @@ class SaleService:
                         sale_id=sale.id,
                         line_no=li["line_no"],
                         product_id=product.id,
-                        description_snapshot=product.name,
+                        description_snapshot=(
+                            f"{product.name} · {li['presentation'].quantity} × "
+                            f"{li['presentation'].label}"
+                        )[:200]
+                        if li["presentation"] is not None
+                        else product.name,
                         qty=li["qty"],
                         unit_price=li["unit_price"],
                         tax_rate=li["tax_rate"],
@@ -260,6 +267,11 @@ class SaleService:
                         unit_cost_snapshot=costo_encabezado,
                         kit_component_of=None,
                         backorder_qty=backorder_encabezado,
+                        presentation_snapshot=(
+                            li["presentation"].model_dump_json()
+                            if li["presentation"] is not None
+                            else None
+                        ),
                     )
                 )
                 if kit_lines is not None:
@@ -687,6 +699,11 @@ class SaleService:
                 unit_cost_snapshot=linea.unit_cost_snapshot,
                 kit_component_of=linea.kit_component_of,
                 backorder_qty=linea.backorder_qty,
+                presentation=(
+                    PresentationSnapshot.model_validate_json(linea.presentation_snapshot)
+                    if linea.presentation_snapshot
+                    else None
+                ),
             )
             for linea in lineas
         )

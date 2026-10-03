@@ -20,7 +20,7 @@ def _release(tmp_path: Path) -> Path:
 def test_release_migrations_create_installation_table(tmp_path: Path) -> None:
     release = _release(tmp_path)
 
-    assert verify_release(release) == "0006"
+    assert verify_release(release) == "0009"
 
 
 def test_release_rejects_bytecode_only_migrations(tmp_path: Path) -> None:

@@ -33,6 +33,8 @@ class SalesProfitReport:
     total_profit: Decimal | None
     since: datetime
     until: datetime
+    incomplete_cost_sales: int = 0
+    unlinked_returns: int = 0
 
 
 @dataclass(frozen=True)
